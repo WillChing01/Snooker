@@ -13,10 +13,10 @@ using namespace boost::numeric::odeint;
 
 //lengths are in inches.
 
-const int framerate=50;
+const int framerate=100;
 const double timestep=1./framerate;
 
-const double epsilon=pow(10,-12);
+const double epsilon=pow(10,-10);
 
 const int updates=floor(1/(timestep*framerate));
 
@@ -53,8 +53,8 @@ const double mpocket_r=2.094;
 const double cpocket_r=3.5;
 
 const double pround=3.1;
-const double k1=double(8.595)-double(9.)*sin(pi/double(4.));
-const double k2=k1+double(4.5)*sin(pi/double(4.))-double(2.445);
+const double k1=8.595-9.*sin(pi/4.);
+const double k2=k1+4.5*sin(pi/4.)-2.445;
 
 const double cueball_break_x=rail_thickness+cush_thickness+table_length-29;
 const double cueball_break_y=rail_thickness+cush_thickness+table_width/2+6;
@@ -121,6 +121,20 @@ std::tuple<double,double> add_vectors(double v1,double a1,double v2,double a2)
     return std::make_tuple(nroot(pow(x,2)+pow(y,2),2),atan2(x,y));
 }
 
+std::array<double,3> subtract_vectors(std::array<double,3> a,std::array<double,3> b)
+{
+    std::array<double,3> out;
+    out[0]=a[0]-b[0];
+    out[1]=a[1]-b[1];
+    out[2]=a[2]-b[2];
+    return out;
+}
+
+double dot_product(std::array<double,3> a,std::array<double,3> b)
+{
+    return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+}
+
 typedef std::array<double,4> state_type;
 
 struct push_back_state_and_time
@@ -163,24 +177,19 @@ class Ball
     public:
         double _x=0;
         double _y=0;
+        double _z=ball_radius;
         double _r=ball_radius;
-        double _height=ball_radius;
         bool _potted=false;
-        bool _canplace=false;
         bool _onrim=false;
         bool _inflight=false;
 
         //attributes for movement.
-        double _speed=0;
-        double _angle=0;
-        double _verticalspeed=0;
         double _rspin=0;
         double _xspin=0;
         double _yspin=0;
         double _vx=0;
         double _vy=0;
         double _vz=0;
-        double _z=ball_radius;
 
         //grid position.
         int _gpos[4][2]={};
@@ -206,7 +215,6 @@ class Ball
 
         //class functions.
         Ball();
-        void place();
         void update_equation();
         std::array<double,3> get_position(double t);
         std::array<double,3> get_velocity(double t);
@@ -217,11 +225,6 @@ Ball::Ball()
 {
     _shape.setRadius(_r*dfactor);
     _shape.setOrigin(dfactor*_r/2,dfactor*_r/2);
-}
-
-void Ball::place()
-{
-    return;
 }
 
 void Ball::update_equation()
@@ -286,16 +289,16 @@ void Ball::update_equation()
             _inflight=true;
             break;
         }
-        else if (dist>=mpocket_r-ball_radius && dist<mpocket_r)
+        else if (dist>=mpocket_r-ball_radius && dist<mpocket_r+epsilon)
         {
             dist=nroot(pow(mpocket_r-dist,2)+pow(_z,2),2);
-            if (dist<=ball_radius)
+            if (dist<=ball_radius+epsilon)
             {
                 //on the rim.
                 //check if normal force is zero.
                 phi=acos(_z/dist);
                 nspeed=nroot(pow(_vx,2)+pow(_vy,2),2)*cos(atan2(mpockets[i][0]-_x,mpockets[i][1]-_y)-atan2(_vx,_vy));
-                parspeed=nroot(pow(_vx,2)+pow(_vy,2),2)*sin(atan2(mpockets[i][0]-_x,mpockets[i][1]-_y)-atan2(_vx,_vy));
+                parspeed=nroot(pow(_vx,2)+pow(_vy,2),2)*cos(atan2(mpockets[i][0]-_x,mpockets[i][1]-_y)+0.5*pi-atan2(_vx,_vy));
                 vtheta=parspeed/nroot(pow(_x-mpockets[i][0],2)+pow(_y-mpockets[i][1],2),2);
                 vphi=nroot(pow(nspeed,2)+pow(_vz,2),2)/dist;
                 normal=gravity*cos(phi)-ball_radius*pow(vphi,2)+(mpocket_r-ball_radius*sin(phi))*sin(phi)*pow(vtheta,2);
@@ -309,6 +312,7 @@ void Ball::update_equation()
                     vtheta=(vtheta+(0.4*ball_radius*wphi)/(mpocket_r-ball_radius*sin(phi)))/(1.4);
                     vphi=(vphi-(0.4*ball_radius*wtheta)/(mpocket_r-ball_radius*sin(phi)))/(1.4);
 
+                    double _angle=atan2(_vx,_vy);
                     relx=((_x-mpockets[i][0])-(_y-mpockets[i][1])*tan(_angle))/(cos(_angle)+sin(_angle)*tan(_angle));
                     rely=((_x-mpockets[i][0])*tan(_angle)+(_y-mpockets[i][1]))/(cos(_angle)+sin(_angle)*tan(_angle));
                     theta=pi-atan2(relx,rely);
@@ -341,7 +345,7 @@ void Ball::update_equation()
                             break;
                         }
                     }
-                    for (int j=0;j<500-ind-1;j++)
+                    for (int j=0;j<500-ind;j++)
                     {
                         _times.pop_back();
                     }
@@ -356,6 +360,14 @@ void Ball::update_equation()
                     break;
                 }
             }
+            else
+            {
+                //falling.
+                _az[2]=-0.5*gravity;
+                _avz[1]=-gravity;
+                _inflight=true;
+                break;
+            }
         }
     }
     for (int i=0;i<4;i++)
@@ -369,16 +381,16 @@ void Ball::update_equation()
             _inflight=true;
             break;
         }
-        else if (dist>=cpocket_r-ball_radius && dist<cpocket_r)
+        else if (dist>=cpocket_r-ball_radius && dist<cpocket_r+epsilon)
         {
             dist=nroot(pow(cpocket_r-dist,2)+pow(_z,2),2);
-            if (dist<=ball_radius)
+            if (dist<=ball_radius+epsilon)
             {
                 //on the rim.
                 //check if normal force is zero.
                 phi=acos(_z/dist);
                 nspeed=nroot(pow(_vx,2)+pow(_vy,2),2)*cos(atan2(cpockets[i][0]-_x,cpockets[i][1]-_y)-atan2(_vx,_vy));
-                parspeed=nroot(pow(_vx,2)+pow(_vy,2),2)*sin(atan2(cpockets[i][0]-_x,cpockets[i][1]-_y)-atan2(_vx,_vy));
+                parspeed=nroot(pow(_vx,2)+pow(_vy,2),2)*cos(atan2(cpockets[i][0]-_x,cpockets[i][1]-_y)+0.5*pi-atan2(_vx,_vy));
                 vtheta=parspeed/nroot(pow(_x-cpockets[i][0],2)+pow(_y-cpockets[i][1],2),2);
                 vphi=nroot(pow(nspeed,2)+pow(_vz,2),2)/dist;
                 normal=gravity*cos(phi)-ball_radius*pow(vphi,2)+(cpocket_r-ball_radius*sin(phi))*sin(phi)*pow(vtheta,2);
@@ -391,6 +403,8 @@ void Ball::update_equation()
                     wphi=(_xspin*cos(atan2(_x-cpockets[i][0],_y-cpockets[i][1]))-_yspin*sin(atan2(_x-cpockets[i][0],_y-cpockets[i][1])))*cos(phi)-_rspin*sin(phi);
                     vtheta=(vtheta+(0.4*ball_radius*wphi)/(cpocket_r-ball_radius*sin(phi)))/(1.4);
                     vphi=(vphi-(0.4*ball_radius*wtheta)/(cpocket_r-ball_radius*sin(phi)))/(1.4);
+
+                    double _angle=atan2(_vx,_vy);
 
                     relx=((_x-cpockets[i][0])-(_y-cpockets[i][1])*tan(_angle))/(cos(_angle)+sin(_angle)*tan(_angle));
                     rely=((_x-cpockets[i][0])*tan(_angle)+(_y-cpockets[i][1]))/(cos(_angle)+sin(_angle)*tan(_angle));
@@ -424,7 +438,7 @@ void Ball::update_equation()
                             break;
                         }
                     }
-                    for (int j=0;j<500-ind-1;j++)
+                    for (int j=0;j<500-ind;j++)
                     {
                         _times.pop_back();
                     }
@@ -438,6 +452,14 @@ void Ball::update_equation()
                     _inflight=true;
                     break;
                 }
+            }
+            else
+            {
+                //falling.
+                _az[2]=-0.5*gravity;
+                _avz[1]=-gravity;
+                _inflight=true;
+                break;
             }
         }
     }
@@ -475,7 +497,7 @@ void Ball::update_equation()
             {
                 //rolling in x.
                 _vx=_xspin*_r;
-                _ax[2]=-double(0.5)*mus*gravity*_vx/m;
+                _ax[2]=-0.5*mus*gravity*_vx/m;
                 _t=std::min(m/(mus*gravity),_t);
                 _avx[1]=-mus*gravity*_vx/m;
                 _awx[1]=-mus*gravity*_vx/(_r*m);
@@ -483,10 +505,10 @@ void Ball::update_equation()
             else
             {
                 //sliding in x.
-                _ax[2]=double(0.5)*muk*gravity*(_xspin*_r-_vx)/m;
-                _t=std::min(double(2./7.)*m/(muk*gravity),_t);
+                _ax[2]=0.5*muk*gravity*(_xspin*_r-_vx)/m;
+                _t=std::min((2./7.)*m/(muk*gravity),_t);
                 _avx[1]=(_xspin*_r-_vx)*muk*gravity/m;
-                _awx[1]=-(_xspin*_r-_vx)*double(2.5)*muk*gravity/(_r*m);
+                _awx[1]=-(_xspin*_r-_vx)*2.5*muk*gravity/(_r*m);
             }
 
             if (fabs(_vy)<epsilon && fabs(_yspin)<epsilon)
@@ -500,7 +522,7 @@ void Ball::update_equation()
             {
                 //rolling in y.
                 _vy=_yspin*_r;
-                _ay[2]=-double(0.5)*mus*gravity*_vy/m;
+                _ay[2]=-0.5*mus*gravity*_vy/m;
                 _t=std::min(m/(mus*gravity),_t);
                 _avy[1]=-mus*gravity*_vy/m;
                 _awy[1]=-mus*gravity*_vy/(_r*m);
@@ -508,13 +530,74 @@ void Ball::update_equation()
             else
             {
                 //sliding in y.
-                _ay[2]=double(0.5)*muk*gravity*(_yspin*_r-_vy)/m;
-                _t=std::min(double(2./7.)*m/(muk*gravity),_t);
+                _ay[2]=0.5*muk*gravity*(_yspin*_r-_vy)/m;
+                _t=std::min((2./7.)*m/(muk*gravity),_t);
                 _avy[1]=(_yspin*_r-_vy)*muk*gravity/m;
-                _awy[1]=-(_yspin*_r-_vy)*double(2.5)*muk*gravity/(_r*m);
+                _awy[1]=-(_yspin*_r-_vy)*2.5*muk*gravity/(_r*m);
             }
         }
     }
+
+    if (_inflight)
+    {
+        std::array<double,2> roots=qsolve_quadratic(_az[2],_az[1],_az[0]+ball_radius);
+        for (int i=0;i<2;i++)
+        {
+            if (roots[i]==roots[i] && roots[i]>=epsilon && roots[i]<_t)
+            {
+                phi=roots[i];
+                theta=_az[2]*phi*phi+_az[1]*phi+_az[0]+ball_radius;
+                if (theta<0)
+                {
+                    _t=phi;
+                }
+                else
+                {
+                    int c=0;
+                    while (true)
+                    {
+                        c+=1;
+                        phi=roots[i]-c*epsilon;
+                        theta=_az[2]*phi*phi+_az[1]*phi+_az[0]+ball_radius;
+                        if (theta<0 && phi>=epsilon)
+                        {
+                            _t=phi;
+                            break;
+                        }
+                        phi=roots[i]+c*epsilon;
+                        theta=_az[2]*phi*phi+_az[1]*phi+_az[0]+ball_radius;
+                        if (theta<0 && phi<_t)
+                        {
+                            _t=phi;
+                            break;
+                        }
+                        if (c>1000)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (_order==1 && _onrim)
+    {
+        std::cout << "On the rim!" << std::endl;
+        for (int i=0;i<1;i++)
+        {
+            std::cout << _rimpos[i][0] << " : " << _rimpos[i][1] << " : " << _rimpos[i][2] << " : " << _times[i] << std::endl;
+            std::cout << _rimvel[i][0] << " : " << _rimvel[i][1] << " : " << _rimvel[i][2] << std::endl;
+        }
+    }
+    if (_order==1 && _inflight)
+    {
+        std::cout << "In flight!" << std::endl;
+    }
+//    if (_order==1 && !_inflight && !_onrim && !_potted)
+//    {
+//        std::cout << "On bed!" << std::endl;
+//    }
 }
 
 std::array<double,3> Ball::get_position(double t)
@@ -563,7 +646,6 @@ class Cushion
         Cushion();
         Cushion(double x1,double y1,double angle1,int p1,int p2);
         std::tuple<double,double> distance(double x,double y,double height);
-        void display();
 };
 
 Cushion::Cushion(){}
@@ -902,7 +984,7 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
         if (height<0)
         {
             angle=atan2(relx,rely);
-            if (angle>=double(0.25)*pi && angle<cpocket_angle)
+            if (angle>=0.25*pi && angle<cpocket_angle)
             {
                 dist=nroot(pow(relx,2)+pow(rely,2),2);
                 if (dist<cpocket_r)
@@ -917,10 +999,10 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             }
         }
         //check in pocket first.
-        angle=atan2(k1*double(0.5)-relx,k1*double(0.5)-rely);
-        if (angle>-pi/double(4.) && angle<=pi/double(4.))
+        angle=atan2(k1*0.5-relx,k1*0.5-rely);
+        if (angle>-pi/4. && angle<=pi/4.)
         {
-            dist=fabs(nroot(pow(k1*double(0.5)-relx,2)+pow(k1*double(0.5)-rely,2),2)-double(0.5)*k1*nroot(double(2.0),2));
+            dist=fabs(nroot(pow(k1*0.5-relx,2)+pow(k1*0.5-rely,2),2)-0.5*k1*nroot(2.,2));
             if (dist<min_dist)
             {
                 min_dist=dist;
@@ -928,7 +1010,7 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             }
         }
         //check straight bit.
-        a1=double(0.5)*(relx+rely+k1);
+        a1=0.5*(relx+rely+k1);
         a2=a1-k1;
         if (a1>=k1 && a1<k2)
         {
@@ -936,14 +1018,14 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             if (dist<min_dist)
             {
                 min_dist=dist;
-                normal_angle=pi*double(7./4.);
+                normal_angle=pi*7./4.;
             }
         }
         //check curvy 1.
-        angle=atan2(relx-double(6.15),rely+double(2.445));
-        if (angle>=-pi/double(4.) && angle<-atan(double(6.0/11.0)))
+        angle=atan2(relx-6.15,rely+2.445);
+        if (angle>=-pi/4. && angle<-atan(6./11.))
         {
-            dist=fabs(nroot(pow(relx-double(6.15),2)+pow(rely+double(2.445),2),2)-double(4.5));
+            dist=fabs(nroot(pow(relx-6.15,2)+pow(rely+2.445,2),2)-4.5);
             if (dist<min_dist)
             {
                 min_dist=dist;
@@ -951,10 +1033,10 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             }
         }
         //check curvy 2.
-        angle=atan2(relx-double(5.43),rely+double(1.125));
-        if (angle>=-atan(double(6./11.)) && angle<0)
+        angle=atan2(relx-5.43,rely+1.125);
+        if (angle>=-atan(6./11.) && angle<0)
         {
-            dist=fabs(nroot(pow(relx-double(5.43),2)+pow(rely+double(1.125),2),2)-double(3.));
+            dist=fabs(nroot(pow(relx-5.43,2)+pow(rely+1.125,2),2)-3.);
             if (dist<min_dist)
             {
                 min_dist=dist;
@@ -965,7 +1047,7 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
         if (_p2!=0)
         {
             //check straight bit.
-            if (relx>=double(5.43) && relx<_length-double(4.344))
+            if (relx>=5.43 && relx<_length-4.344)
             {
                 dist=fabs(rely-cush_thickness);
                 if (dist<min_dist)
@@ -975,10 +1057,10 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
                 }
             }
             //check curvy.
-            angle=atan2(relx-_length+double(4.344),rely+double(1.25));
-            if (angle>=0 && angle<atan(double(0.625/0.812)))
+            angle=atan2(relx-_length+4.344,rely+1.25);
+            if (angle>=0 && angle<atan(0.625/0.812))
             {
-                dist=fabs(nroot(pow(relx-_length+double(4.344),2)+pow(rely+double(1.25),2),2)-double(3.125));
+                dist=fabs(nroot(pow(relx-_length+4.344,2)+pow(rely+1.25,2),2)-3.125);
                 if (dist<min_dist)
                 {
                     min_dist=dist;
@@ -986,10 +1068,10 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
                 }
             }
             //check curvy2.
-            angle=atan2(relx-_length+double(3.719),rely+double(0.438));
-            if (angle>=atan(double(0.625/0.812)) && angle<pi/double(2.))
+            angle=atan2(relx-_length+3.719,rely+0.438);
+            if (angle>=atan(0.625/0.812) && angle<pi/2.)
             {
-                dist=fabs(nroot(pow(relx-_length+double(3.719),2)+pow(rely+double(0.438),2),2)-double(2.094));
+                dist=fabs(nroot(pow(relx-_length+3.719,2)+pow(rely+0.438,2),2)-2.094);
                 if (dist<min_dist)
                 {
                     min_dist=dist;
@@ -997,20 +1079,20 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
                 }
             }
             //check straight bit.
-            if (rely<=-double(0.438) && rely>(double(1.875)-pround*cos(asin(double(1.625)/pround))))
+            if (rely<=-0.438 && rely>(1.875-pround*cos(asin(1.625/pround))))
             {
-                dist=fabs(_length-double(1.625)-relx);
+                dist=fabs(_length-1.625-relx);
                 if (dist<min_dist)
                 {
                     min_dist=dist;
-                    normal_angle=double(0.5)*pi;
+                    normal_angle=0.5*pi;
                 }
             }
             //check in pocket.
-            angle=atan2(-relx+_length,-rely+double(1.875));
-            if (angle<=asin(double(1.625)/pround) && angle>0)
+            angle=atan2(-relx+_length,-rely+1.875);
+            if (angle<=asin(1.625/pround) && angle>0)
             {
-                dist=fabs(nroot(pow(relx-_length,2)+pow(-rely+double(1.875),2),2)-pround);
+                dist=fabs(nroot(pow(relx-_length,2)+pow(-rely+1.875,2),2)-pround);
                 if (dist<min_dist)
                 {
                     min_dist=dist;
@@ -1022,7 +1104,7 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
         else
         {
             //check straight bit.
-            if (relx>=double(5.43) && relx<_length-double(5.43))
+            if (relx>=5.43 && relx<_length-5.43)
             {
                 dist=fabs(rely-cush_thickness);
                 if (dist<min_dist)
@@ -1032,10 +1114,10 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
                 }
             }
             //check curvy.
-            angle=atan2(relx-_length+double(5.43),rely+double(1.125));
-            if (angle>=0 && angle<atan(double(6./11.)))
+            angle=atan2(relx-_length+5.43,rely+1.125);
+            if (angle>=0 && angle<atan(6./11.))
             {
-                dist=fabs(nroot(pow(relx-_length+double(5.43),2)+pow(rely+double(1.125),2),2)-double(3.));
+                dist=fabs(nroot(pow(relx-_length+5.43,2)+pow(rely+1.125,2),2)-3.);
                 if (dist<min_dist)
                 {
                     min_dist=dist;
@@ -1043,10 +1125,10 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
                 }
             }
             //check curvy 2.
-            angle=atan2(relx-_length+double(6.15),rely+double(2.445));
-            if (angle>=atan(double(6./11.)) && angle<pi/double(4.))
+            angle=atan2(relx-_length+6.15,rely+2.445);
+            if (angle>=atan(6./11.) && angle<pi/4.)
             {
-                dist=fabs(nroot(pow(relx-_length+double(6.15),2)+pow(rely+double(2.445),2),2)-double(4.5));
+                dist=fabs(nroot(pow(relx-_length+6.15,2)+pow(rely+2.445,2),2)-4.5);
                 if (dist<min_dist)
                 {
                     min_dist=dist;
@@ -1054,7 +1136,7 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
                 }
             }
             //check straight bit.
-            a1=double(0.5)*(_length-k1+relx-rely);
+            a1=0.5*(_length-k1+relx-rely);
             a2=a1+rely-relx;
             if (a1>=_length-k2 && a1<_length-k1)
             {
@@ -1062,14 +1144,14 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
                 if (dist<min_dist)
                 {
                     min_dist=dist;
-                    normal_angle=pi/double(4.);
+                    normal_angle=pi/4.;
                 }
             }
             //check in pocket.
-            angle=atan2(_length-k1*double(0.5)-relx,k1*double(0.5)-rely);
-            if (angle<=pi/double(4.) && angle>-pi/double(4.))
+            angle=atan2(_length-k1*0.5-relx,k1*0.5-rely);
+            if (angle<=pi/4. && angle>-pi/4.)
             {
-                dist=fabs(nroot(pow(k1*double(0.5)-rely,2)+pow(_length-k1*double(0.5)-relx,2),2)-double(0.5)*k1*nroot(double(2.0),2));
+                dist=fabs(nroot(pow(k1*0.5-rely,2)+pow(_length-k1*0.5-relx,2),2)-0.5*k1*nroot(2.,2));
                 if (dist<min_dist)
                 {
                     min_dist=dist;
@@ -1079,7 +1161,7 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             if (height<0)
             {
                 angle=atan2(relx-_length,rely);
-                if (angle>=-cpocket_angle && angle<-double(0.25)*pi)
+                if (angle>=-cpocket_angle && angle<-0.25*pi)
                 {
                     dist=nroot(pow(relx-_length,2)+pow(rely,2),2);
                     if (dist<cpocket_r)
@@ -1099,10 +1181,10 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
     else
     {
         //check in pocket first.
-        angle=atan2(-relx,-rely+double(1.875));
-        if (angle<=0 && angle>-asin(double(1.625)/pround))
+        angle=atan2(-relx,-rely+1.875);
+        if (angle<=0 && angle>-asin(1.625/pround))
         {
-            dist=fabs(nroot(pow(-rely+double(1.875),2)+pow(relx,2),2)-pround);
+            dist=fabs(nroot(pow(-rely+1.875,2)+pow(relx,2),2)-pround);
             if (dist<min_dist)
             {
                 min_dist=dist;
@@ -1110,20 +1192,20 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             }
         }
         //check straight bit.
-        if (rely<=-double(0.438) && rely>(double(1.875)-pround*cos(asin(double(1.625)/pround))))
+        if (rely<=-0.438 && rely>(1.875-pround*cos(asin(1.625/pround))))
         {
-            dist=fabs(relx-double(1.625));
+            dist=fabs(relx-1.625);
             if (dist<min_dist)
             {
                 min_dist=dist;
-                normal_angle=double(1.5)*pi;
+                normal_angle=1.5*pi;
             }
         }
         //check curvy.
-        angle=atan2(relx-double(3.719),rely+double(0.438));
-        if (angle>=-pi/2 && angle<-atan(double(0.625/0.812)))
+        angle=atan2(relx-3.719,rely+0.438);
+        if (angle>=-pi/2 && angle<-atan(0.625/0.812))
         {
-            dist=fabs(nroot(pow(rely+double(0.438),2)+pow(relx-double(3.719),2),2)-double(2.094));
+            dist=fabs(nroot(pow(rely+0.438,2)+pow(relx-3.719,2),2)-2.094);
             if (dist<min_dist)
             {
                 min_dist=dist;
@@ -1131,10 +1213,10 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             }
         }
         //check curvy 2.
-        angle=atan2(relx-double(4.344),rely+double(1.25));
-        if (angle>=-atan(double(0.625/0.812)) && angle<0)
+        angle=atan2(relx-4.344,rely+1.25);
+        if (angle>=-atan(0.625/0.812) && angle<0)
         {
-            dist=fabs(nroot(pow(relx-double(4.344),2)+pow(rely+double(1.25),2),2)-double(3.125));
+            dist=fabs(nroot(pow(relx-4.344,2)+pow(rely+1.25,2),2)-3.125);
             if (dist<min_dist)
             {
                 min_dist=dist;
@@ -1142,7 +1224,7 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             }
         }
         //check straight bit.
-        if (relx>=double(4.344) && relx<_length-double(5.43))
+        if (relx>=4.344 && relx<_length-5.43)
         {
             dist=fabs(rely-cush_thickness);
             if (dist<min_dist)
@@ -1152,10 +1234,10 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             }
         }
         //check curvy.
-        angle=atan2(relx-_length+double(5.43),rely+double(1.125));
-        if (angle>=0 && angle<atan(double(6./11.)))
+        angle=atan2(relx-_length+5.43,rely+1.125);
+        if (angle>=0 && angle<atan(6./11.))
         {
-            dist=fabs(nroot(pow(relx-_length+double(5.43),2)+pow(rely+double(1.125),2),2)-double(3.));
+            dist=fabs(nroot(pow(relx-_length+5.43,2)+pow(rely+1.125,2),2)-3.);
             if (dist<min_dist)
             {
                 min_dist=dist;
@@ -1163,10 +1245,10 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             }
         }
         //check curvy 2.
-        angle=atan2(relx-_length+double(6.15),rely+double(2.445));
-        if (angle>=atan(double(6./11.)) && angle<pi/double(4.))
+        angle=atan2(relx-_length+6.15,rely+2.445);
+        if (angle>=atan(6./11.) && angle<pi/4.)
         {
-            dist=fabs(nroot(pow(relx-_length+double(6.15),2)+pow(rely+double(2.445),2),2)-double(4.5));
+            dist=fabs(nroot(pow(relx-_length+6.15,2)+pow(rely+2.445,2),2)-4.5);
             if (dist<min_dist)
             {
                 min_dist=dist;
@@ -1174,7 +1256,7 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             }
         }
         //check straight bit.
-        a1=double(0.5)*(_length-k1+relx-rely);
+        a1=0.5*(_length-k1+relx-rely);
         a2=a1+rely-relx;
         if (a1>=_length-k2 && a1<_length-k1)
         {
@@ -1182,14 +1264,14 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
             if (dist<min_dist)
             {
                 min_dist=dist;
-                normal_angle=pi/double(4.);
+                normal_angle=pi/4.;
             }
         }
         //check in pocket.
-        angle=atan2(_length-k1*double(0.5)-relx,k1*double(0.5)-rely);
-        if (angle<=pi/double(4.) && angle>-pi/double(4.))
+        angle=atan2(_length-k1*0.5-relx,k1*0.5-rely);
+        if (angle<=pi/4. && angle>-pi/4.)
         {
-            dist=fabs(nroot(pow(k1*double(0.5)-rely,2)+pow(_length-k1*double(0.5)-relx,2),2.)-double(0.5)*k1*nroot(double(2.0),2));
+            dist=fabs(nroot(pow(k1*0.5-rely,2)+pow(_length-k1*0.5-relx,2),2.)-0.5*k1*nroot(2.,2));
             if (dist<min_dist)
             {
                 min_dist=dist;
@@ -1204,15 +1286,38 @@ std::tuple<double,double> Cushion::distance(double x,double y,double height)
     return std::make_tuple(min_dist,normal_angle);
 }
 
+class Cue
+{
+    public:
+        double _angle=-0.5*pi;
+
+        sf::Texture _texture;
+        sf::Sprite _sprite;
+
+        Cue();
+};
+
+Cue::Cue()
+{
+    if (!_texture.loadFromFile("cue.png"))
+    {
+        std::cout << "Error loading cue texture!" << std::endl;
+    }
+    _texture.setSmooth(true);
+    _sprite.setTexture(_texture);
+    _sprite.scale(58.*dfactor/1369.,58.*dfactor/1369.);
+    _sprite.setOrigin(0,26.*58.*dfactor/1369.);
+}
+
 Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
 {
     //broad phase collision check.
     Eigen::MatrixXd dv=Eigen::MatrixXd::Zero(46,1);
 
-    for (int i=0;i<46;i++)
-    {
-        dv(i,0)=0;
-    }
+//    for (int i=0;i<46;i++)
+//    {
+//        dv(i,0)=0;
+//    }
 
     int val;
     int thing;
@@ -1231,7 +1336,7 @@ Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
     {
         if (b[i]._potted==false)
         {
-            if (b[i]._vx!=0 || b[i]._vy!=0 || b[i]._vz!=0 || b[i]._xspin!=0 || b[i]._yspin!=0 || b[i]._rspin!=0)
+            if (b[i]._vx!=0 || b[i]._vy!=0 || b[i]._vz!=0)
             {
                 already.clear();
                 for (int j=0;j<4;j++)
@@ -1261,7 +1366,7 @@ Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
                                     dy=b[thing-1]._y-b[i]._y;
                                     dist=nroot(pow(dx,2)+pow(dy,2),2.);
                                     relspeed=nroot(pow(b[i]._vx,2)+pow(b[i]._vy,2),2.)*cos(atan2(dx,dy)-atan2(b[i]._vx,b[i]._vy))-nroot(pow(b[thing-1]._vx,2)+pow(b[thing-1]._vy,2),2.)*cos(atan2(dx,dy)-atan2(b[thing-1]._vx,b[thing-1]._vy));
-                                    if (dist-double(2.)*ball_radius<epsilon && relspeed>0)
+                                    if (dist-2.*ball_radius<epsilon && relspeed>0)
                                     {
                                         //actual collision.
                                         if (i>(thing-1))
@@ -1273,10 +1378,11 @@ Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
                                             collided.insert(std::make_tuple(i,thing-1));
                                         }
                                         Z.conservativeResizeLike(Eigen::MatrixXd::Zero(46,col+1));
-                                        Z(2*i,col)=double(-dx/dist);
-                                        Z(2*i+1,col)=double(-dy/dist);
-                                        Z(2*(thing-1),col)=double(dx/dist);
-                                        Z(2*(thing-1)+1,col)=double(dy/dist);
+                                        Z(2*i,col)=-dx/dist;
+                                        Z(2*i+1,col)=-dy/dist;
+                                        Z(2*(thing-1),col)=dx/dist;
+                                        Z(2*(thing-1)+1,col)=dy/dist;
+                                        std::cout << i << ":" << thing-1 << std::endl;
                                         col+=1;
                                     }
                                 }
@@ -1285,14 +1391,14 @@ Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
                     }
                 }
                 //check cushion collisions.
-                if (fabs(blue_x-b[i]._x)>table_width-ball_radius-epsilon || fabs(blue_y-b[i]._y)>double(0.5)*table_width-ball_radius-epsilon)
+                if (fabs(blue_x-b[i]._x)>table_width-ball_radius-100*epsilon || fabs(blue_y-b[i]._y)>0.5*table_width-ball_radius-100*epsilon)
                 {
                     double min_dist=999;
                     double normal_angle;
                     double angle;
                     for (int j=0;j<6;j++)
                     {
-                        std::tie(dist,angle)=cush[j].distance(b[i]._x,b[i]._y,b[i]._height);
+                        std::tie(dist,angle)=cush[j].distance(b[i]._x,b[i]._y,b[i]._z);
                         if (dist<min_dist)
                         {
                             min_dist=dist;
@@ -1300,14 +1406,14 @@ Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
                         }
                     }
                     relspeed=-nroot(pow(b[i]._vx,2)+pow(b[i]._vy,2),2)*cos(normal_angle-atan2(b[i]._vx,b[i]._vy));
-                    if (min_dist-ball_radius<epsilon && relspeed>0)
+                    if (min_dist-ball_radius<100*epsilon && relspeed>0)
                     {
                         //collision with cushion.
                         Z.conservativeResizeLike(Eigen::MatrixXd::Zero(46,col+1));
-                        Z(2*i,col)=double(sin(normal_angle));
-                        Z(2*i+1,col)=double(cos(normal_angle));
-                        Z(44,col)=double(-sin(normal_angle));
-                        Z(45,col)=double(-cos(normal_angle));
+                        Z(2*i,col)=sin(normal_angle);
+                        Z(2*i+1,col)=cos(normal_angle);
+                        Z(44,col)=-sin(normal_angle);
+                        Z(45,col)=-cos(normal_angle);
                         col+=1;
                         //adjust the vertical spin off cushion.
                         double relspin=b[i]._xspin*sin(normal_angle+pi)+b[i]._yspin*cos(normal_angle+pi);
@@ -1315,16 +1421,16 @@ Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
                         if (relspin>0)
                         {
                             //topspin.
-                            dw=-double(5.)*relspeed*(muk*ball_radius*cos(cushion_alpha)+cushion_diff)/pow(ball_radius,2);
+                            dw=-5.*relspeed*(muk*ball_radius*cos(cushion_alpha)+cushion_diff)/pow(ball_radius,2);
                         }
                         if (relspin<0)
                         {
                             //backspin.
-                            dw=-double(5.)*relspeed*(-muk*ball_radius*cos(cushion_alpha)+cushion_diff)/pow(ball_radius,2);
+                            dw=-5.*relspeed*(-muk*ball_radius*cos(cushion_alpha)+cushion_diff)/pow(ball_radius,2);
                         }
                         if (relspin==0)
                         {
-                            dw=-double(5.)*relspeed*cushion_diff/pow(ball_radius,2);
+                            dw=-5.*relspeed*cushion_diff/pow(ball_radius,2);
                         }
                         dw=fmax(dw,-relspin-relspeed/ball_radius);
                         b[i]._xspin+=dw*sin(normal_angle+pi);
@@ -1335,28 +1441,30 @@ Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
 
                         if ((parspeed>=0 && b[i]._rspin*ball_radius>parspeed) || (parspeed<0 && b[i]._rspin*ball_radius>parspeed))
                         {
-                            dw=-double(5.)*muk*relspeed*cos(cushion_alpha)/ball_radius;
-                            dvpar=-double(0.4)*dw*ball_radius;
+                            dw=-5.*muk*relspeed*cos(cushion_alpha)/ball_radius;
+                            dvpar=-0.4*dw*ball_radius;
                             if ((b[i]._rspin+dw)*ball_radius<parspeed+dvpar)
                             {
-                                dw=-double(5.)*(b[i]._rspin*ball_radius-parspeed)/(double(7.)*ball_radius);
-                                dvpar=double(2.)*(b[i]._rspin*ball_radius-parspeed)/(double(7.)*ball_radius);
+                                dw=-5.*(b[i]._rspin*ball_radius-parspeed)/(7.*ball_radius);
+                                dvpar=2.*(b[i]._rspin*ball_radius-parspeed)/(7.*ball_radius);
                             }
                         }
                         else if ((parspeed>=0 && b[i]._rspin*ball_radius<parspeed) || (parspeed<0 && b[i]._rspin*ball_radius<parspeed))
                         {
-                            dw=double(5.)*muk*relspeed*cos(cushion_alpha)/ball_radius;
-                            dvpar=-double(0.4)*dw*ball_radius;
+                            dw=5.*muk*relspeed*cos(cushion_alpha)/ball_radius;
+                            dvpar=-0.4*dw*ball_radius;
                             if ((b[i]._rspin+dw)*ball_radius>parspeed+dvpar)
                             {
-                                dw=-double(5.)*(b[i]._rspin*ball_radius-parspeed)/(double(7.)*ball_radius);
-                                dvpar=double(2.)*(b[i]._rspin*ball_radius-parspeed)/(double(7.)*ball_radius);
+                                dw=-5.*(b[i]._rspin*ball_radius-parspeed)/(7.*ball_radius);
+                                dvpar=2.*(b[i]._rspin*ball_radius-parspeed)/(7.*ball_radius);
                             }
                         }
                         b[i]._rspin+=dw;
-                        std::tie(b[i]._speed,b[i]._angle)=add_vectors(nroot(pow(b[i]._vx,2)+pow(b[i]._vy,2),2),atan2(b[i]._vx,b[i]._vy),dvpar,normal_angle+double(0.5)*pi);
-                        b[i]._vx=b[i]._speed*sin(b[i]._angle);
-                        b[i]._vy=b[i]._speed*cos(b[i]._angle);
+                        double _speed;
+                        double _angle;
+                        std::tie(_speed,_angle)=add_vectors(nroot(pow(b[i]._vx,2)+pow(b[i]._vy,2),2),atan2(b[i]._vx,b[i]._vy),dvpar,normal_angle+0.5*pi);
+                        b[i]._vx=_speed*sin(_angle);
+                        b[i]._vy=_speed*cos(_angle);
                     }
                 }
             }
@@ -1364,7 +1472,60 @@ Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
     }
 
     //check if any total collisions.
-    if (col>0)
+    if (col==1)
+    {
+        //single collision.
+        //check if to cushion.
+        if (Z(44,0)!=0 || Z(45,0)!=0)
+        {
+            double v;
+            double an;
+            for (int i=0;i<22;i++)
+            {
+                if (Z(2*i,0)!=0 || Z(2*i+1,0)!=0)
+                {
+                    //collision with this ball.
+                    std::tie(v,an)=add_vectors(-nroot(pow(b[i]._vx,2)+pow(b[i]._vy,2),2)*cos(atan2(b[i]._vx,b[i]._vy)-atan2(Z(2*i,0),Z(2*i+1,0))),atan2(Z(2*i,0),Z(2*i+1,0)),nroot(pow(b[i]._vx,2)+pow(b[i]._vy,2),2)*cos(atan2(b[i]._vx,b[i]._vy)-(atan2(Z(2*i,0),Z(2*i+1,0))+0.5*pi)),atan2(Z(2*i,0),Z(2*i+1,0))+0.5*pi);
+                    dv(2*i)=v*sin(an)-b[i]._vx;
+                    dv(2*i+1)=v*cos(an)-b[i]._vy;
+                    break;
+                }
+            }
+        }
+        //ball-ball collision.
+        else
+        {
+            for (int i=0;i<22;i++)
+            {
+                if (Z(2*i,0)!=0 || Z(2*i+1,0)!=0)
+                {
+                    for (int j=i+1;j<22;j++)
+                    {
+                        if (Z(2*j,0)!=0 || Z(2*j+1,0)!=0)
+                        {
+                            double na=atan2(Z(2*i,0),Z(2*i+1,0));
+                            double pari=nroot(pow(b[i]._vx,2)+pow(b[i]._vy,2),2)*cos(atan2(b[i]._vx,b[i]._vy)-na);
+                            double peri=nroot(pow(b[i]._vx,2)+pow(b[i]._vy,2),2)*cos(atan2(b[i]._vx,b[i]._vy)-(na+0.5*pi));
+                            double parj=nroot(pow(b[j]._vx,2)+pow(b[j]._vy,2),2)*cos(atan2(b[j]._vx,b[j]._vy)-na);
+                            double perj=nroot(pow(b[j]._vx,2)+pow(b[j]._vy,2),2)*cos(atan2(b[j]._vx,b[j]._vy)-(na+0.5*pi));
+                            double speed;
+                            double theta;
+                            std::tie(speed,theta)=add_vectors(parj,na,peri,na+0.5*pi);
+                            dv(2*i)=speed*sin(theta)-b[i]._vx;
+                            dv(2*i+1)=speed*cos(theta)-b[i]._vy;
+                            std::tie(speed,theta)=add_vectors(pari,na,perj,na+0.5*pi);
+                            dv(2*j)=speed*sin(theta)-b[j]._vx;
+                            dv(2*j+1)=speed*cos(theta)-b[j]._vy;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    //simultaneous.
+    if (col>1)
     {
         Eigen::MatrixXd v(46,1);
         Eigen::MatrixXd J(col,1);
@@ -1373,13 +1534,14 @@ Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
         {
             //v(2*i,0)=b[i]._speed*sin(b[i]._angle);
             //v(2*i+1,0)=b[i]._speed*cos(b[i]._angle);
-            v(2*i,0)=double(b[i]._vx);
-            v(2*i+1,0)=double(b[i]._vy);
+            v(2*i,0)=b[i]._vx;
+            v(2*i+1,0)=b[i]._vy;
         }
         v(44,0)=0;
         v(45,0)=0;
 
-        J=(Z.transpose()*M_*Z).fullPivHouseholderQr().solve(-(1.+eball)*Z.transpose()*v);
+        //J=(Z.transpose()*M_*Z).colPivHouseholderQr().solve(-(1.+eball)*Z.transpose()*v);
+        J=(Z.transpose()*M_*Z).householderQr().solve(-(1.+eball)*Z.transpose()*v);
         dv=M_*Z*J;
 
 //        std::cout << "Z" << std::endl;
@@ -1404,6 +1566,12 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
     std::array<double,4> quartic;
     std::array<double,2> quadratic;
     std::array<std::array<double,5>,6> ctemp;
+    std::array<double,5> x2;
+    std::array<double,5> y2;
+    std::array<double,5> z2;
+    std::array<double,9> toctic;
+    std::array<double,8> monoctic;
+    std::array<double,8> octic;
     Eigen::Matrix<double,46,1> dv;
     Eigen::Matrix<double,46,1> zero;
 
@@ -1437,6 +1605,12 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
     double t4;
     double x;
     double y;
+    double phi;
+    double nspeed;
+    double parspeed;
+    double vtheta;
+    double vphi;
+    double normal;
 
     double xmin;
     double xmax;
@@ -1459,7 +1633,8 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
 
     while (!still)
     {
-        std::cout << "Time: " << double(totaltime) << std::endl;
+        std::cout << "Time: " << totaltime << std::endl;
+
         collision=false;
         t=999.;
         still=true;
@@ -1482,7 +1657,6 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
         {
             break;
         }
-
         //check for collisions (cushion/balls) or if ball into pocket.
         //check moving balls only.
         for (int i=0;i<22;i++)
@@ -1497,13 +1671,13 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
             }
 
             xmin=fmin(balls[i]._x,balls[i]._x-(balls[i]._ax[1]*balls[i]._ax[1])/(4*balls[i]._ax[2]));
-            xmin=fmin(xmin,balls[i]._ax[2]*balls[i]._t*balls[i]._t+balls[i]._ax[1]*balls[i]._t+balls[i]._ax[0]);
+            xmin=fmin(xmin,balls[i]._ax[2]*t*t+balls[i]._ax[1]*t+balls[i]._ax[0]);
             xmax=fmax(balls[i]._x,balls[i]._x-(balls[i]._ax[1]*balls[i]._ax[1])/(4*balls[i]._ax[2]));
-            xmax=fmax(xmax,balls[i]._ax[2]*balls[i]._t*balls[i]._t+balls[i]._ax[1]*balls[i]._t+balls[i]._ax[0]);
+            xmax=fmax(xmax,balls[i]._ax[2]*t*t+balls[i]._ax[1]*t+balls[i]._ax[0]);
             ymin=fmin(balls[i]._y,balls[i]._y-(balls[i]._ay[1]*balls[i]._ay[1])/(4*balls[i]._ay[2]));
-            ymin=fmin(ymin,balls[i]._ay[2]*balls[i]._t*balls[i]._t+balls[i]._ay[1]*balls[i]._t+balls[i]._ay[0]);
+            ymin=fmin(ymin,balls[i]._ay[2]*t*t+balls[i]._ay[1]*t+balls[i]._ay[0]);
             ymax=fmax(balls[i]._y,balls[i]._y-(balls[i]._ay[1]*balls[i]._ay[1])/(4*balls[i]._ay[2]));
-            ymax=fmax(ymax,balls[i]._ay[2]*balls[i]._t*balls[i]._t+balls[i]._ay[1]*balls[i]._t+balls[i]._ay[0]);
+            ymax=fmax(ymax,balls[i]._ay[2]*t*t+balls[i]._ay[1]*t+balls[i]._ay[0]);
 
             //check for ball-ball collisions.
             for (int j=0;j<22;j++)
@@ -1519,15 +1693,15 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
 
                 //initial check for i.
                 xmin2=fmin(balls[j]._x,balls[j]._x-(balls[j]._ax[1]*balls[j]._ax[1])/(4*balls[j]._ax[2]));
-                xmin2=fmin(xmin2,balls[j]._ax[2]*balls[j]._t*balls[j]._t+balls[j]._ax[1]*balls[j]._t+balls[j]._ax[0]);
+                xmin2=fmin(xmin2,balls[j]._ax[2]*t*t+balls[j]._ax[1]*t+balls[j]._ax[0]);
                 xmax2=fmax(balls[j]._x,balls[j]._x-(balls[j]._ax[1]*balls[j]._ax[1])/(4*balls[j]._ax[2]));
-                xmax2=fmax(xmax2,balls[j]._ax[2]*balls[j]._t*balls[j]._t+balls[j]._ax[1]*balls[j]._t+balls[j]._ax[0]);
+                xmax2=fmax(xmax2,balls[j]._ax[2]*t*t+balls[j]._ax[1]*t+balls[j]._ax[0]);
                 ymin2=fmin(balls[j]._y,balls[j]._y-(balls[j]._ay[1]*balls[j]._ay[1])/(4*balls[j]._ay[2]));
-                ymin2=fmin(ymin2,balls[j]._ay[2]*balls[j]._t*balls[j]._t+balls[j]._ay[1]*balls[j]._t+balls[j]._ay[0]);
+                ymin2=fmin(ymin2,balls[j]._ay[2]*t*t+balls[j]._ay[1]*t+balls[j]._ay[0]);
                 ymax2=fmax(balls[j]._y,balls[j]._y-(balls[j]._ay[1]*balls[j]._ay[1])/(4*balls[j]._ay[2]));
-                ymax2=fmax(ymax2,balls[j]._ay[2]*balls[j]._t*balls[j]._t+balls[j]._ay[1]*balls[j]._t+balls[j]._ay[0]);
+                ymax2=fmax(ymax2,balls[j]._ay[2]*t*t+balls[j]._ay[1]*t+balls[j]._ay[0]);
 
-                if (!((xmax>xmin2 || xmax2>xmin) && (ymax>ymin2 || ymax2>ymin)))
+                if (!((xmax>xmin2-2*ball_radius || xmax2>xmin-2*ball_radius) && (ymax>ymin2-2*ball_radius || ymax2>ymin-2*ball_radius)))
                 {
                     continue;
                 }
@@ -1543,78 +1717,82 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                 c3=balls[i]._az[0]-balls[j]._az[0];
 
                 t0=pow(c1,2)+pow(c2,2)+pow(c3,2)-4*pow(ball_radius,2);
-                t1=double(2.)*(b1*c1+b2*c2+b3*c3);
-                t2=double(2.)*(a1*c1+a2*c2+a3*c3)+pow(b1,2)+pow(b2,2)+pow(b3,2);
-                t3=double(2.)*(a1*b1+a2*b2+a3*b3);
+                t1=2.*(b1*c1+b2*c2+b3*c3);
+                t2=2.*(a1*c1+a2*c2+a3*c3)+pow(b1,2)+pow(b2,2)+pow(b3,2);
+                t3=2.*(a1*b1+a2*b2+a3*b3);
                 t4=pow(a1,2)+pow(a2,2)+pow(a3,2);
 
                 quartic=qsolve_quartic(t4,t3,t2,t1,t0);
 
                 for (int k=0;k<4;k++)
                 {
-                    if (quartic[k]==quartic[k] && quartic[k]>=epsilon)
+                    if (quartic[k]==quartic[k] && quartic[k]>=epsilon && quartic[k]<t)
                     {
-                        if (quartic[k]<t)
+                        //verify the time of actual collision to be certain.
+                        t0=quartic[k];
+                        out=balls[i].get_position(t0);
+                        out2=balls[j].get_position(t0);
+                        out3=balls[i].get_velocity(t0);
+                        out4=balls[j].get_velocity(t0);
+                        //a1=nroot(pow(out3[0],2)+pow(out3[1],2),2)*cos(atan2(out3[0],out3[1])-atan2(out2[0]-out[0],out2[1]-out[1]))+nroot(pow(out4[0],2)+pow(out4[1],2),2)*cos(atan2(out4[0],out4[1])-atan2(out[0]-out2[0],out[1]-out2[1]));
+                        a1=dot_product(out3,subtract_vectors(out2,out))+dot_product(out4,subtract_vectors(out,out2));
+                        if (nroot(pow(out[0]-out2[0],2)+pow(out[1]-out2[1],2)+pow(out[2]-out2[2],2),2)-2*ball_radius<epsilon && a1>0)
                         {
-                            //verify the time of actual collision to be certain.
-                            t0=quartic[k];
-                            out=balls[i].get_position(t0);
-                            out2=balls[j].get_position(t0);
-                            out3=balls[i].get_velocity(t0);
-                            out4=balls[j].get_velocity(t0);
-                            a1=nroot(pow(out3[0],2)+pow(out3[1],2),2)*cos(atan2(out3[0],out3[1])-atan2(out2[0]-out[0],out2[1]-out[1]))+nroot(pow(out4[0],2)+pow(out4[1],2),2)*cos(atan2(out4[0],out4[1])-atan2(out[0]-out2[0],out[1]-out2[1]));
-                            if (nroot(pow(out[0]-out2[0],2)+pow(out[1]-out2[1],2)+pow(out[2]-out2[2],2),2)-2*ball_radius<epsilon && a1>0)
+                            //collision at the specified time.
+                            t=t0;
+                            collision=true;
+                        }
+                        else
+                        {
+                            //adjust the time minutely to ensure a collision.
+                            c=0;
+                            while (true)
                             {
-                                //collision at the specified time.
-                                t=t0;
-                                collision=true;
-                            }
-                            else
-                            {
-                                //adjust the time minutely to ensure a collision.
-                                c=0;
-                                while (true)
+                                c+=1;
+                                out=balls[i].get_position(t0-c*epsilon);
+                                out2=balls[j].get_position(t0-c*epsilon);
+                                out3=balls[i].get_velocity(t0-c*epsilon);
+                                out4=balls[j].get_velocity(t0-c*epsilon);
+                                //a1=nroot(pow(out3[0],2)+pow(out3[1],2),2)*cos(atan2(out3[0],out3[1])-atan2(out2[0]-out[0],out2[1]-out[1]))+nroot(pow(out4[0],2)+pow(out4[1],2),2)*cos(atan2(out4[0],out4[1])-atan2(out[0]-out2[0],out[1]-out2[1]));
+                                a1=dot_product(out3,subtract_vectors(out2,out))+dot_product(out4,subtract_vectors(out,out2));
+                                if (nroot(pow(out[0]-out2[0],2)+pow(out[1]-out2[1],2)+pow(out[2]-out2[2],2),2.)-2*ball_radius<epsilon && a1>0)
                                 {
-                                    c+=1;
-                                    out=balls[i].get_position(t0-c*epsilon);
-                                    out2=balls[j].get_position(t0-c*epsilon);
-                                    out3=balls[i].get_velocity(t0-c*epsilon);
-                                    out4=balls[j].get_velocity(t0-c*epsilon);
-                                    a1=nroot(pow(out3[0],2)+pow(out3[1],2),2)*cos(atan2(out3[0],out3[1])-atan2(out2[0]-out[0],out2[1]-out[1]))+nroot(pow(out4[0],2)+pow(out4[1],2),2)*cos(atan2(out4[0],out4[1])-atan2(out[0]-out2[0],out[1]-out2[1]));
-                                    if (nroot(pow(out[0]-out2[0],2)+pow(out[1]-out2[1],2)+pow(out[2]-out2[2],2),2.)-2*ball_radius<epsilon && a1>0)
+                                    if (t0-c*epsilon>=epsilon)
                                     {
-                                        if (t0-c*epsilon>=epsilon)
-                                        {
-                                            t=t0-c*epsilon;
-                                            collision=true;
-                                            break;
-                                        }
-                                    }
-                                    out=balls[i].get_position(t0+c*epsilon);
-                                    out2=balls[j].get_position(t0+c*epsilon);
-                                    out3=balls[i].get_velocity(t0+c*epsilon);
-                                    out4=balls[j].get_velocity(t0+c*epsilon);
-                                    //a1=out3[0]*(out2[0]-out[0])+out3[1]*(out2[1]-out[1])+out3[2]*(out2[2]-out[2])+out4[0]*(out[0]-out2[0])+out4[1]*(out[1]-out2[1])+out4[2]*(out[2]-out2[2]);
-                                    a1=nroot(pow(out3[0],2)+pow(out3[1],2),2)*cos(atan2(out3[0],out3[1])-atan2(out2[0]-out[0],out2[1]-out[1]))+nroot(pow(out4[0],2)+pow(out4[1],2),2)*cos(atan2(out4[0],out4[1])-atan2(out[0]-out2[0],out[1]-out2[1]));
-                                    if (nroot(pow(out[0]-out2[0],2)+pow(out[1]-out2[1],2)+pow(out[2]-out2[2],2),2.)-2*ball_radius<epsilon && a1>0)
-                                    {
-                                        if(t0+c*epsilon<t)
-                                        {
-                                            t=t0+c*epsilon;
-                                            collision=true;
-                                            break;
-                                        }
-                                    }
-                                    if (c>1000)
-                                    {
+                                        t=t0-c*epsilon;
+                                        collision=true;
                                         break;
                                     }
+                                }
+                                out=balls[i].get_position(t0+c*epsilon);
+                                out2=balls[j].get_position(t0+c*epsilon);
+                                out3=balls[i].get_velocity(t0+c*epsilon);
+                                out4=balls[j].get_velocity(t0+c*epsilon);
+                                //a1=out3[0]*(out2[0]-out[0])+out3[1]*(out2[1]-out[1])+out3[2]*(out2[2]-out[2])+out4[0]*(out[0]-out2[0])+out4[1]*(out[1]-out2[1])+out4[2]*(out[2]-out2[2]);
+                                //a1=nroot(pow(out3[0],2)+pow(out3[1],2),2)*cos(atan2(out3[0],out3[1])-atan2(out2[0]-out[0],out2[1]-out[1]))+nroot(pow(out4[0],2)+pow(out4[1],2),2)*cos(atan2(out4[0],out4[1])-atan2(out[0]-out2[0],out[1]-out2[1]));
+                                a1=dot_product(out3,subtract_vectors(out2,out))+dot_product(out4,subtract_vectors(out,out2));
+                                if (nroot(pow(out[0]-out2[0],2)+pow(out[1]-out2[1],2)+pow(out[2]-out2[2],2),2.)-2*ball_radius<epsilon && a1>0)
+                                {
+                                    if(t0+c*epsilon<t)
+                                    {
+                                        t=t0+c*epsilon;
+                                        collision=true;
+                                        break;
+                                    }
+                                }
+                                if (c>1000)
+                                {
+                                    break;
                                 }
                             }
                         }
                     }
                 }
             }
+//            if (i==0 && balls[i]._inflight)
+//            {
+//                std::cout << "Checked balls!" << std::endl;
+//            }
 
             //check if ball hits the baize.
             if (balls[i]._inflight)
@@ -1669,6 +1847,10 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                     }
                 }
             }
+//            if (i==0 && balls[i]._inflight)
+//            {
+//                std::cout << "Checked bed!" << std::endl;
+//            }
 
             //broad check for cushions - eliminate doomed cases.
             if (xmin>xlim[0] && xmax<xlim[1] && ymin>ylim[0] && ymax<ylim[1])
@@ -1691,7 +1873,7 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                         out2=balls[i].get_velocity(t0);
                         if (j==0) {a2=-out2[0];}
                         else {a2=out2[0];}
-                        if ((out[0]<xlim[0] || out[0]>xlim[1]) && (out[1]>rail_thickness+double(5.43) && out[1]<rail_thickness+double(2.)*cush_thickness+table_width-double(5.43)) && a2>0)
+                        if ((out[0]<xlim[0] || out[0]>xlim[1]) && (out[1]>rail_thickness+5.43 && out[1]<rail_thickness+2.*cush_thickness+table_width-5.43) && a2>0)
                         {
                             t=t0;
                             collision=true;
@@ -1706,7 +1888,7 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                                 out2=balls[i].get_velocity(t0-c*epsilon);
                                 if (j==0) {a2=-out2[0];}
                                 else {a2=out2[0];}
-                                if ((out[0]<xlim[0] || out[0]>xlim[1]) && (out[1]>rail_thickness+double(5.43) && out[1]<rail_thickness+double(2.)*cush_thickness+table_width-double(5.43)) && a2>0)
+                                if ((out[0]<xlim[0] || out[0]>xlim[1]) && (out[1]>rail_thickness+5.43 && out[1]<rail_thickness+2.*cush_thickness+table_width-5.43) && a2>0)
                                 {
                                     if (t0-c*epsilon>=epsilon)
                                     {
@@ -1717,13 +1899,9 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                                 }
                                 out=balls[i].get_position(t0+c*epsilon);
                                 out2=balls[i].get_velocity(t0+c*epsilon);
-                                if (i==0)
-                                {
-                                    std::cout << out[0]-xlim[0] << std::endl;
-                                }
                                 if (j==0) {a2=-out2[0];}
                                 else {a2=out2[0];}
-                                if ((out[0]<xlim[0] || out[0]>xlim[1]) && (out[1]>rail_thickness+double(5.43) && out[1]<rail_thickness+double(2.)*cush_thickness+table_width-double(5.43)) && a2>0)
+                                if ((out[0]<xlim[0] || out[0]>xlim[1]) && (out[1]>rail_thickness+5.43 && out[1]<rail_thickness+2.*cush_thickness+table_width-5.43) && a2>0)
                                 {
                                     if (t0+c*epsilon<t)
                                     {
@@ -1755,7 +1933,7 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                         out2=balls[i].get_velocity(t0);
                         if (j==0) {a2=-out2[1];}
                         else {a2=out2[1];}
-                        if ((out[1]<ylim[0] || out[1]>ylim[1]) && ((out[0]>rail_thickness+double(5.43) && out[0]<rail_thickness+cush_thickness+table_width-double(4.344)) || (out[0]>rail_thickness+cush_thickness+table_width+double(4.344) && out[0]<rail_thickness+double(2.)*cush_thickness+table_length-double(5.43))) && a2>0)
+                        if ((out[1]<ylim[0] || out[1]>ylim[1]) && ((out[0]>rail_thickness+5.43 && out[0]<rail_thickness+cush_thickness+table_width-4.344) || (out[0]>rail_thickness+cush_thickness+table_width+4.344 && out[0]<rail_thickness+2.*cush_thickness+table_length-5.43)) && a2>0)
                         {
                             t=t0;
                             collision=true;
@@ -1770,7 +1948,7 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                                 out2=balls[i].get_velocity(t0-c*epsilon);
                                 if (j==0) {a2=-out2[1];}
                                 else {a2=out2[1];}
-                                if ((out[1]<ylim[0] || out[1]>ylim[1]) && ((out[0]>rail_thickness+double(5.43) && out[0]<rail_thickness+cush_thickness+table_width-double(4.344)) || (out[0]>rail_thickness+cush_thickness+table_width+double(4.344) && out[0]<rail_thickness+double(2.)*cush_thickness+table_length-double(5.43))) && a2>0)
+                                if ((out[1]<ylim[0] || out[1]>ylim[1]) && ((out[0]>rail_thickness+5.43 && out[0]<rail_thickness+cush_thickness+table_width-4.344) || (out[0]>rail_thickness+cush_thickness+table_width+4.344 && out[0]<rail_thickness+2.*cush_thickness+table_length-5.43)) && a2>0)
                                 {
                                     if (t0-c*epsilon>=epsilon)
                                     {
@@ -1783,7 +1961,7 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                                 out2=balls[i].get_velocity(t0+c*epsilon);
                                 if (j==0) {a2=-out2[1];}
                                 else {a2=out2[1];}
-                                if ((out[1]<ylim[0] || out[1]>ylim[1]) && ((out[0]>rail_thickness+double(5.43) && out[0]<rail_thickness+cush_thickness+table_width-double(4.344)) || (out[0]>rail_thickness+cush_thickness+table_width+double(4.344) && out[0]<rail_thickness+double(2.)*cush_thickness+table_length-double(5.43))) && a2>0)
+                                if ((out[1]<ylim[0] || out[1]>ylim[1]) && ((out[0]>rail_thickness+5.43 && out[0]<rail_thickness+cush_thickness+table_width-4.344) || (out[0]>rail_thickness+cush_thickness+table_width+4.344 && out[0]<rail_thickness+2.*cush_thickness+table_length-5.43)) && a2>0)
                                 {
                                     if (t0+c*epsilon<t)
                                     {
@@ -1801,6 +1979,395 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                     }
                 }
             }
+//            if (i==0 && balls[i]._inflight)
+//            {
+//                std::cout << "Checked straight cushions!" << std::endl;
+//            }
+
+//            //stricter check!
+//            if (!((ymin<=ylim[0] || ymax>=ylim[1]) && ((xmin<=xlim[0] || xmax>=xlim[1]) || (xmin<=blue_x+4.344 && xmax>=blue_x-4.344))))
+//            {
+//                continue;
+//            }
+
+            //check if hits rim.
+            if (balls[i]._inflight)
+            {
+                for (int j=0;j<2;j++)
+                {
+                    //solve the octic(!)
+                    x2[4]=balls[i]._ax[2]*balls[i]._ax[2];
+                    x2[3]=2*balls[i]._ax[2]*balls[i]._ax[1];
+                    x2[2]=2*balls[i]._ax[2]*(balls[i]._ax[0]-mpockets[j][0])+balls[i]._ax[1]*balls[i]._ax[1];
+                    x2[1]=2*balls[i]._ax[1]*(balls[i]._ax[0]-mpockets[j][0]);
+                    x2[0]=(balls[i]._ax[0]-mpockets[j][0])*(balls[i]._ax[0]-mpockets[j][0]);
+                    y2[4]=balls[i]._ay[2]*balls[i]._ay[2];
+                    y2[3]=2*balls[i]._ay[2]*balls[i]._ay[1];
+                    y2[2]=2*balls[i]._ay[2]*(balls[i]._ay[0]-mpockets[j][1])+balls[i]._ay[1]*balls[i]._ay[1];
+                    y2[1]=2*balls[i]._ay[1]*(balls[i]._ay[0]-mpockets[j][1]);
+                    y2[0]=(balls[i]._ay[0]-mpockets[j][1])*(balls[i]._ay[0]-mpockets[j][1]);
+                    z2[4]=balls[i]._az[2]*balls[i]._az[2];
+                    z2[3]=2*balls[i]._az[2]*balls[i]._az[1];
+                    z2[2]=2*balls[i]._az[2]*balls[i]._az[0]+balls[i]._az[1]*balls[i]._az[1];
+                    z2[1]=2*balls[i]._az[1]*balls[i]._az[0];
+                    z2[0]=balls[i]._az[0]*balls[i]._az[0];
+
+                    toctic[8]=(x2[4]*x2[4])+(y2[4]*y2[4])+(z2[4]*z2[4]);
+                    toctic[7]=(2*x2[4]*x2[3])+(2*y2[4]*y2[3])+(2*z2[4]*z2[3]);
+                    toctic[6]=(2*x2[4]*x2[2]+x2[3]*x2[3])+(2*y2[4]*y2[2]+y2[3]*y2[3])+(2*z2[4]*z2[2]+z2[3]*z2[3]);
+                    toctic[5]=(2*x2[4]*x2[1]+2*x2[3]*x2[2])+(2*y2[4]*y2[1]+2*y2[3]*y2[2])+(2*z2[4]*z2[1]+2*z2[3]*z2[2]);
+                    toctic[4]=(2*x2[4]*x2[0]+2*x2[3]*x2[1]+x2[2]*x2[2])+(2*y2[4]*y2[0]+2*y2[3]*y2[1]+y2[2]*y2[2])+(2*z2[4]*z2[0]+2*z2[3]*z2[1]+z2[2]*z2[2]);
+                    toctic[3]=(2*x2[3]*x2[0]+2*x2[2]*x2[1])+(2*y2[3]*y2[0]+2*y2[2]*y2[1])+(2*z2[3]*z2[0]+2*z2[2]*z2[1]);
+                    toctic[2]=(2*x2[2]*x2[0]+x2[1]*x2[1])+(2*y2[2]*y2[0]+y2[1]*y2[1])+(2*z2[2]*z2[0]+z2[1]*z2[1]);
+                    toctic[1]=(2*x2[1]*x2[0])+(2*y2[1]*y2[0])+(2*z2[1]*z2[0]);
+                    toctic[0]=(x2[0]*x2[0])+(y2[0]*y2[0])+(z2[0]*z2[0]);
+
+                    toctic[8]+=2*((x2[4]*y2[4])+(y2[4]*z2[4])+(z2[4]*x2[4]));
+                    toctic[7]+=2*((x2[4]*y2[3]+x2[3]*y2[4])+(y2[4]*z2[3]+y2[3]*z2[4])+(z2[4]*x2[3]+z2[3]*x2[4]));
+                    toctic[6]+=2*((x2[4]*y2[2]+x2[2]*y2[4]+x2[3]*y2[3])+(y2[4]*z2[2]+y2[2]*z2[4]+y2[3]*z2[3])+(z2[4]*x2[2]+z2[2]*x2[4]+z2[3]*x2[3]));
+                    toctic[5]+=2*((x2[4]*y2[1]+x2[1]*y2[4]+x2[3]*y2[2]+x2[2]*y2[3])+(y2[4]*z2[1]+y2[1]*z2[4]+y2[3]*z2[2]+y2[2]*z2[3])+(z2[4]*x2[1]+z2[1]*x2[4]+z2[3]*x2[2]+z2[2]*x2[3]));
+                    toctic[4]+=2*((x2[4]*y2[0]+x2[0]*y2[4]+x2[3]*y2[1]+x2[1]*y2[3]+x2[2]*y2[2])+(y2[4]*z2[0]+y2[0]*z2[4]+y2[3]*z2[1]+y2[1]*z2[3]+y2[2]*z2[2])+(z2[4]*x2[0]+z2[0]*x2[4]+z2[3]*x2[1]+z2[1]*x2[3]+z2[2]*x2[2]));
+                    toctic[3]+=2*((x2[3]*y2[0]+x2[0]*y2[3]+x2[2]*y2[1]+x2[1]*y2[2])+(y2[3]*z2[0]+y2[0]*z2[3]+y2[2]*z2[1]+y2[1]*z2[2])+(z2[3]*x2[0]+z2[0]*x2[3]+z2[2]*x2[1]+z2[1]*x2[2]));
+                    toctic[2]+=2*((x2[2]*y2[0]+x2[0]*y2[2]+x2[1]*y2[1])+(y2[2]*z2[0]+y2[0]*z2[2]+y2[1]*z2[1])+(z2[2]*x2[0]+z2[0]*x2[2]+z2[1]*x2[1]));
+                    toctic[1]+=2*((x2[1]*y2[0]+x2[0]*y2[1])+(y2[1]*z2[0]+y2[0]*z2[1])+(z2[1]*x2[0]+z2[0]*x2[1]));
+                    toctic[0]+=2*((x2[0]*y2[0])+(y2[0]*z2[0])+(z2[0]*x2[0]));
+
+                    toctic[4]+=-2*(pow(mpocket_r,2)+pow(ball_radius,2))*(x2[4]+y2[4])+2*(pow(mpocket_r,2)-pow(ball_radius,2))*z2[4];
+                    toctic[3]+=-2*(pow(mpocket_r,2)+pow(ball_radius,2))*(x2[3]+y2[3])+2*(pow(mpocket_r,2)-pow(ball_radius,2))*z2[3];
+                    toctic[2]+=-2*(pow(mpocket_r,2)+pow(ball_radius,2))*(x2[2]+y2[2])+2*(pow(mpocket_r,2)-pow(ball_radius,2))*z2[2];
+                    toctic[1]+=-2*(pow(mpocket_r,2)+pow(ball_radius,2))*(x2[1]+y2[1])+2*(pow(mpocket_r,2)-pow(ball_radius,2))*z2[1];
+                    toctic[0]+=-2*(pow(mpocket_r,2)+pow(ball_radius,2))*(x2[0]+y2[0])+2*(pow(mpocket_r,2)-pow(ball_radius,2))*z2[0];
+
+                    toctic[0]+=pow(pow(mpocket_r,2)-pow(ball_radius,2),2);
+
+                    for (int k=0;k<8;k++)
+                    {
+                        monoctic[k]=toctic[k]/toctic[8];
+                    }
+                    octic=qsolve_octic(monoctic);
+                    //now to check the roots.
+                    for (int k=0;k<8;k++)
+                    {
+                        if (octic[k]==octic[k] && octic[k]>=epsilon && octic[k]<t)
+                        {
+                            t0=octic[k];
+                            out=balls[i].get_position(t0);
+                            out2=balls[i].get_velocity(t0);
+                            a1=nroot(pow(out[2],2)+pow(mpocket_r-nroot(pow(out[0]-mpockets[j][0],2)+pow(out[1]-mpockets[j][1],2),2),2),2);
+                            phi=acos(out[2]/a1);
+                            nspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*cos(atan2(mpockets[j][0]-out[0],mpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                            parspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*sin(atan2(mpockets[j][0]-out[0],mpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                            vtheta=parspeed/nroot(pow(out[0]-mpockets[j][0],2)+pow(out[1]-mpockets[j][1],2),2);
+                            vphi=nroot(pow(nspeed,2)+pow(out2[2],2),2)/a1;
+                            normal=gravity*cos(phi)-ball_radius*pow(vphi,2)+(mpocket_r-ball_radius*sin(phi))*sin(phi)*pow(vtheta,2);
+                            if (a1<ball_radius && normal>0)
+                            {
+                                t=t0;
+                                collision=true;
+                            }
+                        }
+                        else
+                        {
+                            c=0;
+                            while (true)
+                            {
+                                c+=1;
+                                out=balls[i].get_position(t0-c*epsilon);
+                                out2=balls[i].get_velocity(t0-c*epsilon);
+                                a1=nroot(pow(out[2],2)+pow(mpocket_r-nroot(pow(out[0]-mpockets[j][0],2)+pow(out[1]-mpockets[j][1],2),2),2),2);
+                                phi=acos(out[2]/a1);
+                                nspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*cos(atan2(mpockets[j][0]-out[0],mpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                                parspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*sin(atan2(mpockets[j][0]-out[0],mpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                                vtheta=parspeed/nroot(pow(out[0]-mpockets[j][0],2)+pow(out[1]-mpockets[j][1],2),2);
+                                vphi=nroot(pow(nspeed,2)+pow(out2[2],2),2)/a1;
+                                normal=gravity*cos(phi)-ball_radius*pow(vphi,2)+(mpocket_r-ball_radius*sin(phi))*sin(phi)*pow(vtheta,2);
+                                if (a1<ball_radius && normal>0)
+                                {
+                                    if (t0-c*epsilon>=epsilon)
+                                    {
+                                        t=t0-c*epsilon;
+                                        collision=true;
+                                        break;
+                                    }
+                                }
+                                out=balls[i].get_position(t0+c*epsilon);
+                                out2=balls[i].get_velocity(t0+c*epsilon);
+                                a1=nroot(pow(out[2],2)+pow(mpocket_r-nroot(pow(out[0]-mpockets[j][0],2)+pow(out[1]-mpockets[j][1],2),2),2),2);
+                                phi=acos(out[2]/a1);
+                                nspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*cos(atan2(mpockets[j][0]-out[0],mpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                                parspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*sin(atan2(mpockets[j][0]-out[0],mpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                                vtheta=parspeed/nroot(pow(out[0]-mpockets[j][0],2)+pow(out[1]-mpockets[j][1],2),2);
+                                vphi=nroot(pow(nspeed,2)+pow(out2[2],2),2)/a1;
+                                normal=gravity*cos(phi)-ball_radius*pow(vphi,2)+(mpocket_r-ball_radius*sin(phi))*sin(phi)*pow(vtheta,2);
+                                if (a1<ball_radius && normal>0)
+                                {
+                                    if (t0+c*epsilon<t)
+                                    {
+                                        t=t0+c*epsilon;
+                                        collision=true;
+                                        break;
+                                    }
+                                }
+                                if (c>1000)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                for (int j=0;j<4;j++)
+                {
+                    //solve the octic(!)
+                    x2[4]=balls[i]._ax[2]*balls[i]._ax[2];
+                    x2[3]=2*balls[i]._ax[2]*balls[i]._ax[1];
+                    x2[2]=2*balls[i]._ax[2]*(balls[i]._ax[0]-cpockets[j][0])+balls[i]._ax[1]*balls[i]._ax[1];
+                    x2[1]=2*balls[i]._ax[1]*(balls[i]._ax[0]-cpockets[j][0]);
+                    x2[0]=(balls[i]._ax[0]-cpockets[j][0])*(balls[i]._ax[0]-cpockets[j][0]);
+                    y2[4]=balls[i]._ay[2]*balls[i]._ay[2];
+                    y2[3]=2*balls[i]._ay[2]*balls[i]._ay[1];
+                    y2[2]=2*balls[i]._ay[2]*(balls[i]._ay[0]-cpockets[j][1])+balls[i]._ay[1]*balls[i]._ay[1];
+                    y2[1]=2*balls[i]._ay[1]*(balls[i]._ay[0]-cpockets[j][1]);
+                    y2[0]=(balls[i]._ay[0]-cpockets[j][1])*(balls[i]._ay[0]-cpockets[j][1]);
+                    z2[4]=balls[i]._az[2]*balls[i]._az[2];
+                    z2[3]=2*balls[i]._az[2]*balls[i]._az[1];
+                    z2[2]=2*balls[i]._az[2]*balls[i]._az[0]+balls[i]._az[1]*balls[i]._az[1];
+                    z2[1]=2*balls[i]._az[1]*balls[i]._az[0];
+                    z2[0]=balls[i]._az[0]*balls[i]._az[0];
+
+                    toctic[8]=(x2[4]*x2[4])+(y2[4]*y2[4])+(z2[4]*z2[4]);
+                    toctic[7]=(2*x2[4]*x2[3])+(2*y2[4]*y2[3])+(2*z2[4]*z2[3]);
+                    toctic[6]=(2*x2[4]*x2[2]+x2[3]*x2[3])+(2*y2[4]*y2[2]+y2[3]*y2[3])+(2*z2[4]*z2[2]+z2[3]*z2[3]);
+                    toctic[5]=(2*x2[4]*x2[1]+2*x2[3]*x2[2])+(2*y2[4]*y2[1]+2*y2[3]*y2[2])+(2*z2[4]*z2[1]+2*z2[3]*z2[2]);
+                    toctic[4]=(2*x2[4]*x2[0]+2*x2[3]*x2[1]+x2[2]*x2[2])+(2*y2[4]*y2[0]+2*y2[3]*y2[1]+y2[2]*y2[2])+(2*z2[4]*z2[0]+2*z2[3]*z2[1]+z2[2]*z2[2]);
+                    toctic[3]=(2*x2[3]*x2[0]+2*x2[2]*x2[1])+(2*y2[3]*y2[0]+2*y2[2]*y2[1])+(2*z2[3]*z2[0]+2*z2[2]*z2[1]);
+                    toctic[2]=(2*x2[2]*x2[0]+x2[1]*x2[1])+(2*y2[2]*y2[0]+y2[1]*y2[1])+(2*z2[2]*z2[0]+z2[1]*z2[1]);
+                    toctic[1]=(2*x2[1]*x2[0])+(2*y2[1]*y2[0])+(2*z2[1]*z2[0]);
+                    toctic[0]=(x2[0]*x2[0])+(y2[0]*y2[0])+(z2[0]*z2[0]);
+
+                    toctic[8]+=2*((x2[4]*y2[4])+(y2[4]*z2[4])+(z2[4]*x2[4]));
+                    toctic[7]+=2*((x2[4]*y2[3]+x2[3]*y2[4])+(y2[4]*z2[3]+y2[3]*z2[4])+(z2[4]*x2[3]+z2[3]*x2[4]));
+                    toctic[6]+=2*((x2[4]*y2[2]+x2[2]*y2[4]+x2[3]*y2[3])+(y2[4]*z2[2]+y2[2]*z2[4]+y2[3]*z2[3])+(z2[4]*x2[2]+z2[2]*x2[4]+z2[3]*x2[3]));
+                    toctic[5]+=2*((x2[4]*y2[1]+x2[1]*y2[4]+x2[3]*y2[2]+x2[2]*y2[3])+(y2[4]*z2[1]+y2[1]*z2[4]+y2[3]*z2[2]+y2[2]*z2[3])+(z2[4]*x2[1]+z2[1]*x2[4]+z2[3]*x2[2]+z2[2]*x2[3]));
+                    toctic[4]+=2*((x2[4]*y2[0]+x2[0]*y2[4]+x2[3]*y2[1]+x2[1]*y2[3]+x2[2]*y2[2])+(y2[4]*z2[0]+y2[0]*z2[4]+y2[3]*z2[1]+y2[1]*z2[3]+y2[2]*z2[2])+(z2[4]*x2[0]+z2[0]*x2[4]+z2[3]*x2[1]+z2[1]*x2[3]+z2[2]*x2[2]));
+                    toctic[3]+=2*((x2[3]*y2[0]+x2[0]*y2[3]+x2[2]*y2[1]+x2[1]*y2[2])+(y2[3]*z2[0]+y2[0]*z2[3]+y2[2]*z2[1]+y2[1]*z2[2])+(z2[3]*x2[0]+z2[0]*x2[3]+z2[2]*x2[1]+z2[1]*x2[2]));
+                    toctic[2]+=2*((x2[2]*y2[0]+x2[0]*y2[2]+x2[1]*y2[1])+(y2[2]*z2[0]+y2[0]*z2[2]+y2[1]*z2[1])+(z2[2]*x2[0]+z2[0]*x2[2]+z2[1]*x2[1]));
+                    toctic[1]+=2*((x2[1]*y2[0]+x2[0]*y2[1])+(y2[1]*z2[0]+y2[0]*z2[1])+(z2[1]*x2[0]+z2[0]*x2[1]));
+                    toctic[0]+=2*((x2[0]*y2[0])+(y2[0]*z2[0])+(z2[0]*x2[0]));
+
+                    toctic[4]+=-2*(pow(cpocket_r,2)+pow(ball_radius,2))*(x2[4]+y2[4])+2*(pow(cpocket_r,2)-pow(ball_radius,2))*z2[4];
+                    toctic[3]+=-2*(pow(cpocket_r,2)+pow(ball_radius,2))*(x2[3]+y2[3])+2*(pow(cpocket_r,2)-pow(ball_radius,2))*z2[3];
+                    toctic[2]+=-2*(pow(cpocket_r,2)+pow(ball_radius,2))*(x2[2]+y2[2])+2*(pow(cpocket_r,2)-pow(ball_radius,2))*z2[2];
+                    toctic[1]+=-2*(pow(cpocket_r,2)+pow(ball_radius,2))*(x2[1]+y2[1])+2*(pow(cpocket_r,2)-pow(ball_radius,2))*z2[1];
+                    toctic[0]+=-2*(pow(cpocket_r,2)+pow(ball_radius,2))*(x2[0]+y2[0])+2*(pow(cpocket_r,2)-pow(ball_radius,2))*z2[0];
+
+                    toctic[0]+=pow(pow(cpocket_r,2)-pow(ball_radius,2),2);
+
+                    for (int k=0;k<8;k++)
+                    {
+                        monoctic[k]=toctic[k]/toctic[8];
+                    }
+                    octic=qsolve_octic(monoctic);
+                    //now to check the roots.
+                    for (int k=0;k<8;k++)
+                    {
+                        if (octic[k]==octic[k] && octic[k]>=epsilon && octic[k]<t)
+                        {
+                            t0=octic[k];
+                            out=balls[i].get_position(t0);
+                            out2=balls[i].get_velocity(t0);
+                            a1=nroot(pow(out[2],2)+pow(cpocket_r-nroot(pow(out[0]-cpockets[j][0],2)+pow(out[1]-cpockets[j][1],2),2),2),2);
+                            phi=acos(out[2]/a1);
+                            nspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*cos(atan2(cpockets[j][0]-out[0],cpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                            parspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*sin(atan2(cpockets[j][0]-out[0],cpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                            vtheta=parspeed/nroot(pow(out[0]-cpockets[j][0],2)+pow(out[1]-cpockets[j][1],2),2);
+                            vphi=nroot(pow(nspeed,2)+pow(out2[2],2),2)/a1;
+                            normal=gravity*cos(phi)-ball_radius*pow(vphi,2)+(cpocket_r-ball_radius*sin(phi))*sin(phi)*pow(vtheta,2);
+                            if (a1<ball_radius && normal>0)
+                            {
+                                t=t0;
+                                collision=true;
+                            }
+                        }
+                        else
+                        {
+                            c=0;
+                            while (true)
+                            {
+                                c+=1;
+                                out=balls[i].get_position(t0-c*epsilon);
+                                out2=balls[i].get_velocity(t0-c*epsilon);
+                                a1=nroot(pow(out[2],2)+pow(cpocket_r-nroot(pow(out[0]-cpockets[j][0],2)+pow(out[1]-cpockets[j][1],2),2),2),2);
+                                phi=acos(out[2]/a1);
+                                nspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*cos(atan2(cpockets[j][0]-out[0],cpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                                parspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*sin(atan2(cpockets[j][0]-out[0],cpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                                vtheta=parspeed/nroot(pow(out[0]-cpockets[j][0],2)+pow(out[1]-cpockets[j][1],2),2);
+                                vphi=nroot(pow(nspeed,2)+pow(out2[2],2),2)/a1;
+                                normal=gravity*cos(phi)-ball_radius*pow(vphi,2)+(cpocket_r-ball_radius*sin(phi))*sin(phi)*pow(vtheta,2);
+                                if (a1<ball_radius && normal>0)
+                                {
+                                    if (t0-c*epsilon>=epsilon)
+                                    {
+                                        t=t0-c*epsilon;
+                                        collision=true;
+                                        break;
+                                    }
+                                }
+                                out=balls[i].get_position(t0+c*epsilon);
+                                out2=balls[i].get_velocity(t0+c*epsilon);
+                                a1=nroot(pow(out[2],2)+pow(cpocket_r-nroot(pow(out[0]-cpockets[j][0],2)+pow(out[1]-cpockets[j][1],2),2),2),2);
+                                phi=acos(out[2]/a1);
+                                nspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*cos(atan2(cpockets[j][0]-out[0],cpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                                parspeed=nroot(pow(out2[0],2)+pow(out2[1],2),2)*sin(atan2(cpockets[j][0]-out[0],cpockets[j][1]-out[1])-atan2(out2[0],out2[1]));
+                                vtheta=parspeed/nroot(pow(out[0]-cpockets[j][0],2)+pow(out[1]-cpockets[j][1],2),2);
+                                vphi=nroot(pow(nspeed,2)+pow(out2[2],2),2)/a1;
+                                normal=gravity*cos(phi)-ball_radius*pow(vphi,2)+(cpocket_r-ball_radius*sin(phi))*sin(phi)*pow(vtheta,2);
+                                if (a1<ball_radius && normal>0)
+                                {
+                                    if (t0+c*epsilon<t)
+                                    {
+                                        t=t0+c*epsilon;
+                                        collision=true;
+                                        break;
+                                    }
+                                }
+                                if (c>1000)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int j=0;j<2;j++)
+                {
+                    //middle pockets.
+                    t4=balls[i]._ax[2]*balls[i]._ax[2]+balls[i]._ay[2]*balls[i]._ay[2];
+                    t3=2*(balls[i]._ax[2]*balls[i]._ax[1]+balls[i]._ay[2]*balls[i]._ay[1]);
+                    t2=2*(balls[i]._ax[2]*(balls[i]._ax[0]-mpockets[j][0])+balls[i]._ay[2]*(balls[i]._ay[0]-mpockets[j][1]))+balls[i]._ax[1]*balls[i]._ax[1]+balls[i]._ay[1]*balls[i]._ay[1];
+                    t1=2*(balls[i]._ax[1]*(balls[i]._ax[0]-mpockets[j][0])+balls[i]._ay[1]*(balls[i]._ay[0]-mpockets[j][1]));
+                    t0=pow(balls[i]._ax[0]-mpockets[j][0],2)+pow(balls[i]._ay[0]-mpockets[j][1],2)-pow(mpocket_r,2);
+
+                    quartic=qsolve_quartic(t4,t3,t2,t1,t0);
+
+                    for (int k=0;k<4;k++)
+                    {
+                        if (quartic[k]==quartic[k] && quartic[k]>=epsilon && quartic[k]<t)
+                        {
+                            t0=quartic[k];
+                            out=balls[i].get_position(t0);
+                            a1=nroot(pow(out[0]-mpockets[j][0],2)+pow(out[1]-mpockets[j][1],2),2);
+                            a2=nroot(pow(mpocket_r-a1,2)+pow(ball_radius,2),2);
+                            if (a1<mpocket_r+epsilon && a2<=ball_radius+epsilon)
+                            {
+                                t=t0;
+                            }
+                        }
+                        else
+                        {
+                            c=0;
+                            while (true)
+                            {
+                                c+=1;
+                                out=balls[i].get_position(t0-c*epsilon);
+                                a1=nroot(pow(out[0]-mpockets[j][0],2)+pow(out[1]-mpockets[j][1],2),2);
+                                a2=nroot(pow(mpocket_r-a1,2)+pow(ball_radius,2),2);
+                                if (a1<mpocket_r+epsilon && a2<=ball_radius+epsilon)
+                                {
+                                    if (t0-c*epsilon>=epsilon)
+                                    {
+                                        t=t0-c*epsilon;
+                                        break;
+                                    }
+                                }
+                                out=balls[i].get_position(t0+c*epsilon);
+                                a1=nroot(pow(out[0]-mpockets[j][0],2)+pow(out[1]-mpockets[j][1],2),2);
+                                a2=nroot(pow(mpocket_r-a1,2)+pow(ball_radius,2),2);
+                                if (a1<mpocket_r+epsilon && a2<=ball_radius+epsilon)
+                                {
+                                    if (t0+c*epsilon<t)
+                                    {
+                                        t=t0+c*epsilon;
+                                        break;
+                                    }
+                                }
+                                if (c>1000)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                for (int j=0;j<4;j++)
+                {
+                    //corner pockets.
+                    t4=balls[i]._ax[2]*balls[i]._ax[2]+balls[i]._ay[2]*balls[i]._ay[2];
+                    t3=2*(balls[i]._ax[2]*balls[i]._ax[1]+balls[i]._ay[2]*balls[i]._ay[1]);
+                    t2=2*(balls[i]._ax[2]*(balls[i]._ax[0]-cpockets[j][0])+balls[i]._ay[2]*(balls[i]._ay[0]-cpockets[j][1]))+balls[i]._ax[1]*balls[i]._ax[1]+balls[i]._ay[1]*balls[i]._ay[1];
+                    t1=2*(balls[i]._ax[1]*(balls[i]._ax[0]-cpockets[j][0])+balls[i]._ay[1]*(balls[i]._ay[0]-cpockets[j][1]));
+                    t0=pow(balls[i]._ax[0]-cpockets[j][0],2)+pow(balls[i]._ay[0]-cpockets[j][1],2)-pow(cpocket_r,2);
+
+                    quartic=qsolve_quartic(t4,t3,t2,t1,t0);
+
+                    for (int k=0;k<4;k++)
+                    {
+                        if (quartic[k]==quartic[k] && quartic[k]>=epsilon && quartic[k]<t)
+                        {
+                            t0=quartic[k];
+                            out=balls[i].get_position(t0);
+                            a1=nroot(pow(out[0]-cpockets[j][0],2)+pow(out[1]-cpockets[j][1],2),2);
+                            a2=nroot(pow(cpocket_r-a1,2)+pow(ball_radius,2),2);
+                            if (a1<cpocket_r+epsilon && a2<=ball_radius+epsilon)
+                            {
+                                t=t0;
+                            }
+                        }
+                        else
+                        {
+                            c=0;
+                            while (true)
+                            {
+                                c+=1;
+                                out=balls[i].get_position(t0-c*epsilon);
+                                a1=nroot(pow(out[0]-cpockets[j][0],2)+pow(out[1]-cpockets[j][1],2),2);
+                                a2=nroot(pow(cpocket_r-a1,2)+pow(ball_radius,2),2);
+                                if (a1<cpocket_r+epsilon && a2<=ball_radius+epsilon)
+                                {
+                                    if (t0-c*epsilon>=epsilon)
+                                    {
+                                        t=t0-c*epsilon;
+                                        break;
+                                    }
+                                }
+                                out=balls[i].get_position(t0+c*epsilon);
+                                a1=nroot(pow(out[0]-cpockets[j][0],2)+pow(out[1]-cpockets[j][1],2),2);
+                                a2=nroot(pow(cpocket_r-a1,2)+pow(ball_radius,2),2);
+                                if (a1<cpocket_r+epsilon && a2<=ball_radius+epsilon)
+                                {
+                                    if (t0+c*epsilon<t)
+                                    {
+                                        t=t0+c*epsilon;
+                                        break;
+                                    }
+                                }
+                                if (c>1000)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+//            if (i==0 && balls[i]._inflight)
+//            {
+//                std::cout << "Checked rim!" << std::endl;
+//            }
 
             //check curved pocket cushions.
             for (int j=0;j<6;j++)
@@ -1841,9 +2408,9 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                     x=cush[j]._x+(ctemp[k][0]*cos(cush[j]._angle)+ctemp[k][1]*sin(cush[j]._angle));
                     y=cush[j]._y+(-ctemp[k][0]*sin(cush[j]._angle)+ctemp[k][1]*cos(cush[j]._angle));
                     t4=pow(balls[i]._ax[2],2)+pow(balls[i]._ay[2],2);
-                    t3=double(2.)*(balls[i]._ax[2]*balls[i]._ax[1]+balls[i]._ay[2]*balls[i]._ay[1]);
-                    t2=double(2.)*(balls[i]._ax[2]*(balls[i]._ax[0]-x)+balls[i]._ay[2]*(balls[i]._ay[0]-y))+pow(balls[i]._ax[1],2)+pow(balls[i]._ay[1],2);
-                    t1=double(2.)*(balls[i]._ax[1]*(balls[i]._ax[0]-x)+balls[i]._ay[1]*(balls[i]._ay[0]-y));
+                    t3=2.*(balls[i]._ax[2]*balls[i]._ax[1]+balls[i]._ay[2]*balls[i]._ay[1]);
+                    t2=2.*(balls[i]._ax[2]*(balls[i]._ax[0]-x)+balls[i]._ay[2]*(balls[i]._ay[0]-y))+pow(balls[i]._ax[1],2)+pow(balls[i]._ay[1],2);
+                    t1=2.*(balls[i]._ax[1]*(balls[i]._ax[0]-x)+balls[i]._ay[1]*(balls[i]._ay[0]-y));
                     t0=pow(balls[i]._ax[0]-x,2)+pow(balls[i]._ay[0]-y,2)-pow(ctemp[k][2],2);
 
                     quartic=qsolve_quartic(t4,t3,t2,t1,t0);
@@ -1919,6 +2486,11 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                 }
             }
 
+//            if (i==0 && balls[i]._inflight)
+//            {
+//                std::cout << "Checked curved cushions!" << std::endl;
+//            }
+
             //check middle straight bits.
             for (int j=0;j<2;j++)
             {
@@ -1990,9 +2562,9 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                 b3=0.5*balls[i]._ay[0]-0.5*cpline[j][0]*balls[i]._ax[0]-0.5*cpline[j][1];
 
                 t4=pow(a1,2)+pow(b1,2);
-                t3=double(2.)*(a1*a2+b1*b2);
-                t2=double(2.)*(a1*a3+b1*b3)+pow(a2,2)+pow(b2,2);
-                t1=double(2.)*(a2*a3+b2*b3);
+                t3=2.*(a1*a2+b1*b2);
+                t2=2.*(a1*a3+b1*b3)+pow(a2,2)+pow(b2,2);
+                t1=2.*(a2*a3+b2*b3);
                 t0=pow(a3,2)+pow(b3,2)-pow(ball_radius,2);
 
                 quartic=qsolve_quartic(t4,t3,t2,t1,t0);
@@ -2074,13 +2646,17 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
             for (int j=0;j<2;j++)
             {
                 a1=nroot(pow(balls[i]._x-mpockets[j][0],2)+pow(balls[i]._y-mpockets[j][1],2),2);
-                if (a1<mpocket_r)
+                if (a1<mpocket_r+epsilon)
                 {
                     //rolling in this pocket!
                     for (int k=0;k<balls[i]._rimpos.size();k++)
                     {
+                        if (balls[i]._times[k]>t)
+                        {
+                            break;
+                        }
                         //check for each point here.
-                        if (j==0)
+                        if (j==1)
                         {
                             a2=nroot(pow(mpockets[j][0]-3.719-balls[i]._rimpos[k][0],2)+pow(mpockets[j][1]+0.156-0.438-balls[i]._rimpos[k][1],2),2);
                             b2=nroot(pow(balls[i]._rimvel[k][0],2)+pow(balls[i]._rimvel[k][1],2),2)*cos(atan2(balls[i]._rimvel[k][0],balls[i]._rimvel[k][1])-atan2(mpockets[j][0]-3.719-balls[i]._rimpos[k][0],mpockets[j][1]+0.156-0.438-balls[i]._rimpos[k][1]));
@@ -2094,7 +2670,7 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                             a3=nroot(pow(mpockets[j][0]+3.719-balls[i]._rimpos[k][0],2)+pow(mpockets[j][1]-0.156+0.438-balls[i]._rimpos[k][1],2),2);
                             b3=nroot(pow(balls[i]._rimvel[k][0],2)+pow(balls[i]._rimvel[k][1],2),2)*cos(atan2(balls[i]._rimvel[k][0],balls[i]._rimvel[k][1])-atan2(mpockets[j][0]+3.719-balls[i]._rimpos[k][0],mpockets[j][1]-0.156+0.438-balls[i]._rimpos[k][1]));
                         }
-                        if (((a2<ball_radius && b2>0) || (a3<ball_radius && b3>0)) && balls[i]._times[k]<t)
+                        if (((a2<ball_radius+2.094 && b2>0) || (a3<ball_radius+2.094 && b3>0)) && balls[i]._times[k]<t)
                         {
                             t=balls[i]._times[k];
                             collision=true;
@@ -2110,11 +2686,15 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                 for (int j=0;j<4;j++)
                 {
                     a1=nroot(pow(balls[i]._x-cpockets[j][0],2)+pow(balls[i]._y-cpockets[j][1],2),2);
-                    if (a1<cpocket_r)
+                    if (a1<cpocket_r+epsilon)
                     {
                         //rolling in this pocket!
                         for (int k=0;k<balls[i]._rimpos.size();k++)
                         {
+                            if (balls[i]._times[k]>t)
+                            {
+                                break;
+                            }
                             //check for each point here.
                             //check curved bit first.
                             if (j==0)
@@ -2145,14 +2725,28 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                                 a3=nroot(pow(cpockets[j][0]+2.445-balls[i]._rimpos[k][0],2)+pow(cpockets[j][1]-6.15-balls[i]._rimpos[k][1],2),2);
                                 b3=nroot(pow(balls[i]._rimvel[k][0],2)+pow(balls[i]._rimvel[k][1],2),2)*cos(atan2(balls[i]._rimvel[k][0],balls[i]._rimvel[k][1])-atan2(cpockets[j][0]+2.445-balls[i]._rimpos[k][0],cpockets[j][1]-6.15-balls[i]._rimpos[k][1]));
                             }
-                            if (((a2<ball_radius && b2>0) || (a3<ball_radius && b3>0)) && balls[i]._times[k]<t)
+                            if (((a2<ball_radius+4.5 && b2>0) || (a3<ball_radius+4.5 && b3>0)) && balls[i]._times[k]<t)
                             {
                                 t=balls[i]._times[k];
                                 collision=true;
                                 break;
                             }
                             //check straight bits.
+                            t0=0.5*cpline[2*j][0]*(balls[i]._rimpos[k][1]+cpline[2*j][0]*balls[i]._rimpos[k][0]-cpline[2*j][1]);
+                            t1=cpline[2*j][0]*t0+cpline[2*j][1];
+                            a2=nroot(pow(balls[i]._rimpos[k][0]-t0,2)+pow(balls[i]._rimpos[k][1]-t1,2),2);
+                            b2=nroot(pow(balls[i]._rimvel[k][0],2)+pow(balls[i]._rimvel[k][1],2),2)*cos(atan2(balls[i]._rimvel[k][0],balls[i]._rimvel[k][1])-atan2(t0-balls[i]._rimpos[k][0],t1-balls[i]._rimpos[k][1]));
 
+                            t2=0.5*cpline[2*j+1][0]*(balls[i]._rimpos[k][1]+cpline[2*j+1][0]*balls[i]._rimpos[k][0]-cpline[2*j+1][1]);
+                            t3=cpline[2*j+1][0]*t2+cpline[2*j+1][1];
+                            a3=nroot(pow(balls[i]._rimpos[k][0]-t2,2)+pow(balls[i]._rimpos[k][1]-t3,2),2);
+                            b3=nroot(pow(balls[i]._rimvel[k][0],2)+pow(balls[i]._rimvel[k][1],2),2)*cos(atan2(balls[i]._rimvel[k][0],balls[i]._rimvel[k][1])-atan2(t2-balls[i]._rimpos[k][0],t3-balls[i]._rimpos[k][1]));
+                            if (((a2<ball_radius && t0>cpline[2*j][2] && t0<cpline[2*j][3] && b2>0) || (a3<ball_radius && t2>cpline[2*j+1][2] && t2<cpline[2*j+1][3] && b3>0)) && balls[i]._times[k]<t)
+                            {
+                                t=balls[i]._times[k];
+                                collision=true;
+                                break;
+                            }
                         }
                         c=j+3;
                         break;
@@ -2178,6 +2772,24 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                             if (c==k+1)
                             {
                                 //same pocket!
+                                //check if and when they collide.
+                                for (int m=0;m<std::min(balls[i]._times.size(),balls[j]._times.size());m++)
+                                {
+                                    if (balls[i]._times[m]>t)
+                                    {
+                                        break;
+                                    }
+                                    a1=nroot(pow(balls[i]._rimpos[m][0]-balls[j]._rimpos[m][0],2)+pow(balls[i]._rimpos[m][1]-balls[j]._rimpos[m][1],2),2);
+                                    //a2=nroot(pow(balls[i]._rimvel[m][0],2)+pow(balls[i]._rimvel[m][1],2),2)*cos(atan2(balls[i]._rimvel[m][0],balls[i]._rimvel[m][1])-atan2(balls[j]._rimpos[m][0]-balls[i]._rimpos[m][0],balls[j]._rimpos[m][1]-balls[i]._rimpos[m][1]));
+                                    //a2+=nroot(pow(balls[j]._rimvel[m][0],2)+pow(balls[j]._rimvel[m][1],2),2)*cos(atan2(balls[j]._rimvel[m][0],balls[j]._rimvel[m][1])-atan2(balls[i]._rimpos[m][0]-balls[j]._rimpos[m][0],balls[i]._rimpos[m][0]-balls[j]._rimpos[m][1]));
+                                    a2=dot_product(balls[i]._rimvel[m],subtract_vectors(balls[j]._rimpos[m],balls[i]._rimpos[m]))+dot_product(balls[j]._rimvel[m],subtract_vectors(balls[i]._rimpos[m],balls[j]._rimpos[m]));
+                                    if (a1<2*ball_radius && a2>0 && balls[i]._times[m]<t)
+                                    {
+                                        t=balls[i]._times[m];
+                                        collision=true;
+                                        break;
+                                    }
+                                }
                                 break;
                             }
                         }
@@ -2190,6 +2802,24 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                             if (c==k+3)
                             {
                                 //same pocket!
+                                //check if and when they collide.
+                                for (int m=0;m<std::min(balls[i]._times.size(),balls[j]._times.size());m++)
+                                {
+                                    if (balls[i]._times[m]>t)
+                                    {
+                                        break;
+                                    }
+                                    a1=nroot(pow(balls[i]._rimpos[m][0]-balls[j]._rimpos[m][0],2)+pow(balls[i]._rimpos[m][1]-balls[j]._rimpos[m][1],2),2);
+                                    //a2=nroot(pow(balls[i]._rimvel[m][0],2)+pow(balls[i]._rimvel[m][1],2),2)*cos(atan2(balls[i]._rimvel[m][0],balls[i]._rimvel[m][1])-atan2(balls[j]._rimpos[m][0]-balls[i]._rimpos[m][0],balls[j]._rimpos[m][1]-balls[i]._rimpos[m][1]));
+                                    //a2+=nroot(pow(balls[j]._rimvel[m][0],2)+pow(balls[j]._rimvel[m][1],2),2)*cos(atan2(balls[j]._rimvel[m][0],balls[j]._rimvel[m][1])-atan2(balls[i]._rimpos[m][0]-balls[j]._rimpos[m][0],balls[i]._rimpos[m][0]-balls[j]._rimpos[m][1]));
+                                    a2=dot_product(balls[i]._rimvel[m],subtract_vectors(balls[j]._rimpos[m],balls[i]._rimpos[m]))+dot_product(balls[j]._rimvel[m],subtract_vectors(balls[i]._rimpos[m],balls[j]._rimpos[m]));
+                                    if (a1<2*ball_radius && a2>0 && balls[i]._times[m]<t)
+                                    {
+                                        t=balls[i]._times[m];
+                                        collision=true;
+                                        break;
+                                    }
+                                }
                                 break;
                             }
                         }
@@ -2216,10 +2846,41 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
         {
             for (int j=0;j<22;j++)
             {
-                out=balls[j].get_position((start+i)*timestep-totaltime);
-                temp[3*j]=out[0];
-                temp[3*j+1]=out[1];
-                temp[3*j+2]=out[2];
+                if (balls[j]._potted)
+                {
+                    temp[3*j]=-100;
+                    temp[3*j+1]=-100;
+                    temp[3*j+2]=-100;
+                    continue;
+                }
+                if (!balls[j]._onrim)
+                {
+                    out=balls[j].get_position((start+i)*timestep-totaltime);
+                    temp[3*j]=out[0];
+                    temp[3*j+1]=out[1];
+                    temp[3*j+2]=out[2];
+                }
+                else
+                {
+                    t0=(start+i)*timestep-totaltime;
+                    if (int(floor(1000*t0))==balls[i]._rimpos.size()-1)
+                    {
+                        out=balls[i]._rimpos[balls[i]._rimpos.size()-1];
+                        temp[3*j]=out[0];
+                        temp[3*j+1]=out[1];
+                        temp[3*j+2]=out[2];
+                    }
+                    else
+                    {
+                        //interpolate.
+                        a1=balls[j]._times[int(floor(1000*t0)+1)]-balls[j]._times[int(floor(1000*t0))];
+                        out=balls[j]._rimpos[int(floor(1000*t0))];
+                        out2=balls[j]._rimpos[int(floor(1000*t0)+1)];
+                        temp[3*j]=out[0]+(out2[0]-out[0])*(t0-balls[j]._times[int(floor(1000*t0))])/a1;
+                        temp[3*j+1]=out[1]+(out2[1]-out[1])*(t0-balls[j]._times[int(floor(1000*t0))])/a1;
+                        temp[3*j+2]=out[2]+(out2[2]-out[2])*(t0-balls[j]._times[int(floor(1000*t0))])/a1;
+                    }
+                }
             }
             pos.push_back(temp);
         }
@@ -2233,69 +2894,118 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
         grid_index={};
         for (int i=0;i<22;i++)
         {
-            //position.
-            out=balls[i].get_position(t);
-            balls[i]._x=out[0];
-            balls[i]._y=out[1];
-            balls[i]._z=out[2];
-            if (out[2]<0)
+            if (balls[i]._potted)
             {
-                balls[i]._potted=true;
+                continue;
             }
-            //velocity.
-            if (!balls[i]._potted)
+            if (!balls[i]._onrim)
             {
-                out=balls[i].get_velocity(t);
-                if (fabs(out[0])>epsilon) {balls[i]._vx=out[0];}
-                else {balls[i]._vx=0.;}
-                if (fabs(out[1])>epsilon) {balls[i]._vy=out[1];}
-                else {balls[i]._vy=0.;}
-                if (fabs(out[2])>epsilon) {balls[i]._vz=out[2];}
-                else {balls[i]._vz=0.;}
-                //spin.
-                out=balls[i].get_spin(t);
-                if (fabs(out[0])>epsilon) {balls[i]._xspin=out[0];}
-                else {balls[i]._xspin=0.;}
-                if (fabs(out[1])>epsilon) {balls[i]._yspin=out[1];}
-                else {balls[i]._yspin=0.;}
-                if (fabs(out[2])>epsilon) {balls[i]._rspin=out[2];}
-                else {balls[i]._rspin=0.;}
-
-                //update the grid positions in case there is a collision.
-                gxmin=int(floor((balls[i]._x-balls[i]._r)/(double(2.)*balls[i]._r)));
-                gxmax=int(floor((balls[i]._x+balls[i]._r)/(double(2.)*balls[i]._r)));
-                gymin=int(floor((balls[i]._y-balls[i]._r)/(double(2.)*balls[i]._r)));
-                gymax=int(floor((balls[i]._y+balls[i]._r)/(double(2.)*balls[i]._r)));
-
-                balls[i]._gpos[0][0]=gxmin;
-                balls[i]._gpos[0][1]=gymin;
-                balls[i]._gpos[1][0]=gxmax;
-                balls[i]._gpos[1][1]=gymin;
-                balls[i]._gpos[2][0]=gxmax;
-                balls[i]._gpos[2][1]=gymax;
-                balls[i]._gpos[3][0]=gxmin;
-                balls[i]._gpos[3][1]=gymax;
-                //update grid position.
-
-                for (int j=0;j<4;j++)
+                //position.
+                out=balls[i].get_position(t);
+                balls[i]._x=out[0];
+                balls[i]._y=out[1];
+                balls[i]._z=out[2];
+                if (out[2]<-ball_radius)
                 {
-                    xpos=balls[i]._gpos[j][0];
-                    ypos=balls[i]._gpos[j][1];
-                    grid[xpos][ypos][grid_index[xpos][ypos]]=balls[i]._order;
-                    grid_index[xpos][ypos]+=1;
+                    balls[i]._potted=true;
+                    pos[pos.size()-1][3*i]=-100.;
+                    pos[pos.size()-1][3*i+1]=-100.;
+                    pos[pos.size()-1][3*i+2]=-100.;
+                }
+                //velocity.
+                if (!balls[i]._potted)
+                {
+                    out=balls[i].get_velocity(t);
+                    if (fabs(out[0])>epsilon) {balls[i]._vx=out[0];}
+                    else {balls[i]._vx=0.;}
+                    if (fabs(out[1])>epsilon) {balls[i]._vy=out[1];}
+                    else {balls[i]._vy=0.;}
+                    if (fabs(out[2])>epsilon) {balls[i]._vz=out[2];}
+                    else {balls[i]._vz=0.;}
+                    //spin.
+                    out=balls[i].get_spin(t);
+                    if (fabs(out[0])>epsilon) {balls[i]._xspin=out[0];}
+                    else {balls[i]._xspin=0.;}
+                    if (fabs(out[1])>epsilon) {balls[i]._yspin=out[1];}
+                    else {balls[i]._yspin=0.;}
+                    if (fabs(out[2])>epsilon) {balls[i]._rspin=out[2];}
+                    else {balls[i]._rspin=0.;}
                 }
             }
+            else
+            {
+                //on the rim.
+                if (int(floor(1000*t))==balls[i]._rimpos.size()-1)
+                {
+                    out=balls[i]._rimpos[balls[i]._rimpos.size()-1];
+                    balls[i]._x=out[0];
+                    balls[i]._y=out[1];
+                    balls[i]._z=out[2];
+                    out=balls[i]._rimvel[balls[i]._rimvel.size()-1];
+                    balls[i]._vx=out[0];
+                    balls[i]._vy=out[1];
+                    balls[i]._vz=out[2];
+                }
+                else
+                {
+                    //interpolate.
+                    a1=balls[i]._times[int(floor(1000*t)+1)]-balls[i]._times[int(floor(1000*t))];
+                    out=balls[i]._rimpos[int(floor(1000*t))];
+                    out2=balls[i]._rimpos[int(floor(1000*t)+1)];
+                    balls[i]._x=out[0]+(out2[0]-out[0])*(t-balls[i]._times[int(floor(1000*t))])/a1;
+                    balls[i]._y=out[1]+(out2[1]-out[1])*(t-balls[i]._times[int(floor(1000*t))])/a1;
+                    balls[i]._z=out[2]+(out2[2]-out[2])*(t-balls[i]._times[int(floor(1000*t))])/a1;
+                    out=balls[i]._rimvel[int(floor(1000*t))];
+                    out2=balls[i]._rimvel[int(floor(1000*t)+1)];
+                    balls[i]._vx=out[0]+(out2[0]-out[0])*(t-balls[i]._times[int(floor(1000*t))])/a1;
+                    balls[i]._vy=out[1]+(out2[1]-out[1])*(t-balls[i]._times[int(floor(1000*t))])/a1;
+                    balls[i]._vz=out[2]+(out2[2]-out[2])*(t-balls[i]._times[int(floor(1000*t))])/a1;
+                }
+                balls[i]._xspin=balls[i]._vx/ball_radius;
+                balls[i]._yspin=balls[i]._vy/ball_radius;
+                //work out how rspin changes.
+                if (fabs(balls[i]._vx)<epsilon) {balls[i]._vx=0;}
+                if (fabs(balls[i]._vy)<epsilon) {balls[i]._vy=0;}
+                if (fabs(balls[i]._vz)<epsilon) {balls[i]._vz=0;}
+                if (fabs(balls[i]._xspin)<epsilon) {balls[i]._xspin=0;}
+                if (fabs(balls[i]._yspin)<epsilon) {balls[i]._yspin=0;}
+            }
+            //update the grid positions in case there is a collision.
+            gxmin=int(floor((balls[i]._x-balls[i]._r)/(2.*balls[i]._r)));
+            gxmax=int(floor((balls[i]._x+balls[i]._r)/(2.*balls[i]._r)));
+            gymin=int(floor((balls[i]._y-balls[i]._r)/(2.*balls[i]._r)));
+            gymax=int(floor((balls[i]._y+balls[i]._r)/(2.*balls[i]._r)));
 
-//            if (i==0)
-//            {
-//                std::cout << "x:" << double(balls[i]._x) << std::endl;
-//                std::cout << "y:" << double(balls[i]._y) << std::endl;
-//                std::cout << "vx:" << double(balls[i]._vx) << std::endl;
-//                std::cout << "vy:" << double(balls[i]._vy) << std::endl;
+            balls[i]._gpos[0][0]=gxmin;
+            balls[i]._gpos[0][1]=gymin;
+            balls[i]._gpos[1][0]=gxmax;
+            balls[i]._gpos[1][1]=gymin;
+            balls[i]._gpos[2][0]=gxmax;
+            balls[i]._gpos[2][1]=gymax;
+            balls[i]._gpos[3][0]=gxmin;
+            balls[i]._gpos[3][1]=gymax;
+            //update grid position.
+
+            for (int j=0;j<4;j++)
+            {
+                xpos=balls[i]._gpos[j][0];
+                ypos=balls[i]._gpos[j][1];
+                grid[xpos][ypos][grid_index[xpos][ypos]]=balls[i]._order;
+                grid_index[xpos][ypos]+=1;
+            }
+
+            if (i==0)
+            {
+//                std::cout << "x:" << balls[i]._x << std::endl;
+//                std::cout << "y:" << balls[i]._y << std::endl;
+//                std::cout << "z:" << balls[i]._z << std::endl;
+//                std::cout << "vx:" << balls[i]._vx << std::endl;
+//                std::cout << "vy:" << balls[i]._vy << std::endl;
+//                std::cout << "vz:" << balls[i]._vz << std::endl;
 //                std::cout << "xspin:" << double(balls[i]._xspin) << std::endl;
 //                std::cout << "yspin:" << double(balls[i]._yspin) << std::endl;
 //                std::cout << "rspin:" << double(balls[i]._rspin) << std::endl;
-//            }
+            }
         }
 
         //perform collision check.
@@ -2304,6 +3014,7 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
             do
             {
                 dv=collisions(balls,cush);
+                std::cout << "Collision" << std::endl;
                 for (int i=0;i<22;i++)
                 {
                     if (balls[i]._potted)
@@ -2311,12 +3022,19 @@ std::vector<std::array<double,66>> simulate(Ball balls[22],Cushion cush[6])
                         continue;
                     }
                     balls[i]._vx+=dv(2*i);
-                    if (fabs(balls[i]._vx)<epsilon) {balls[i]._vx=0;}
                     balls[i]._vy+=dv(2*i+1);
-                    if (fabs(balls[i]._vy)<epsilon) {balls[i]._vy=0;}
                 }
                 //std::cout << "dv: " << dv << std::endl;
             } while (dv!=zero);
+            for (int i=0;i<22;i++)
+            {
+                if (balls[i]._potted)
+                {
+                    continue;
+                }
+                if (fabs(balls[i]._vx)<epsilon) {balls[i]._vx=0;}
+                if (fabs(balls[i]._vy)<epsilon) {balls[i]._vy=0;}
+            }
         }
     }
     return pos;

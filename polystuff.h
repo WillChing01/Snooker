@@ -1,13 +1,45 @@
 #ifndef POLYSTUFF_H_INCLUDED
 #define POLYSTUFF_H_INCLUDED
 
+#include <Eigen/Eigenvalues>
+
 const double DOUBLE_EPSILON=std::numeric_limits<double>::epsilon();
 
-const int qlimit=100;
+const int qlimit=20;
 
 template <typename T> int sgn(T val)
 {
     return (T(0)<val)-(val<T(0));
+}
+
+std::array<double,8> qsolve_octic(std::array<double,8> a)
+{
+    //assumes it is a monic octic.
+    Eigen::MatrixXd A=Eigen::MatrixXd::Zero(8,8);
+
+    A(0,7)=-a[0];
+    for (int i=1;i<8;i++)
+    {
+        A(i,7)=-a[i];
+        A(i,i-1)=1;
+    }
+
+    Eigen::EigenSolver<Eigen::MatrixXd> es(A,false);
+
+    std::array<double,8> roots;
+    for (int i=0;i<8;i++)
+    {
+        if (fabs(es.eigenvalues()[i].imag())<DOUBLE_EPSILON)
+        {
+            //real root.
+            roots[i]=es.eigenvalues()[i].real();
+        }
+        else
+        {
+            roots[i]=sqrt(-1.);
+        }
+    }
+    return roots;
 }
 
 double nroot(double A,int n)
@@ -90,6 +122,22 @@ std::array<double,2> qsolve_quadratic(double a,double b,double c)
 {
     std::array<double,2> roots;
 
+    //check if actually a quadratic.
+    if (fabs(a)<DOUBLE_EPSILON)
+    {
+        //linear?
+        if (fabs(b)<DOUBLE_EPSILON)
+        {
+            roots[0]=sqrt(-1.);
+        }
+        else
+        {
+            roots[0]=-c/b;
+        }
+        roots[1]=sqrt(-1.);
+        return roots;
+    }
+
     //rescale.
     b=b/a;
     c=c/a;
@@ -141,6 +189,18 @@ std::array<double,2> qsolve_quadratic(double a,double b,double c)
 std::array<double,3> qsolve_cubic(double a,double b,double c,double d)
 {
     std::array<double,3> roots;
+
+    //check if actually a cubic.
+    if (fabs(a)<DOUBLE_EPSILON)
+    {
+        //a quadratic?
+        std::array<double,2> qroots=qsolve_quadratic(b,c,d);
+        roots[0]=qroots[0];
+        roots[1]=qroots[1];
+        roots[2]=sqrt(-1.);
+        return roots;
+    }
+
     //turn into monic.
     b=b/a;
     c=c/a;
@@ -508,6 +568,18 @@ std::array<double,3> qsolve_cubic(double a,double b,double c,double d)
 std::array<double,4> qsolve_quartic(double a,double b,double c,double d,double e)
 {
     std::array<double,4> roots;
+
+    //check if actually a quartic.
+    if (fabs(a)<DOUBLE_EPSILON)
+    {
+        //a cubic?
+        std::array<double,3> qroots=qsolve_cubic(b,c,d,e);
+        roots[0]=qroots[0];
+        roots[1]=qroots[1];
+        roots[2]=qroots[2];
+        roots[3]=sqrt(-1.);
+        return roots;
+    }
 
     //turn into monic.
     b=b/a;

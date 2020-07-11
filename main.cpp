@@ -4,43 +4,6 @@
 #include <koolplot.h>
 #include "objects.h"
 
-using namespace boost::numeric::odeint;
-
-//int main()
-//{
-//    double v0=2.;
-//    double delta=1.5;
-//    double theta=asin(delta/mpocket_r);
-//
-//    std::vector<state_type> output;
-//    std::vector<double> times;
-//    state_type xi={0,v0*cos(theta)/ball_radius,theta,v0*sin(theta)/mpocket_r};
-//
-//    Rimode rimode(mpocket_r);
-//
-//    runge_kutta4<state_type> stepper;
-//
-//    size_t steps=integrate(rimode,xi,0.,1.,0.00001,push_back_state_and_time(output,times));
-//    //integrate_const(stepper,rimode,xi,0.,1.,pow(10,-6),push_back_state_and_time(output,times));
-//
-//    std::cout << "Steps: " << steps << std::endl;
-//
-//    double normal;
-//
-//
-//    for (int i=0;i<steps;i++)
-//    {
-//        normal=gravity*cos(output[i][0])-ball_radius*pow(output[i][1],2)+(mpocket_r-ball_radius*sin(output[i][0]))*sin(output[i][0])*pow(output[i][3],2);
-//        if (normal<0)
-//        {
-//            break;
-//        }
-//        std::cout << times[i] << " : " << (mpocket_r-ball_radius*sin(output[i][0]))*sin(output[i][2]) << " : " << -(mpocket_r-ball_radius*sin(output[i][0]))*cos(output[i][2]) << std::endl;
-//    }
-//
-//    return 0;
-//}
-
 int main()
 {
     sf::ContextSettings settings;
@@ -53,6 +16,10 @@ int main()
     {
         std::cout << "Error. Shader not loaded." << std::endl;
     }
+
+    //get cue.
+    Cue cue;
+    cue._sprite.setPosition(sf::Vector2f(black_x*dfactor,window_height-black_y*dfactor));
 
     //prepare the balls and spots.
     Ball balls[22];
@@ -73,15 +40,17 @@ int main()
     //cueball.
     balls[0]._shape.setFillColor(sf::Color(255,255,255));
     balls[0]._x=cueball_break_x;
-    balls[0]._y=cueball_break_y-0.7;
-    //balls[0]._y=rail_thickness+cush_thickness+ball_radius;
+    balls[0]._y=cueball_break_y;
     //__float128 angle=atan2q(cpockets[0][0]-balls[0]._x,cpockets[0][1]-balls[0]._y)+0.5*pi*0.009;
-    double angle=-0.5*pi+0.001;
-    balls[0]._vx=75*sin(angle);
-    balls[0]._vy=75*cos(angle);
-    balls[0]._xspin=0;
-    balls[0]._yspin=0;
-    balls[0]._rspin=-80;
+//    double angle=0.6*pi;
+//    double speed=100;
+//    balls[0]._x=mpockets[1][0]-5;
+//    balls[0]._y=mpockets[1][1]+3.7;
+//    balls[0]._vx=speed*sin(angle);
+//    balls[0]._vy=speed*cos(angle);
+//    balls[0]._xspin=0;
+//    balls[0]._yspin=0;
+//    balls[0]._rspin=0;
     balls[0]._order=1;
     //yellow.
     balls[1]._shape.setFillColor(sf::Color(255,255,0));
@@ -192,7 +161,6 @@ int main()
     double newy;
     Eigen::MatrixXd test=Eigen::MatrixXd::Constant(46,1,0.0);
 
-    bool still=true;
     bool placing_white=false;
     bool touching=false;
 
@@ -208,29 +176,37 @@ int main()
 
     while (window.isOpen())
     {
-        for (int i=0;i<22;i++)
+        if (t<result.size())
         {
-            if (t<result.size())
+            for (int i=0;i<22;i++)
             {
                 balls[i]._x=result[t][i*3];
                 balls[i]._y=result[t][i*3+1];
                 balls[i]._z=result[t][i*3+2];
             }
-            else
+            if (t==int(result.size()-1))
             {
-                balls[i]._x=result[result.size()-1][i*3];
-                balls[i]._y=result[result.size()-1][i*3+1];
-                balls[i]._z=result[result.size()-1][i*3+2];
+                for (int i=0;i<22;i++)
+                {
+                    balls[i]._rspin=0;
+                }
             }
         }
-        t+=1;
+        t=std::min(t+1,int(result.size()));
         //check if white ball potted.
-        if (balls[0]._potted && still)
+        if (t==int(result.size()) && balls[0]._x<0)
         {
             placing_white=true;
             balls[0]._potted=false;
             balls[0]._x=cueball_break_x;
             balls[0]._y=cueball_break_y;
+            balls[0]._z=ball_radius;
+            balls[0]._vx=0;
+            balls[0]._vy=0;
+            balls[0]._vz=0;
+            balls[0]._rspin=0;
+            balls[0]._xspin=0;
+            balls[0]._yspin=0;
         }
         if (placing_white)
         {
@@ -277,6 +253,11 @@ int main()
             {
                 balls[0]._x=std::max(balls[0]._x-0.1,brown_x);
             }
+            else if (t==int(result.size()))
+            {
+                //moving cue.
+                cue._angle-=pi/180.;
+            }
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
         {
@@ -287,6 +268,10 @@ int main()
                 {
                     balls[0]._x+=0.1;
                 }
+            }
+            else if (t==int(result.size()))
+            {
+                cue._angle+=pi/180.;
             }
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
@@ -311,7 +296,7 @@ int main()
                 }
             }
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
         {
             if (placing_white)
             {
@@ -321,10 +306,38 @@ int main()
                 }
             }
         }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+        {
+            if (!placing_white && t==int(result.size()))
+            {
+                //take the shot!
+                balls[0]._vx=40*sin(cue._angle);
+                balls[0]._vy=40*cos(cue._angle);
+                result=simulate(balls,cushions);
+                t=0;
+                continue;
+            }
+        }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Backspace))
         {
             //replay for debug purposes.
             t=0;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Comma))
+        {
+            if (!placing_white && t==int(result.size()))
+            {
+                //move left.
+                cue._angle-=0.1*pi/180.;
+            }
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Period))
+        {
+            if (!placing_white && t==int(result.size()))
+            {
+                //move right.
+                cue._angle+=0.1*pi/180.;
+            }
         }
 
         //draw all the shapes on the screen.
@@ -345,11 +358,14 @@ int main()
         }
         for (int i=0;i<22;i++)
         {
-            if (balls[i]._potted==false)
-            {
-                balls[i]._shape.setPosition(sf::Vector2f(balls[i]._x*dfactor,window_height-balls[i]._y*dfactor));
-                window.draw(balls[i]._shape,&shader);
-            }
+            balls[i]._shape.setPosition(sf::Vector2f(balls[i]._x*dfactor,window_height-balls[i]._y*dfactor));
+            window.draw(balls[i]._shape,&shader);
+        }
+        if (!placing_white && t==int(result.size()))
+        {
+            cue._sprite.setPosition(sf::Vector2f((balls[0]._x-2*sin(cue._angle))*dfactor,window_height-dfactor*(balls[0]._y-2*cos(cue._angle))));
+            cue._sprite.setRotation((cue._angle+0.5*pi)*180./pi);
+            window.draw(cue._sprite);
         }
 
         elapsed=clock.restart();
