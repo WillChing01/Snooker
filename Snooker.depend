@@ -1,9 +1,10 @@
 # depslib dependency file v1.0
-1594497729 source:c:\users\willi\onedrive\desktop\python\snooker game\snooker\main.cpp
+1595009268 source:c:\users\willi\onedrive\desktop\python\snooker game\snooker\main.cpp
 	<iostream>
 	<SFML/Graphics.hpp>
 	<SFML/System.hpp>
 	<koolplot.h>
+	<string>
 	"objects.h"
 
 1591624232 c:\users\willi\onedrive\desktop\python\snooker game\sfml-2.5.1\include\sfml\graphics.hpp
@@ -415,7 +416,7 @@
 	<SFML/Graphics/Drawable.hpp>
 	<SFML/Window/GlResource.hpp>
 
-1594502171 c:\users\willi\onedrive\desktop\python\snooker game\snooker\objects.h
+1595009712 c:\users\willi\onedrive\desktop\python\snooker game\snooker\objects.h
 	<math.h>
 	<Eigen/Dense>
 	<SFML/Graphics.hpp>
@@ -424,6 +425,7 @@
 	<boost/numeric/odeint.hpp>
 	"polystuff.h"
 
-1594498948 c:\users\willi\onedrive\desktop\python\snooker game\snooker\polystuff.h
+1594928538 c:\users\willi\onedrive\desktop\python\snooker game\snooker\polystuff.h
 	<Eigen/Eigenvalues>
+	<math.h>
 
