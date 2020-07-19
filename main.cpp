@@ -238,13 +238,57 @@ int main()
     sf::Time period=sf::seconds(1.0/framerate);
     sf::Clock clock;
 
-    std::vector<std::array<double,66>> result;
+    std::vector<std::array<double,66> > result;
     result=simulate(balls,cushions);
+
+    cue._offset=0.;
+    cue._alpha=0.;
+    cue._speed=1.2*power;
+    cue.shot();
+    balls[0]._vx=cue._ballv*sin(cue._angle);
+    balls[0]._vy=cue._ballv*cos(cue._angle);
+    balls[0]._xspin=cue._ballparspin*sin(cue._angle)+cue._ballperspin*cos(cue._angle);
+    balls[0]._yspin=cue._ballparspin*cos(cue._angle)-cue._ballperspin*sin(cue._angle);
+    balls[0]._rspin=cue._ballrspin;
+
+    std::array<std::vector<double>,3> predict;
+    predict=trajectory(balls,cushions);
+
+    sf::VertexArray cuetraj(sf::PrimitiveType::LineStrip,predict[0].size()/2);
+    sf::VertexArray cuetraj2(sf::PrimitiveType::LineStrip,1+predict[1].size()/2);
+    sf::VertexArray obtraj(sf::PrimitiveType::LineStrip,predict[2].size()/2);
+    sf::CircleShape ghostball;
+    ghostball.setRadius(ball_radius*dfactor);
+    ghostball.setOrigin(ball_radius*dfactor,ball_radius*dfactor);
+    ghostball.setFillColor(sf::Color(255,255,255,100));
+    ghostball.setPosition(sf::Vector2f(dfactor*predict[0][predict[0].size()-2],window_height-dfactor*predict[0][predict[0].size()-1]));
+    sf::CircleShape ghostball2;
+    ghostball2.setRadius(ball_radius*dfactor);
+    ghostball2.setOrigin(ball_radius*dfactor,ball_radius*dfactor);
+    ghostball2.setFillColor(sf::Color(255,255,255,100));
+    ghostball2.setPosition(sf::Vector2f(dfactor*predict[1][predict[1].size()-2],window_height-dfactor*predict[1][predict[1].size()-1]));
+
+    for (int i=0;i<predict[0].size()/2;i++)
+    {
+        cuetraj[i].position=sf::Vector2f(dfactor*predict[0][2*i],window_height-dfactor*predict[0][2*i+1]);
+    }
+    cuetraj2[0].position=sf::Vector2f(dfactor*predict[0][predict[0].size()-2],window_height-dfactor*predict[0][predict[0].size()-1]);
+    for (int i=1;i<1+predict[1].size()/2;i++)
+    {
+        cuetraj2[i].position=sf::Vector2f(dfactor*predict[1][2*i-2],window_height-dfactor*predict[1][2*i-1]);
+    }
+    for (int i=0;i<predict[2].size()/2;i++)
+    {
+        obtraj[i].position=sf::Vector2f(dfactor*predict[2][2*i],window_height-dfactor*predict[2][2*i+1]);
+    }
+
+    bool change=false;
 
     int t=0;
 
     while (window.isOpen())
     {
+        change=false;
         if (t<result.size())
         {
             for (int i=0;i<22;i++)
@@ -255,6 +299,7 @@ int main()
             }
             if (t==int(result.size()-1))
             {
+                change=true;
                 for (int i=0;i<22;i++)
                 {
                     balls[i]._rspin=0;
@@ -369,6 +414,7 @@ int main()
             {
                 //moving cue.
                 cue._angle-=pi/180.;
+                change=true;
             }
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
@@ -384,6 +430,7 @@ int main()
             else if (t==int(result.size()))
             {
                 cue._angle+=pi/180.;
+                change=true;
             }
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
@@ -399,6 +446,7 @@ int main()
             else if (t==int(result.size()))
             {
                 power=fmin(power+0.5,100.5);
+                change=true;
             }
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
@@ -414,6 +462,7 @@ int main()
             else if (t==int(result.size()))
             {
                 power=fmax(power-0.5,0.);
+                change=true;
             }
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
@@ -423,6 +472,7 @@ int main()
                 if (balls[0]._shape.getFillColor()==sf::Color(255,255,255))
                 {
                     placing_white=false;
+                    change=true;
                 }
             }
         }
@@ -460,7 +510,8 @@ int main()
             if (!placing_white && t==int(result.size()))
             {
                 //move left.
-                cue._angle-=0.1*pi/180.;
+                cue._angle-=0.02*pi/180.;
+                change=true;
             }
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Period))
@@ -468,7 +519,8 @@ int main()
             if (!placing_white && t==int(result.size()))
             {
                 //move right.
-                cue._angle+=0.1*pi/180.;
+                cue._angle+=0.02*pi/180.;
+                change=true;
             }
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::LBracket))
@@ -476,6 +528,7 @@ int main()
             if (!placing_white && t==int(result.size()))
             {
                 //elevate the cue upwards.
+                change=true;
                 alpha=fmin(alpha+0.1*pi/180.,0.5*pi);
 
                 if (int(alpha*180./pi)<10)
@@ -512,6 +565,7 @@ int main()
             if (!placing_white && t==int(result.size()))
             {
                 //flatten the cue.
+                change=true;
                 alpha=fmax(alpha-0.1*pi/180.,0.);
 
                 if (int(alpha*180./pi)<10)
@@ -570,6 +624,66 @@ int main()
                 {
                     elevation_pointer.setSize(sf::Vector2f(fmax(roots[0],roots[1]),0.2*panel_height*0.005/0.02625));
                 }
+                change=true;
+            }
+        }
+
+        if (change)
+        {
+            spin_selector_pos=spin_selector.getPosition();
+            spin_dot_pos=spin_dot.getPosition();
+            dist=(ball_radius/(0.4*panel_height))*sqrt(pow(spin_selector_pos.x-spin_dot_pos.x,2.)+pow(spin_selector_pos.y-spin_dot_pos.y,2.));
+            angle=atan2(spin_dot_pos.x-spin_selector_pos.x,spin_selector_pos.y-spin_dot_pos.y);
+            cue._offset=dist;
+            cue._theta=angle;
+            cue._speed=1.2*power;
+            cue.shot();
+            balls[0]._vx=cue._ballv*sin(cue._angle);
+            balls[0]._vy=cue._ballv*cos(cue._angle);
+            balls[0]._xspin=cue._ballparspin*sin(cue._angle)+cue._ballperspin*cos(cue._angle);
+            balls[0]._yspin=cue._ballparspin*cos(cue._angle)-cue._ballperspin*sin(cue._angle);
+            balls[0]._rspin=cue._ballrspin;
+
+            predict=trajectory(balls,cushions);
+
+            cuetraj.clear();
+            cuetraj2.clear();
+            obtraj.clear();
+
+            cuetraj.resize(predict[0].size()/2);
+            cuetraj2.resize(1+predict[1].size()/2);
+            obtraj.resize(predict[2].size()/2);
+
+            if (predict[0].size()>1)
+            {
+                ghostball.setPosition(sf::Vector2f(dfactor*predict[0][predict[0].size()-2],window_height-dfactor*predict[0][predict[0].size()-1]));
+                cuetraj2[0].position=sf::Vector2f(dfactor*predict[0][predict[0].size()-2],window_height-dfactor*predict[0][predict[0].size()-1]);
+            }
+            else
+            {
+                ghostball.setPosition(sf::Vector2f(-100.,-100.));
+            }
+
+            if (predict[1].size()>1)
+            {
+                ghostball2.setPosition(sf::Vector2f(dfactor*predict[1][predict[1].size()-2],window_height-dfactor*predict[1][predict[1].size()-1]));
+            }
+            else
+            {
+                ghostball2.setPosition(sf::Vector2f(-100.,-100.));
+            }
+
+            for (int i=0;i<predict[0].size()/2;i++)
+            {
+                cuetraj[i].position=sf::Vector2f(dfactor*predict[0][2*i],window_height-dfactor*predict[0][2*i+1]);
+            }
+            for (int i=1;i<1+predict[1].size()/2;i++)
+            {
+                cuetraj2[i].position=sf::Vector2f(dfactor*predict[1][2*i-2],window_height-dfactor*predict[1][2*i-1]);
+            }
+            for (int i=0;i<predict[2].size()/2;i++)
+            {
+                obtraj[i].position=sf::Vector2f(dfactor*predict[2][2*i],window_height-dfactor*predict[2][2*i+1]);
             }
         }
 
@@ -584,6 +698,15 @@ int main()
         window.draw(elevation_ball);
         window.draw(elevation_pointer);
         window.draw(elevation_display);
+
+        if (!placing_white && t==int(result.size()))
+        {
+            window.draw(cuetraj);
+            window.draw(cuetraj2);
+            window.draw(obtraj);
+            window.draw(ghostball);
+            window.draw(ghostball2);
+        }
 
         for (int i=0;i<int(floor(power));i++)
         {

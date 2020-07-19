@@ -6,7 +6,7 @@
 
 const double DOUBLE_EPSILON=std::numeric_limits<double>::epsilon();
 
-const int qlimit=20;
+const int qlimit=100;
 
 template <typename T> int sgn(T val)
 {
