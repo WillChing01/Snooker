@@ -14,7 +14,7 @@ To help with aiming, the game includes a basic shot predictor to show the trajec
 - "[" or "]" - increase/decrease cue elevation
 - Spacebar - take the shot
 
-If the white is potted, using the arrows to position it in the 'D' and press Spacebar to place it.
+If the white is potted, using the arrows to position it in the 'D' and press Enter to place it.
 
 Click within the white cueball on the bottom left to select where to strike the ball to impart spin.
 
