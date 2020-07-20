@@ -1,6 +1,6 @@
 # Snooker
 
-This is a basic 2D snooker game. The physics is simulated using the techniques described in 'An Event-Based Pool Physics Simulator' by Leckie and Greenspan (2006). Collisions between balls are solved analytically rather than using a discrete timestep to increase accuracy.
+This is a basic 2D snooker game. The physics is simulated using the techniques described in 'An Event-Based Pool Physics Simulator' by Leckie and Greenspan (2006). Collisions between balls are solved analytically rather than using a discrete timestep, as this increases accuracy.
 
 The physics still has to be tweaked slightly - sidespin is not right at the moment.
 
