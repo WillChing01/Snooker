@@ -6,6 +6,9 @@ The physics still has to be tweaked slightly - sidespin is not right at the mome
 
 To help with aiming, the game includes a basic shot predictor to show the trajectory of the cueball.
 
+# Example Gameplay (.gif)
+![clearance](https://user-images.githubusercontent.com/53403691/87889553-151ed200-ca2a-11ea-9cb6-4f8ea2755ddf.gif)
+
 # Controls
 
 - Left or Right arrow - aim the cue
