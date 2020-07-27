@@ -7,6 +7,9 @@
 #include <set>
 #include <algorithm>
 #include <boost/numeric/odeint.hpp>
+#include <boost/random/random_device.hpp>
+#include <boost/random/normal_distribution.hpp>
+#include <boost/random.hpp>
 #include "polystuff.h"
 
 using namespace boost::numeric::odeint;
@@ -114,7 +117,7 @@ std::array<std::array<double,4>,8> cpline={{{1.,-k1,rail_thickness+k1,rail_thick
                                             {1.,k1-table_width,rail_thickness+2.*cush_thickness+table_length-k2,rail_thickness+2.*cush_thickness+table_length-k1}}};
 
 //matrix.
-Eigen::Matrix<double,46,46> M_;
+Eigen::Matrix<double,46,46> M_=Eigen::MatrixXd::Zero(46,46);
 
 std::tuple<double,double> add_vectors(double v1,double a1,double v2,double a2)
 {
@@ -1301,11 +1304,24 @@ class Cue
         double _ballperspin;
         double _ballrspin;
 
+        boost::random_device rd;
+        boost::mt19937 _gen{boost::mt19937(rd())};
+        boost::normal_distribution<> _ndangle{boost::normal_distribution<>(0.0,pi/3600.)};
+        boost::normal_distribution<> _ndalpha{boost::normal_distribution<>(0.0,0.003)};
+        boost::normal_distribution<> _ndspeed{boost::normal_distribution<>(0.0,0.0085)};
+        boost::normal_distribution<> _ndoffset{boost::normal_distribution<>(0.0,0.04)};
+
+        boost::variate_generator<boost::mt19937&,boost::normal_distribution<> > _varangle{boost::variate_generator<boost::mt19937&,boost::normal_distribution<> >(_gen,_ndangle)};
+        boost::variate_generator<boost::mt19937&,boost::normal_distribution<> > _varalpha{boost::variate_generator<boost::mt19937&,boost::normal_distribution<> >(_gen,_ndalpha)};
+        boost::variate_generator<boost::mt19937&,boost::normal_distribution<> > _varspeed{boost::variate_generator<boost::mt19937&,boost::normal_distribution<> >(_gen,_ndspeed)};
+        boost::variate_generator<boost::mt19937&,boost::normal_distribution<> > _varoffset{boost::variate_generator<boost::mt19937&,boost::normal_distribution<> >(_gen,_ndoffset)};
+
         sf::Texture _texture;
         sf::Sprite _sprite;
 
         Cue();
         void shot();
+        void perturb();
 };
 
 Cue::Cue()
@@ -1339,7 +1355,166 @@ void Cue::shot()
     _ballvz=-v*sin(_alpha);
 }
 
-Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
+void Cue::perturb()
+{
+    _angle+=_varangle();
+    _alpha+=_varalpha();
+    _speed+=_varspeed();
+
+    double dx=_offset*sin(_theta);
+    double dy=_offset*cos(_theta);
+
+    dx+=_varoffset();
+    dy+=_varoffset();
+
+    _offset=sqrt(pow(dx,2.)+pow(dy,2.));
+    _theta=atan2(dx,dy);
+}
+
+class Server
+{
+    public:
+        bool running=true;
+
+        bool player_turn=0;
+
+        sf::IpAddress serverIp;
+        unsigned short port;
+        sf::TcpListener listener;
+
+        std::array<sf::TcpSocket,2> players;
+        std::array<sf::TcpSocket,4> spectators;
+
+        sf::Packet packet;
+
+        //for objects just need balls and cushions.
+
+        //prepare cushions.
+        Cushion servercushions[6];
+
+        Ball serverballs[22];
+
+        //grid squares.
+        std::array<std::array<std::array<int,7>,39>,73> grid={};
+        std::array<std::array<int,39>,73> grid_index={};
+
+        //matrix.
+        Eigen::Matrix<double,46,46> sM_=Eigen::MatrixXd::Zero(46,46);
+
+        std::vector<std::array<double,66> > result;
+
+        Server();
+        std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6]);
+        Eigen::Matrix<double,46,1> collisions(Ball b[22], Cushion cush[6]);
+        void handleIncomingConnections();
+        void executionThread();
+        void shutdown();
+};
+
+Server::Server()
+{
+    //setup connections.
+    serverIp=sf::IpAddress::getLocalAddress();
+    listener.setBlocking(false);
+    if (listener.listen(sf::Socket::AnyPort)!=sf::Socket::Done)
+    {
+        //error.
+        std::cout << "Tcp listener could not bind to port." << std::endl;
+    }
+    port=listener.getLocalPort();
+
+    std::cout << "Local IP Address: " << serverIp << std::endl;
+    std::cout << "Local port: " << port << std::endl;
+
+    for (int i=0;i<2;i++)
+    {
+        players[i].setBlocking(false);
+    }
+    for (int i=0;i<4;i++)
+    {
+        spectators[i].setBlocking(false);
+    }
+
+    servercushions[0]=Cushion(mpockets[0][0],mpockets[0][1]-0.156,pi,1,0);
+    servercushions[1]=Cushion(mpockets[1][0],mpockets[1][1]+0.156,0.0,1,0);
+    servercushions[2]=Cushion(cpockets[0][0],cpockets[0][1],0.0,0,1);
+    servercushions[3]=Cushion(cpockets[1][0],cpockets[1][1],pi/2,0,0);
+    servercushions[4]=Cushion(cpockets[2][0],cpockets[2][1],pi*3/2,0,0);
+    servercushions[5]=Cushion(cpockets[3][0],cpockets[3][1],pi,0,1);
+
+    //cueball.
+    serverballs[0]._x=cueball_break_x;
+    serverballs[0]._y=cueball_break_y;
+    serverballs[0]._order=1;
+    //yellow.
+    serverballs[1]._x=yellow_x;
+    serverballs[1]._y=yellow_y;
+    serverballs[1]._order=2;
+    //green.
+    serverballs[2]._x=green_x;
+    serverballs[2]._y=green_y;
+    serverballs[2]._order=3;
+    //brown.
+    serverballs[3]._x=brown_x;
+    serverballs[3]._y=brown_y;
+    serverballs[3]._order=4;
+    //blue.
+    serverballs[4]._x=blue_x;
+    serverballs[4]._y=blue_y;
+    serverballs[4]._order=5;
+    //pink.
+    serverballs[5]._x=pink_x;
+    serverballs[5]._y=pink_y;
+    serverballs[5]._order=6;
+    //black.
+    serverballs[6]._x=black_x;
+    serverballs[6]._y=black_y;
+    serverballs[6]._order=7;
+
+    double x;
+    double y;
+    int i=7;
+    int gxmin;
+    int gxmax;
+    int gymin;
+    int gymax;
+    for (int row=0;row<5;row++)
+    {
+        for (int h=-row;h<row+1;h=h+2)
+        {
+            serverballs[i]._x=pink_x-0.1-2*ball_radius-row*sqrt(3.0)*(ball_radius+DOUBLE_EPSILON);
+            serverballs[i]._y=pink_y+h*(ball_radius+DOUBLE_EPSILON);
+            serverballs[i]._order=i+1;
+            i+=1;
+        }
+    }
+    for (int i=0;i<22;i++)
+    {
+        gxmin=int(floor((serverballs[i]._x-serverballs[i]._r)/(2.*serverballs[i]._r)));
+        gxmax=int(floor((serverballs[i]._x+serverballs[i]._r)/(2.*serverballs[i]._r)));
+        gymin=int(floor((serverballs[i]._y-serverballs[i]._r)/(2.*serverballs[i]._r)));
+        gymax=int(floor((serverballs[i]._y+serverballs[i]._r)/(2.*serverballs[i]._r)));
+
+        serverballs[i]._gpos[0][0]=gxmin;
+        serverballs[i]._gpos[0][1]=gymin;
+        serverballs[i]._gpos[1][0]=gxmax;
+        serverballs[i]._gpos[1][1]=gymin;
+        serverballs[i]._gpos[2][0]=gxmax;
+        serverballs[i]._gpos[2][1]=gymax;
+        serverballs[i]._gpos[3][0]=gxmin;
+        serverballs[i]._gpos[3][1]=gymax;
+    }
+
+    //prepare matrix.
+    for (int i=0;i<44;i++)
+    {
+        sM_(i,i)=1/ball_mass;
+    }
+    sM_(44,44)=0;
+    sM_(45,45)=0;
+}
+
+Eigen::Matrix<double,46,1> Server::collisions(Ball b[22],Cushion cush[6])
 {
     //broad phase collision check.
     Eigen::MatrixXd dv=Eigen::MatrixXd::Zero(46,1);
@@ -1496,60 +1671,6 @@ Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
         }
     }
 
-    //check if any total collisions.
-    if (col==1)
-    {
-        //single collision.
-        //check if to cushion.
-        if (Z(44,0)!=0 || Z(45,0)!=0)
-        {
-            double v;
-            double an;
-            for (int i=0;i<22;i++)
-            {
-                if (Z(2*i,0)!=0 || Z(2*i+1,0)!=0)
-                {
-                    //collision with this ball.
-                    std::tie(v,an)=add_vectors(-sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.))*cos(atan2(b[i]._vx,b[i]._vy)-atan2(Z(2*i,0),Z(2*i+1,0))),atan2(Z(2*i,0),Z(2*i+1,0)),sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.))*cos(atan2(b[i]._vx,b[i]._vy)-(atan2(Z(2*i,0),Z(2*i+1,0))+0.5*pi)),atan2(Z(2*i,0),Z(2*i+1,0))+0.5*pi);
-                    dv(2*i)=v*sin(an)-b[i]._vx;
-                    dv(2*i+1)=v*cos(an)-b[i]._vy;
-                    break;
-                }
-            }
-        }
-        //ball-ball collision.
-        else
-        {
-            for (int i=0;i<22;i++)
-            {
-                if (Z(2*i,0)!=0 || Z(2*i+1,0)!=0)
-                {
-                    for (int j=i+1;j<22;j++)
-                    {
-                        if (Z(2*j,0)!=0 || Z(2*j+1,0)!=0)
-                        {
-                            double na=atan2(Z(2*i,0),Z(2*i+1,0));
-                            double pari=sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.))*cos(atan2(b[i]._vx,b[i]._vy)-na);
-                            double peri=sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.))*cos(atan2(b[i]._vx,b[i]._vy)-(na+0.5*pi));
-                            double parj=sqrt(pow(b[j]._vx,2.)+pow(b[j]._vy,2.))*cos(atan2(b[j]._vx,b[j]._vy)-na);
-                            double perj=sqrt(pow(b[j]._vx,2.)+pow(b[j]._vy,2.))*cos(atan2(b[j]._vx,b[j]._vy)-(na+0.5*pi));
-                            double speed;
-                            double theta;
-                            std::tie(speed,theta)=add_vectors(parj,na,peri,na+0.5*pi);
-                            dv(2*i)=speed*sin(theta)-b[i]._vx;
-                            dv(2*i+1)=speed*cos(theta)-b[i]._vy;
-                            std::tie(speed,theta)=add_vectors(pari,na,perj,na+0.5*pi);
-                            dv(2*j)=speed*sin(theta)-b[j]._vx;
-                            dv(2*j+1)=speed*cos(theta)-b[j]._vy;
-                            //adjust spins of balls.
-                            break;
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-    }
     //simultaneous.
     if (col>0)
     {
@@ -1565,13 +1686,13 @@ Eigen::Matrix<double,46,1> collisions(Ball b[22],Cushion cush[6])
         v(45,0)=0;
 
         //J=(Z.transpose()*M_*Z).colPivHouseholderQr().solve(-(1.+eball)*Z.transpose()*v);
-        J=(Z.transpose()*M_*Z).householderQr().solve(-(1.+eball)*Z.transpose()*v);
-        dv=M_*Z*J;
+        J=(Z.transpose()*sM_*Z).householderQr().solve(-(1.+eball)*Z.transpose()*v);
+        dv=sM_*Z*J;
     }
     return dv;
 }
 
-std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6])
+std::vector<std::array<double,66> > Server::simulate(Ball balls[22],Cushion cush[6])
 {
     //assumes that the input is not a static scenario (where all balls are still).
     std::vector<std::array<double,66> > pos;
@@ -1668,6 +1789,23 @@ std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6])
         }
         if (t>998.)
         {
+            //add final positions.
+            for (int i=0;i<22;i++)
+            {
+                if (!balls[i]._potted)
+                {
+                    temp[3*i]=balls[i]._x;
+                    temp[3*i+1]=balls[i]._y;
+                    temp[3*i+2]=balls[i]._z;
+                }
+                else
+                {
+                    temp[3*i]=-100.;
+                    temp[3*i+1]=-100.;
+                    temp[3*i+2]=-100.;
+                }
+            }
+            pos.push_back(temp);
             break;
         }
         //check for collisions (cushion/balls) or if ball into pocket.
@@ -1718,7 +1856,7 @@ std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6])
                 ymax2=fmax(ymax2,balls[j]._ay[2]*t*t+balls[j]._ay[1]*t+balls[j]._ay[0]);
                 ymax2+=1.01*ball_radius;
 
-                if (!((xmax>xmin2 || xmax2>xmin) && (ymax>ymin2 || ymax2>ymin)))
+                if (ymin>ymax2 || ymin2>ymax || xmin>xmax2 || xmin2>xmax)
                 {
                     continue;
                 }
@@ -2813,10 +2951,6 @@ std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6])
                             a3=sqrt(pow(mpockets[j][0]+3.719-balls[i]._rimpos[k][0],2.)+pow(mpockets[j][1]-0.156+0.438-balls[i]._rimpos[k][1],2.));
                             b3=sqrt(pow(balls[i]._rimvel[k][0],2.)+pow(balls[i]._rimvel[k][1],2.))*cos(atan2(balls[i]._rimvel[k][0],balls[i]._rimvel[k][1])-atan2(mpockets[j][0]+3.719-balls[i]._rimpos[k][0],mpockets[j][1]-0.156+0.438-balls[i]._rimpos[k][1]));
                         }
-//                        if (a2<ball_radius+2.094)
-//                        {
-//                            std::cout << "Distance hit: " << b2 << std::endl;
-//                        }
                         if (((a2<ball_radius+2.094 && b2>0.) || (a3<ball_radius+2.094 && b3>0.)))
                         {
                             t=balls[i]._times[k];
@@ -2930,7 +3064,7 @@ std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6])
                                     }
                                     a1=sqrt(pow(balls[i]._rimpos[m][0]-balls[j]._rimpos[m][0],2.)+pow(balls[i]._rimpos[m][1]-balls[j]._rimpos[m][1],2.));
                                     a2=dot_product(balls[i]._rimvel[m],subtract_vectors(balls[j]._rimpos[m],balls[i]._rimpos[m]))+dot_product(balls[j]._rimvel[m],subtract_vectors(balls[i]._rimpos[m],balls[j]._rimpos[m]));
-                                    if (a1<2.*ball_radius && a2>0. && balls[i]._times[m]<t)
+                                    if (a1<2.*ball_radius && a2>0.)
                                     {
                                         t=balls[i]._times[m];
                                         collision=true;
@@ -2958,7 +3092,7 @@ std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6])
                                     }
                                     a1=sqrt(pow(balls[i]._rimpos[m][0]-balls[j]._rimpos[m][0],2.)+pow(balls[i]._rimpos[m][1]-balls[j]._rimpos[m][1],2.));
                                     a2=dot_product(balls[i]._rimvel[m],subtract_vectors(balls[j]._rimpos[m],balls[i]._rimpos[m]))+dot_product(balls[j]._rimvel[m],subtract_vectors(balls[i]._rimpos[m],balls[j]._rimpos[m]));
-                                    if (a1<2.*ball_radius && a2>0. && balls[i]._times[m]<t)
+                                    if (a1<2.*ball_radius && a2>0.)
                                     {
                                         t=balls[i]._times[m];
                                         collision=true;
@@ -2972,24 +3106,87 @@ std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6])
                 }
                 else
                 {
+                    xmin2=fmin(balls[j]._x,balls[j]._x-(balls[j]._ax[1]*balls[j]._ax[1])/(4.*balls[j]._ax[2]));
+                    xmin2=fmin(xmin2,balls[j]._ax[2]*t*t+balls[j]._ax[1]*t+balls[j]._ax[0]);
+                    xmin2-=1.01*ball_radius;
+                    xmax2=fmax(balls[j]._x,balls[j]._x-(balls[j]._ax[1]*balls[j]._ax[1])/(4.*balls[j]._ax[2]));
+                    xmax2=fmax(xmax2,balls[j]._ax[2]*t*t+balls[j]._ax[1]*t+balls[j]._ax[0]);
+                    xmax2+=1.01*ball_radius;
+                    ymin2=fmin(balls[j]._y,balls[j]._y-(balls[j]._ay[1]*balls[j]._ay[1])/(4.*balls[j]._ay[2]));
+                    ymin2=fmin(ymin2,balls[j]._ay[2]*t*t+balls[j]._ay[1]*t+balls[j]._ay[0]);
+                    ymin2-=1.01*ball_radius;
+                    ymax2=fmax(balls[j]._y,balls[j]._y-(balls[j]._ay[1]*balls[j]._ay[1])/(4.*balls[j]._ay[2]));
+                    ymax2=fmax(ymax2,balls[j]._ay[2]*t*t+balls[j]._ay[1]*t+balls[j]._ay[0]);
+                    ymax2+=1.01*ball_radius;
                     //check bounds.
                     if (c<3)
                     {
                         //middle pocket.
+                        if (xmin2>blue_x+1.96 || xmax2<blue_x-1.96)
+                        {
+                            continue;
+                        }
+                        if ((c==1 && ymax2<mpockets[0][1]-mpocket_r) || (c==2 && ymin2>mpockets[1][1]+mpocket_r))
+                        {
+                            continue;
+                        }
                     }
                     else
                     {
                         //corner pocket.
+                        if (c<5 && xmin2>rail_thickness+5.)
+                        {
+                            continue;
+                        }
+                        else if (c>4 && xmax2<rail_thickness+2.*cush_thickness+table_length-5.)
+                        {
+                            continue;
+                        }
+                        if ((c==3 || c==5) && ymin2>rail_thickness+5.)
+                        {
+                            continue;
+                        }
+                        else if ((c==4 || c==6) && ymax2<rail_thickness+2.*cush_thickness+table_width-5.)
+                        {
+                            continue;
+                        }
+                    }
+
+                    //potential collision.
+                    for (int k=0;k<balls[i]._rimpos.size();k++)
+                    {
+                        if (balls[i]._times[k]>t)
+                        {
+                            break;
+                        }
+                        //check for distance.
+                        //assume a 2d collision to approximate.
+                        out[0]=balls[j]._ax[2]*balls[i]._times[k]*balls[i]._times[k]+balls[j]._ax[1]*balls[i]._times[k]+balls[j]._ax[0];
+                        out[1]=balls[j]._ay[2]*balls[i]._times[k]*balls[i]._times[k]+balls[j]._ay[1]*balls[i]._times[k]+balls[j]._ay[0];
+                        if (sqrt(pow(balls[i]._rimpos[k][0]-out[0],2.)+pow(balls[i]._rimpos[k][1]-out[1],2.))-2.*ball_radius<epsilon)
+                        {
+                            //distance correct.
+                            out2[0]=balls[j]._avx[1]*balls[i]._times[k]+balls[j]._avx[0];
+                            out2[1]=balls[j]._avy[1]*balls[i]._times[k]+balls[j]._avy[0];
+                            b1=atan2(balls[i]._rimpos[k][0]-out[0],balls[i]._rimpos[k][1]-out[1]);
+                            a1=sqrt(pow(out2[0],2.)+pow(out2[1],2.))*cos(atan2(out2[0],out2[1])-b1)-sqrt(pow(balls[i]._rimvel[k][0],2.)+pow(balls[i]._rimvel[k][1],2.))*cos(atan2(balls[i]._rimvel[k][0],balls[i]._rimvel[k][1])-b1);
+                            if (a1>0.)
+                            {
+                                t=balls[i]._times[k];
+                                collision=true;
+                                break;
+                            }
+                        }
                     }
                 }
             }
         }
 
         //add positions to list for each timestep.
-        start=ceil(totaltime/timestep);
-        for (int i=0;i<int(floor((totaltime+t)/timestep)-start)+1;i++)
+        start=ceil(totaltime/0.01);
+        for (int i=0;i<int(floor((totaltime+t)/0.01)-start)+1;i++)
         {
-            t0=(start+i)*timestep-totaltime;
+            t0=(start+i)*0.01-totaltime;
             for (int j=0;j<22;j++)
             {
                 if (balls[j]._potted)
@@ -3207,6 +3404,351 @@ std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6])
         }
     }
     return pos;
+}
+
+void Server::handleIncomingConnections()
+{
+    bool alreadyconnected=false;
+    for (int i=0;i<2;i++)
+    {
+        if (players[i].getRemoteAddress()==sf::IpAddress::None)
+        {
+            //fresh socket ready for connecting to.
+            if (listener.accept(players[i])==sf::TcpListener::Done)
+            {
+                //connected to new socket.
+                alreadyconnected=true;
+                break;
+            }
+        }
+    }
+    if (!alreadyconnected)
+    {
+        for (int i=0;i<4;i++)
+        {
+            if (spectators[i].getRemoteAddress()==sf::IpAddress::None)
+            {
+                //fresh socket ready for connecting to.
+                if (listener.accept(spectators[i])==sf::TcpListener::Done)
+                {
+                    //connected to new socket.
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void Server::executionThread()
+{
+    sf::Uint16 packetId=0;
+    double a=0.;
+    double b=0.;
+    double c=0.;
+    double d=0.;
+    double e=0.;
+    std::vector<double> flatresult;
+    while (running)
+    {
+        handleIncomingConnections();
+
+        //check for incoming packets.
+        //only receive input from the active player.
+        packet.clear();
+        if (players[player_turn].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            if (players[player_turn].receive(packet)==sf::Socket::Done)
+            {
+                //received an input packet.
+                packet >> packetId;
+                if (packetId==0)
+                {
+                    //disconnect this user.
+                }
+                else if (packetId==1)
+                {
+                    //trajectory display to other clients.
+                }
+                else if (packetId==2)
+                {
+                    //simulate and return the results to everybody.
+                    packet >> a >> b >> c >> d >> e;
+                    serverballs[0]._vx=a;
+                    serverballs[0]._vy=b;
+                    serverballs[0]._xspin=c;
+                    serverballs[0]._yspin=d;
+                    serverballs[0]._rspin=e;
+                    result.clear();
+                    result=simulate(serverballs,servercushions);
+
+                    //send the results in a packet.
+                    packet.clear();
+                    flatresult.clear();
+                    for (int i=0;i<result.size();i++)
+                    {
+                        for (int j=0;j<66;j++)
+                        {
+                            flatresult.push_back(result[i][j]);
+                        }
+                    }
+                    packet << sf::Uint16(1) << sf::Uint32(result.size());
+                    for (int i=0;i<flatresult.size();i++)
+                    {
+                        packet << flatresult[i];
+                    }
+
+                    for (int i=0;i<2;i++)
+                    {
+                        if (players[i].getRemoteAddress()!=sf::IpAddress::None)
+                        {
+                            players[i].send(packet);
+                        }
+                    }
+                    for (int i=0;i<4;i++)
+                    {
+                        if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
+                        {
+                            spectators[i].send(packet);
+                        }
+                    }
+                }
+            }
+        }
+
+        sf::sleep(sf::milliseconds(5));
+    }
+}
+
+Eigen::Matrix<double,46,1> collisions2(Ball b[22],Cushion cush[6])
+{
+    //broad phase collision check.
+    Eigen::MatrixXd dv=Eigen::MatrixXd::Zero(46,1);
+
+    int val;
+    int thing;
+    double dx;
+    double dy;
+    double dist;
+    double relspeed;
+
+    std::set<std::tuple<int,int>> collided;
+    std::vector<int> already;
+
+    Eigen::MatrixXd Z(46,0);
+    int col=0;
+
+    for (int i=0;i<22;i++)
+    {
+        if (b[i]._potted==false)
+        {
+            if (b[i]._vx!=0. || b[i]._vy!=0. || b[i]._vz!=0.)
+            {
+                already.clear();
+                for (int j=0;j<4;j++)
+                {
+                    val=grid_index[b[i]._gpos[j][0]][b[i]._gpos[j][1]];
+                    if (val>1)
+                    {
+                        for (int k=0;k<val;k++)
+                        {
+                            //add to potentially touching list.
+                            thing=grid[b[i]._gpos[j][0]][b[i]._gpos[j][1]][k];
+                            if (thing!=b[i]._order && b[thing-1]._potted==false)
+                            {
+                                if (std::find(already.begin(),already.end(),thing)==already.end())
+                                {
+                                    if (i>(thing-1) && collided.find(std::make_tuple(thing-1,i))!=collided.end())
+                                    {
+                                        continue;
+                                    }
+                                    else if (i<(thing-1) && collided.find(std::make_tuple(i,thing-1))!=collided.end())
+                                    {
+                                        continue;
+                                    }
+                                    already.push_back(thing);
+                                    //get the distance using pythag.
+                                    dx=b[thing-1]._x-b[i]._x;
+                                    dy=b[thing-1]._y-b[i]._y;
+                                    dist=sqrt(pow(dx,2.)+pow(dy,2.));
+                                    relspeed=sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.))*cos(atan2(dx,dy)-atan2(b[i]._vx,b[i]._vy))-sqrt(pow(b[thing-1]._vx,2.)+pow(b[thing-1]._vy,2.))*cos(atan2(dx,dy)-atan2(b[thing-1]._vx,b[thing-1]._vy));
+
+                                    if (dist-2.*ball_radius<epsilon && relspeed>0.)
+                                    {
+                                        //actual collision.
+                                        if (i>(thing-1))
+                                        {
+                                            collided.insert(std::make_tuple(thing-1,i));
+                                        }
+                                        else
+                                        {
+                                            collided.insert(std::make_tuple(i,thing-1));
+                                        }
+                                        Z.conservativeResizeLike(Eigen::MatrixXd::Zero(46,col+1));
+                                        Z(2*i,col)=-dx/dist;
+                                        Z(2*i+1,col)=-dy/dist;
+                                        Z(2*(thing-1),col)=dx/dist;
+                                        Z(2*(thing-1)+1,col)=dy/dist;
+                                        col+=1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                //check cushion collisions.
+                if (fabs(blue_x-b[i]._x)>table_width-ball_radius-2.*epsilon || fabs(blue_y-b[i]._y)>0.5*table_width-ball_radius-2.*epsilon)
+                {
+                    double min_dist=999.;
+                    double normal_angle;
+                    double angle;
+                    for (int j=0;j<6;j++)
+                    {
+                        std::tie(dist,angle)=cush[j].distance(b[i]._x,b[i]._y,b[i]._z);
+                        if (dist<min_dist)
+                        {
+                            min_dist=dist;
+                            normal_angle=angle;
+                        }
+                    }
+                    relspeed=-sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.))*cos(normal_angle-atan2(b[i]._vx,b[i]._vy));
+                    if (min_dist-ball_radius<epsilon && relspeed>0.)
+                    {
+                        //collision with cushion.
+                        Z.conservativeResizeLike(Eigen::MatrixXd::Zero(46,col+1));
+                        Z(2*i,col)=sin(normal_angle);
+                        Z(2*i+1,col)=cos(normal_angle);
+                        Z(44,col)=-sin(normal_angle);
+                        Z(45,col)=-cos(normal_angle);
+                        col+=1;
+                        //adjust the vertical spin off cushion.
+                        double relspin=b[i]._xspin*sin(normal_angle+pi)+b[i]._yspin*cos(normal_angle+pi);
+                        double dw;
+                        if (relspin>0.)
+                        {
+                            //topspin.
+                            dw=-5.*relspeed*(muk*ball_radius*cos(cushion_alpha)+cushion_diff)/pow(ball_radius,2.);
+                        }
+                        if (relspin<0.)
+                        {
+                            //backspin.
+                            dw=-5.*relspeed*(-muk*ball_radius*cos(cushion_alpha)+cushion_diff)/pow(ball_radius,2.);
+                        }
+                        if (relspin==0.)
+                        {
+                            dw=-5.*relspeed*cushion_diff/pow(ball_radius,2.);
+                        }
+                        dw=fmax(dw,-relspin-relspeed/ball_radius);
+                        b[i]._xspin+=dw*sin(normal_angle+pi);
+                        b[i]._yspin+=dw*cos(normal_angle+pi);
+                        //adjust sidespin off cushion.
+                        double parspeed=sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.))*sin(atan2(b[i]._vx,b[i]._vy)-normal_angle);
+                        double dvpar;
+
+                        if ((parspeed>=0. && b[i]._rspin*ball_radius>parspeed) || (parspeed<0. && b[i]._rspin*ball_radius>parspeed))
+                        {
+                            dw=-5.*muk*relspeed*cos(cushion_alpha)/ball_radius;
+                            dvpar=-0.4*dw*ball_radius;
+                            if ((b[i]._rspin+dw)*ball_radius<parspeed+dvpar)
+                            {
+                                dw=-5.*(b[i]._rspin*ball_radius-parspeed)/(7.*ball_radius);
+                                dvpar=2.*(b[i]._rspin*ball_radius-parspeed)/(7.*ball_radius);
+                            }
+                        }
+                        else if ((parspeed>=0. && b[i]._rspin*ball_radius<parspeed) || (parspeed<0. && b[i]._rspin*ball_radius<parspeed))
+                        {
+                            dw=5.*muk*relspeed*cos(cushion_alpha)/ball_radius;
+                            dvpar=-0.4*dw*ball_radius;
+                            if ((b[i]._rspin+dw)*ball_radius>parspeed+dvpar)
+                            {
+                                dw=-5.*(b[i]._rspin*ball_radius-parspeed)/(7.*ball_radius);
+                                dvpar=2.*(b[i]._rspin*ball_radius-parspeed)/(7.*ball_radius);
+                            }
+                        }
+                        b[i]._rspin+=dw;
+                        double _speed;
+                        double _angle;
+                        std::tie(_speed,_angle)=add_vectors(sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.)),atan2(b[i]._vx,b[i]._vy),dvpar,normal_angle+0.5*pi);
+                        b[i]._vx=_speed*sin(_angle);
+                        b[i]._vy=_speed*cos(_angle);
+                    }
+                }
+            }
+        }
+    }
+
+    //check if any total collisions.
+    if (col==1)
+    {
+        //single collision.
+        //check if to cushion.
+        if (Z(44,0)!=0 || Z(45,0)!=0)
+        {
+            double v;
+            double an;
+            for (int i=0;i<22;i++)
+            {
+                if (Z(2*i,0)!=0 || Z(2*i+1,0)!=0)
+                {
+                    //collision with this ball.
+                    std::tie(v,an)=add_vectors(-sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.))*cos(atan2(b[i]._vx,b[i]._vy)-atan2(Z(2*i,0),Z(2*i+1,0))),atan2(Z(2*i,0),Z(2*i+1,0)),sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.))*cos(atan2(b[i]._vx,b[i]._vy)-(atan2(Z(2*i,0),Z(2*i+1,0))+0.5*pi)),atan2(Z(2*i,0),Z(2*i+1,0))+0.5*pi);
+                    dv(2*i)=v*sin(an)-b[i]._vx;
+                    dv(2*i+1)=v*cos(an)-b[i]._vy;
+                    break;
+                }
+            }
+        }
+        //ball-ball collision.
+        else
+        {
+            for (int i=0;i<22;i++)
+            {
+                if (Z(2*i,0)!=0 || Z(2*i+1,0)!=0)
+                {
+                    for (int j=i+1;j<22;j++)
+                    {
+                        if (Z(2*j,0)!=0 || Z(2*j+1,0)!=0)
+                        {
+                            double na=atan2(Z(2*i,0),Z(2*i+1,0));
+                            double pari=sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.))*cos(atan2(b[i]._vx,b[i]._vy)-na);
+                            double peri=sqrt(pow(b[i]._vx,2.)+pow(b[i]._vy,2.))*cos(atan2(b[i]._vx,b[i]._vy)-(na+0.5*pi));
+                            double parj=sqrt(pow(b[j]._vx,2.)+pow(b[j]._vy,2.))*cos(atan2(b[j]._vx,b[j]._vy)-na);
+                            double perj=sqrt(pow(b[j]._vx,2.)+pow(b[j]._vy,2.))*cos(atan2(b[j]._vx,b[j]._vy)-(na+0.5*pi));
+                            double speed;
+                            double theta;
+                            std::tie(speed,theta)=add_vectors(parj,na,peri,na+0.5*pi);
+                            dv(2*i)=speed*sin(theta)-b[i]._vx;
+                            dv(2*i+1)=speed*cos(theta)-b[i]._vy;
+                            std::tie(speed,theta)=add_vectors(pari,na,perj,na+0.5*pi);
+                            dv(2*j)=speed*sin(theta)-b[j]._vx;
+                            dv(2*j+1)=speed*cos(theta)-b[j]._vy;
+                            //adjust spins of balls.
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    //simultaneous.
+    if (col>0)
+    {
+        Eigen::MatrixXd v(46,1);
+        Eigen::MatrixXd J(col,1);
+
+        for (int i=0;i<22;i++)
+        {
+            v(2*i,0)=b[i]._vx;
+            v(2*i+1,0)=b[i]._vy;
+        }
+        v(44,0)=0;
+        v(45,0)=0;
+
+        //J=(Z.transpose()*M_*Z).colPivHouseholderQr().solve(-(1.+eball)*Z.transpose()*v);
+        J=(Z.transpose()*M_*Z).householderQr().solve(-(1.+eball)*Z.transpose()*v);
+        dv=M_*Z*J;
+    }
+    return dv;
 }
 
 std::array<std::vector<double>,3> trajectory(Ball balls[22],Cushion cush[6])
@@ -3926,10 +4468,10 @@ std::array<std::vector<double>,3> trajectory(Ball balls[22],Cushion cush[6])
         }
 
         //add positions to list for each timestep.
-        start=ceil(totaltime/timestep);
-        for (int i=0;i<int(floor((totaltime+t)/timestep)-start)+1;i++)
+        start=ceil(totaltime/0.01);
+        for (int i=0;i<int(floor((totaltime+t)/0.01)-start)+1;i++)
         {
-            t0=(start+i)*timestep-totaltime;
+            t0=(start+i)*0.01-totaltime;
             if (cueball_done1 && totaltime+t0>tstart_cueball+t_cueball)
             {
                 cueball_done2=true;
@@ -4079,7 +4621,7 @@ std::array<std::vector<double>,3> trajectory(Ball balls[22],Cushion cush[6])
                 //afterwards make all balls except for the object ball and cueball still.
                 do
                 {
-                    dv=collisions(balls,cush);
+                    dv=collisions2(balls,cush);
                     for (int i=0;i<22;i++)
                     {
                         balls[i]._vx+=dv(2*i);

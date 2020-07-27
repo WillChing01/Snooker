@@ -32,7 +32,7 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 			<Add option="-DSFML_STATIC" />
-			<Add directory="C:/Users/willi/OneDrive/Desktop/Python/Snooker Game/SFML-2.5.1/include" />
+			<Add directory="C:/Users/willi/OneDrive/Desktop/Python/_include/SFML-2.5.1/include" />
 		</Compiler>
 		<Linker>
 			<Add library="sfml-graphics-s" />
@@ -42,16 +42,13 @@
 			<Add library="opengl32" />
 			<Add library="freetype" />
 			<Add library="gdi32" />
-			<Add directory="C:/Users/willi/OneDrive/Desktop/Python/Snooker Game/SFML-2.5.1/lib" />
+			<Add directory="C:/Users/willi/OneDrive/Desktop/Python/_include/SFML-2.5.1/lib" />
 		</Linker>
 		<Unit filename="floatsupport.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="objects.h" />
 		<Unit filename="polystuff.h" />
 		<Extensions>
-			<code_completion />
-			<envvars />
-			<debugger />
 			<lib_finder disable_auto="1" />
 		</Extensions>
 	</Project>

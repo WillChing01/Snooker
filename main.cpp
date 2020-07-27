@@ -1,12 +1,47 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include <SFML/System.hpp>
-#include <koolplot.h>
+#include <SFML/Network.hpp>
 #include <string>
+#include <thread>
 #include "objects.h"
 
 int main()
 {
+    //get the player's name.
+    std::string name;
+    std::cout << "Enter username (15 chars max.): ";
+    std::getline(std::cin,name);
+    name=name.substr(0,15);
+
+    Server server;
+    std::thread server_thread(&Server::executionThread,std::ref(server));
+    server_thread.detach();
+
+    //connect to a server.
+    std::string targetip;
+    unsigned short targetport;
+
+    std::cout << "Target IP: ";
+    std::getline(std::cin,targetip);
+    std::cout << "Port: ";
+    std::cin >> targetport;
+
+    sf::TcpSocket socket;
+    if (socket.connect(sf::IpAddress(targetip),targetport)!=sf::Socket::Done)
+    {
+        //error.
+        std::cout << "Could not connect to self server" << std::endl;
+    }
+    socket.setBlocking(false);
+
+    sf::Packet packet;
+    sf::Uint16 packetId=0;
+    sf::Uint32 resultsize=0;
+    std::array<double,66> temp;
+
+    //setup other stuff.
+
     std::cout.precision(std::numeric_limits<double>::max_digits10);
     sf::ContextSettings settings;
     settings.antialiasingLevel=8;
@@ -83,9 +118,117 @@ int main()
     elevation_display.setString("00°");
     elevation_display.setCharacterSize(int(0.15*panel_height));
     elevation_display.setFillColor(sf::Color(0,0,0));
-    sf::Vector2f pos=elevation_display.getScale();
-    elevation_display.setOrigin(sf::Vector2f(0.5*0.15*panel_height*pos.x/pos.y,0.5*0.15*panel_height));
+    sf::FloatRect textRect=elevation_display.getLocalBounds();
+    elevation_display.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
     elevation_display.setPosition(sf::Vector2f(window_width-0.5*panel_height,window_height+0.5*panel_height));
+
+    double sbwidth=panel_height*6.;
+    double sbheight=panel_height*0.2;
+
+    sf::Font scorefont;
+    if (!scorefont.loadFromFile("Roboto-Bold.ttf"))
+    {
+        std::cout << "ERROR. Couldn't load font!" << std::endl;
+    }
+    sf::Text textframesbestof;
+    textframesbestof.setFont(scorefont);
+    textframesbestof.setString("(35)");
+    textframesbestof.setCharacterSize(int(sbheight*0.7));
+    textframesbestof.setFillColor(sf::Color(255,255,255));
+    textRect=textframesbestof.getLocalBounds();
+    textframesbestof.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
+    textframesbestof.setPosition(sf::Vector2f(window_width*0.5,window_height+sbheight));
+
+    sf::Text textp1frames;
+    textp1frames.setFont(scorefont);
+    textp1frames.setString("0");
+    textp1frames.setCharacterSize(int(sbheight*0.7));
+    textp1frames.setFillColor(sf::Color(255,255,255));
+    textRect=textp1frames.getLocalBounds();
+    textp1frames.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
+    textp1frames.setPosition(sf::Vector2f(window_width*0.5-0.06*sbwidth,window_height+sbheight));
+
+    sf::Text textp2frames;
+    textp2frames.setFont(scorefont);
+    textp2frames.setString("0");
+    textp2frames.setCharacterSize(int(sbheight*0.7));
+    textp2frames.setFillColor(sf::Color(255,255,255));
+    textRect=textp2frames.getLocalBounds();
+    textp2frames.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
+    textp2frames.setPosition(sf::Vector2f(window_width*0.5+0.06*sbwidth,window_height+sbheight));
+
+    sf::Text textp1score;
+    textp1score.setFont(scorefont);
+    textp1score.setString("0");
+    textp1score.setCharacterSize(int(sbheight*0.7));
+    textp1score.setFillColor(sf::Color(0,0,0));
+    textRect=textp1score.getLocalBounds();
+    textp1score.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
+    textp1score.setPosition(sf::Vector2f(window_width*0.5-0.1*sbwidth-0.5*0.15*sbwidth,window_height+sbheight));
+
+    sf::Text textp2score;
+    textp2score.setFont(scorefont);
+    textp2score.setString("0");
+    textp2score.setCharacterSize(int(sbheight*0.7));
+    textp2score.setFillColor(sf::Color(0,0,0));
+    textRect=textp2score.getLocalBounds();
+    textp2score.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
+    textp2score.setPosition(sf::Vector2f(window_width*0.5+0.1*sbwidth+0.5*0.15*sbwidth,window_height+sbheight));
+
+    sf::Text textp1name;
+    textp1name.setFont(scorefont);
+    textp1name.setString(name);
+    textp1name.setCharacterSize(int(sbheight*0.7));
+    textp1name.setFillColor(sf::Color(0,0,0));
+    textRect=textp1name.getLocalBounds();
+    textp1name.setOrigin(sf::Vector2f(0.,textRect.top+textRect.height/2.));
+    textp1name.setPosition(sf::Vector2f(window_width*0.5-0.47*sbwidth,window_height+sbheight));
+
+    sf::Text textp2name;
+    textp2name.setFont(scorefont);
+    textp2name.setString("PLAYER 2");
+    textp2name.setCharacterSize(int(sbheight*0.7));
+    textp2name.setFillColor(sf::Color(0,0,0));
+    textRect=textp2name.getLocalBounds();
+    textp2name.setOrigin(sf::Vector2f(textRect.left+textRect.width,textRect.top+textRect.height/2.));
+    textp2name.setPosition(sf::Vector2f(window_width*0.5+0.47*sbwidth,window_height+sbheight));
+
+    sf::CircleShape p1pointer(sbheight*0.2,3);
+    p1pointer.setFillColor(sf::Color(0,0,0));
+    p1pointer.setOrigin(sbheight*0.2,sbheight*0.2);
+    p1pointer.setRotation(-90.);
+    p1pointer.setPosition(sf::Vector2f(window_width*0.5-0.105*sbwidth,window_height+sbheight));
+
+    sf::CircleShape p2pointer(sbheight*0.2,3);
+    p2pointer.setFillColor(sf::Color(0,0,0));
+    p2pointer.setOrigin(sbheight*0.2,sbheight*0.2);
+    p2pointer.setRotation(90.);
+    p2pointer.setPosition(sf::Vector2f(window_width*0.5+0.105*sbwidth,window_height+sbheight));
+
+    sf::RectangleShape framescoresrect(sf::Vector2f(sbwidth*0.2,sbheight));
+    framescoresrect.setOrigin(sbwidth*0.1,0.5*sbheight);
+    framescoresrect.setPosition(sf::Vector2f(window_width*0.5,window_height+sbheight));
+    framescoresrect.setFillColor(sf::Color(51,153,255));
+
+    sf::RectangleShape p1scorerect(sf::Vector2f(sbwidth*0.15,sbheight));
+    p1scorerect.setOrigin(sbwidth*0.15*0.5,0.5*sbheight);
+    p1scorerect.setPosition(sf::Vector2f(window_width*0.5-0.1*sbwidth-0.15*0.5*sbwidth,window_height+sbheight));
+    p1scorerect.setFillColor(sf::Color(255,255,255));
+
+    sf::RectangleShape p2scorerect(sf::Vector2f(sbwidth*0.15,sbheight));
+    p2scorerect.setOrigin(sbwidth*0.15*0.5,0.5*sbheight);
+    p2scorerect.setPosition(sf::Vector2f(window_width*0.5+0.1*sbwidth+0.15*0.5*sbwidth,window_height+sbheight));
+    p2scorerect.setFillColor(sf::Color(255,255,255));
+
+    sf::RectangleShape p1namerect(sf::Vector2f(sbwidth*0.25,sbheight));
+    p1namerect.setOrigin(sbwidth*0.25*0.5,0.5*sbheight);
+    p1namerect.setPosition(sf::Vector2f(window_width*0.5-0.25*sbwidth-0.25*0.5*sbwidth,window_height+sbheight));
+    p1namerect.setFillColor(sf::Color(236,228,0));
+
+    sf::RectangleShape p2namerect(sf::Vector2f(sbwidth*0.25,sbheight));
+    p2namerect.setOrigin(sbwidth*0.25*0.5,0.5*sbheight);
+    p2namerect.setPosition(sf::Vector2f(window_width*0.5+0.25*sbwidth+0.25*0.5*sbwidth,window_height+sbheight));
+    p2namerect.setFillColor(sf::Color(236,228,0));
 
     //get cue.
     Cue cue;
@@ -221,7 +364,7 @@ int main()
     //final variables.
     Eigen::MatrixXd test=Eigen::MatrixXd::Constant(46,1,0.0);
 
-    bool placing_white=false;
+    bool placing_white=true;
     bool touching=false;
     double power=50.;
 
@@ -239,7 +382,6 @@ int main()
     sf::Clock clock;
 
     std::vector<std::array<double,66> > result;
-    result=simulate(balls,cushions);
 
     cue._offset=0.;
     cue._alpha=0.;
@@ -282,26 +424,71 @@ int main()
         obtraj[i].position=sf::Vector2f(dfactor*predict[2][2*i],window_height-dfactor*predict[2][2*i+1]);
     }
 
+    bool playerturn=0;
+
     bool change=false;
+    bool done=true;
 
     int t=0;
+    double dt=0.;
 
     while (window.isOpen())
     {
-        change=false;
-        if (t<result.size())
+        //listen for packets.
+        packet.clear();
+        if (socket.receive(packet)==sf::Socket::Done)
         {
+            packet >> packetId >> resultsize;
+
+            if (packetId==1)
+            {
+                result.clear();
+                for (int i=0;i<resultsize;i++)
+                {
+                    for (int j=0;j<66;j++)
+                    {
+                        packet >> temp[j];
+                    }
+                    result.push_back(temp);
+                }
+                t=0;
+                done=false;
+            }
+        }
+
+        change=false;
+        if (int(floor(t*100./framerate))<result.size())
+        {
+            dt=t*100./framerate-int(floor(t*100./framerate));
             for (int i=0;i<22;i++)
             {
-                balls[i]._x=result[t][i*3];
-                balls[i]._y=result[t][i*3+1];
-                balls[i]._z=result[t][i*3+2];
+                if (int(floor(t*100./framerate))==int(result.size()-1))
+                {
+                    //dont interpolate.
+                    balls[i]._x=result[result.size()-1][i*3];
+                    balls[i]._y=result[result.size()-1][i*3+1];
+                    balls[i]._z=result[result.size()-1][i*3+2];
+                }
+                else
+                {
+                    balls[i]._x=result[int(floor(t*100./framerate))][i*3]+dt*(result[int(floor(t*100./framerate))+1][i*3]-result[int(floor(t*100./framerate))][i*3]);
+                    balls[i]._y=result[int(floor(t*100./framerate))][i*3+1]+dt*(result[int(floor(t*100./framerate))+1][i*3+1]-result[int(floor(t*100./framerate))][i*3+1]);
+                    balls[i]._z=result[int(floor(t*100./framerate))][i*3+2]+dt*(result[int(floor(t*100./framerate))+1][i*3+2]-result[int(floor(t*100./framerate))][i*3+2]);
+                }
             }
-            if (t==int(result.size()-1))
+        }
+        if (!done)
+        {
+            t=t+1;
+            if (int(floor(t*100./framerate))>=result.size())
             {
+                done=true;
                 change=true;
                 for (int i=0;i<22;i++)
                 {
+                    balls[i]._x=result[result.size()-1][i*3];
+                    balls[i]._y=result[result.size()-1][i*3+1];
+                    balls[i]._z=result[result.size()-1][i*3+2];
                     balls[i]._rspin=0;
                     if (balls[i]._x<0 && i<7 && i>0)
                     {
@@ -348,10 +535,9 @@ int main()
                 }
             }
         }
-        t=std::min(t+1,int(result.size()));
 
         //check if white ball potted.
-        if (t==int(result.size()) && balls[0]._x<0)
+        if (done && balls[0]._x<0)
         {
             placing_white=true;
             balls[0]._potted=false;
@@ -410,7 +596,7 @@ int main()
             {
                 balls[0]._x=std::max(balls[0]._x-0.1,brown_x);
             }
-            else if (t==int(result.size()))
+            else if (done)
             {
                 //moving cue.
                 cue._angle-=pi/180.;
@@ -427,7 +613,7 @@ int main()
                     balls[0]._x+=0.1;
                 }
             }
-            else if (t==int(result.size()))
+            else if (done)
             {
                 cue._angle+=pi/180.;
                 change=true;
@@ -443,7 +629,7 @@ int main()
                     balls[0]._y+=0.1;
                 }
             }
-            else if (t==int(result.size()))
+            else if (done)
             {
                 power=fmin(power+0.5,100.5);
                 change=true;
@@ -459,7 +645,7 @@ int main()
                     balls[0]._y-=0.1;
                 }
             }
-            else if (t==int(result.size()))
+            else if (done)
             {
                 power=fmax(power-0.5,0.);
                 change=true;
@@ -478,7 +664,7 @@ int main()
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
         {
-            if (!placing_white && t==int(result.size()))
+            if (!placing_white && done)
             {
                 //take the shot!
                 spin_selector_pos=spin_selector.getPosition();
@@ -488,6 +674,7 @@ int main()
                 cue._offset=dist;
                 cue._theta=angle;
                 cue._speed=1.2*power;
+                //cue.perturb();
                 cue.shot();
                 balls[0]._vx=cue._ballv*sin(cue._angle);
                 balls[0]._vy=cue._ballv*cos(cue._angle);
@@ -495,19 +682,40 @@ int main()
                 balls[0]._yspin=cue._ballparspin*cos(cue._angle)-cue._ballperspin*sin(cue._angle);
                 balls[0]._rspin=cue._ballrspin;
 
-                result=simulate(balls,cushions);
+                socket.setBlocking(true);
+                packet.clear();
+                packetId=2;
+                packet << packetId << balls[0]._vx << balls[0]._vy << balls[0]._xspin << balls[0]._yspin << balls[0]._rspin;
+                socket.send(packet);
+                packet.clear();
+                socket.receive(packet);
+                packet >> packetId >> resultsize;
+
+                result.clear();
+                for (int i=0;i<resultsize;i++)
+                {
+                    for (int j=0;j<66;j++)
+                    {
+                        packet >> temp[j];
+                    }
+                    result.push_back(temp);
+                }
+                socket.setBlocking(false);
+
                 t=0;
+                done=false;
                 continue;
             }
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Backspace))
         {
             //replay for debug purposes.
+            done=false;
             t=0;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Comma))
         {
-            if (!placing_white && t==int(result.size()))
+            if (!placing_white && done)
             {
                 //move left.
                 cue._angle-=0.02*pi/180.;
@@ -516,7 +724,7 @@ int main()
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Period))
         {
-            if (!placing_white && t==int(result.size()))
+            if (!placing_white && done)
             {
                 //move right.
                 cue._angle+=0.02*pi/180.;
@@ -525,7 +733,7 @@ int main()
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::LBracket))
         {
-            if (!placing_white && t==int(result.size()))
+            if (!placing_white && done)
             {
                 //elevate the cue upwards.
                 change=true;
@@ -562,7 +770,7 @@ int main()
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::RBracket))
         {
-            if (!placing_white && t==int(result.size()))
+            if (!placing_white && done)
             {
                 //flatten the cue.
                 change=true;
@@ -599,32 +807,35 @@ int main()
         }
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
         {
-            mouse_pos=sf::Mouse::getPosition(window);
-            if (mouse_pos.x>=0 && mouse_pos.x<=panel_height && mouse_pos.y>=window_height && mouse_pos.y<=window_height+panel_height)
+            if (!placing_white && done)
             {
-                dist=fmin(sqrt(pow(mouse_pos.x-0.5*panel_height,2.)+pow(mouse_pos.y-0.5*panel_height-window_height,2.)),0.4*panel_height-panel_height*0.4*0.005/0.02625);
-                angle=atan2(mouse_pos.x-0.5*panel_height,mouse_pos.y-0.5*panel_height-window_height);
-                spin_dot.setPosition(sf::Vector2f(0.5*panel_height+dist*sin(angle),window_height+panel_height*0.5+dist*cos(angle)));
+                mouse_pos=sf::Mouse::getPosition(window);
+                if (mouse_pos.x>=0 && mouse_pos.x<=panel_height && mouse_pos.y>=window_height && mouse_pos.y<=window_height+panel_height)
+                {
+                    dist=fmin(sqrt(pow(mouse_pos.x-0.5*panel_height,2.)+pow(mouse_pos.y-0.5*panel_height-window_height,2.)),0.4*panel_height-panel_height*0.4*0.005/0.02625);
+                    angle=atan2(mouse_pos.x-0.5*panel_height,mouse_pos.y-0.5*panel_height-window_height);
+                    spin_dot.setPosition(sf::Vector2f(0.5*panel_height+dist*sin(angle),window_height+panel_height*0.5+dist*cos(angle)));
 
-                spin_selector_pos=spin_selector.getPosition();
-                spin_dot_pos=spin_dot.getPosition();
-                dist=(spin_selector_pos.y-spin_dot_pos.y)*0.5;
-                roots=qsolve_quadratic(1.,2*(sqrt(pow(0.2*panel_height,2.)-pow(dist,2.))*cos(alpha)+dist*sin(alpha)),pow(0.2*panel_height,2.)-pow(0.4*panel_height,2.));
-                elevation_pointer.setPosition(sf::Vector2f(window_width-0.5*panel_height+sqrt(pow(0.2*panel_height,2.)-pow(dist,2.)),window_height+0.5*panel_height-dist));
-                elevation_pointer.setRotation(-alpha*180./pi);
-                if (roots[0]!=roots[0])
-                {
-                    elevation_pointer.setSize(sf::Vector2f(roots[1],0.2*panel_height*0.005/0.02625));
+                    spin_selector_pos=spin_selector.getPosition();
+                    spin_dot_pos=spin_dot.getPosition();
+                    dist=(spin_selector_pos.y-spin_dot_pos.y)*0.5;
+                    roots=qsolve_quadratic(1.,2*(sqrt(pow(0.2*panel_height,2.)-pow(dist,2.))*cos(alpha)+dist*sin(alpha)),pow(0.2*panel_height,2.)-pow(0.4*panel_height,2.));
+                    elevation_pointer.setPosition(sf::Vector2f(window_width-0.5*panel_height+sqrt(pow(0.2*panel_height,2.)-pow(dist,2.)),window_height+0.5*panel_height-dist));
+                    elevation_pointer.setRotation(-alpha*180./pi);
+                    if (roots[0]!=roots[0])
+                    {
+                        elevation_pointer.setSize(sf::Vector2f(roots[1],0.2*panel_height*0.005/0.02625));
+                    }
+                    else if (roots[1]!=roots[1])
+                    {
+                        elevation_pointer.setSize(sf::Vector2f(roots[0],0.2*panel_height*0.005/0.02625));
+                    }
+                    else
+                    {
+                        elevation_pointer.setSize(sf::Vector2f(fmax(roots[0],roots[1]),0.2*panel_height*0.005/0.02625));
+                    }
+                    change=true;
                 }
-                else if (roots[1]!=roots[1])
-                {
-                    elevation_pointer.setSize(sf::Vector2f(roots[0],0.2*panel_height*0.005/0.02625));
-                }
-                else
-                {
-                    elevation_pointer.setSize(sf::Vector2f(fmax(roots[0],roots[1]),0.2*panel_height*0.005/0.02625));
-                }
-                change=true;
             }
         }
 
@@ -637,6 +848,7 @@ int main()
             cue._offset=dist;
             cue._theta=angle;
             cue._speed=1.2*power;
+            cue._alpha=alpha;
             cue.shot();
             balls[0]._vx=cue._ballv*sin(cue._angle);
             balls[0]._vy=cue._ballv*cos(cue._angle);
@@ -698,8 +910,29 @@ int main()
         window.draw(elevation_ball);
         window.draw(elevation_pointer);
         window.draw(elevation_display);
+        window.draw(framescoresrect);
+        window.draw(p1scorerect);
+        window.draw(p2scorerect);
+        window.draw(p1namerect);
+        window.draw(p2namerect);
+        window.draw(textframesbestof);
+        window.draw(textp1frames);
+        window.draw(textp2frames);
+        window.draw(textp1score);
+        window.draw(textp2score);
+        window.draw(textp1name);
+        window.draw(textp2name);
 
-        if (!placing_white && t==int(result.size()))
+        if (!playerturn)
+        {
+            window.draw(p1pointer);
+        }
+        else
+        {
+            window.draw(p2pointer);
+        }
+
+        if (!placing_white && done)
         {
             window.draw(cuetraj);
             window.draw(cuetraj2);
@@ -732,7 +965,7 @@ int main()
             balls[i]._shape.setPosition(sf::Vector2f(balls[i]._x*dfactor,window_height-balls[i]._y*dfactor));
             window.draw(balls[i]._shape,&shader);
         }
-        if (!placing_white && t==int(result.size()))
+        if (!placing_white && done)
         {
             cue._sprite.setPosition(sf::Vector2f((balls[0]._x-2.*sin(cue._angle))*dfactor,window_height-dfactor*(balls[0]._y-2.*cos(cue._angle))));
             cue._sprite.setRotation((cue._angle+0.5*pi)*180./pi);

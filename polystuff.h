@@ -577,12 +577,6 @@ std::array<double,4> qsolve_quartic(double a,double b,double c,double d,double e
     std::array<double,4> roots={};
     static double nan=sqrt(-1.);
 
-    bool speak=false;
-    if (fabs(a-2.09)<0.01 && fabs(b+66.23)<0.01 && fabs(c-597.90)<0.01 && fabs(d+1186.32)<0.01 && fabs(e-669.24)<0.01)
-    {
-        speak=true;
-    }
-
     //check if actually a quartic.
     if (fabs(a)<DOUBLE_EPSILON)
     {
@@ -677,18 +671,6 @@ std::array<double,4> qsolve_quartic(double a,double b,double c,double d,double e
     else if (chosen==3) {a3=1.*sgn(a3);}
 
     std::array<double,3> sp=qsolve_cubic(1.,0.75*a3,0.5*a2,0.25*a1);
-//
-//    if (speak)
-//    {
-//        std::cout << "TP Coefficients:" << std::endl;
-//        std::cout << "b: " << 0.75*a3 << std::endl;
-//        std::cout << "c: " << 0.5*a2 << std::endl;
-//        std::cout << "d: " << 0.25*a1 << std::endl;
-//        std::cout << "Turning points:" << std::endl;
-//        std::cout << "Tp: " << sp[0] << std::endl;
-//        std::cout << "Tp: " << sp[1] << std::endl;
-//        std::cout << "Tp: " << sp[2] << std::endl;
-//    }
 
     double s=sp[0];
     double u=pow(10,308.);
@@ -784,10 +766,6 @@ std::array<double,4> qsolve_quartic(double a,double b,double c,double d,double e
     double fxi;
     while (!converged && !bisection)
     {
-//        if (speak)
-//        {
-//            std::cout << x_ << std::endl;
-//        }
         runs+=1;
         fx_=pow(x_,4.)+a3*pow(x_,3.)+a2*pow(x_,2.)+a1*x_+a0;
         fxi=pow(xi,4.)+a3*pow(xi,3.)+a2*pow(xi,2.)+a1*xi+a0;
@@ -822,10 +800,6 @@ std::array<double,4> qsolve_quartic(double a,double b,double c,double d,double e
 
     if (bisection)
     {
-//        if (speak)
-//        {
-//            std::cout << "Bisection!" << std::endl;
-//        }
         runs=0;
         double t=u_-s_;
         while (fabs(t)>fabs(xi)*DOUBLE_EPSILON)
@@ -907,22 +881,12 @@ std::array<double,4> qsolve_quartic(double a,double b,double c,double d,double e
         u9=d+t9*x;
     }
 
-//    if (speak)
-//    {
-//        std::cout << s9 << " : " << t9 << " : " << u9 << std::endl;
-//    }
-
     std::array<double,3> qroots=qsolve_cubic(1.,s9,t9,u9);
 
     roots[0]=x;
     roots[1]=qroots[0];
     roots[2]=qroots[1];
     roots[3]=qroots[2];
-
-//    if (speak)
-//    {
-//        std::cout << x << std::endl;
-//    }
 
     return roots;
 }
