@@ -4,6 +4,7 @@
 #include <math.h>
 #include <Eigen/Dense>
 #include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
 #include <set>
 #include <algorithm>
 #include <boost/numeric/odeint.hpp>
@@ -35,10 +36,13 @@ const double bounciness=0.7;
 const double mus=0.0075; //0.005-0.015
 const double muk=0.15; //0.15-0.4
 
-const double dfactor=10.;
+const double panel_ratio=0.2;
+const double raw_width=(2.*rail_thickness+2.*cush_thickness+table_length);
+const double raw_height=(2.*rail_thickness+2.*cush_thickness+table_width)*(1.+panel_ratio);
+const double dfactor=sf::VideoMode::getDesktopMode().height/raw_height;
 const double window_width=(2.*rail_thickness+2.*cush_thickness+table_length)*dfactor;
 const double window_height=(2.*rail_thickness+2.*cush_thickness+table_width)*dfactor;
-const double panel_height=window_height*0.2;
+const double panel_height=window_height*panel_ratio;
 
 const double ball_radius=0.02625/in2m;
 const double ball_mass=0.141;
@@ -240,6 +244,7 @@ Ball::Ball()
 {
     _shape.setRadius(_r*dfactor);
     _shape.setOrigin(dfactor*_r/2.,dfactor*_r/2.);
+    _shape.setPosition(sf::Vector2f(-1000.,-1000.));
 }
 
 void Ball::update_equation()
@@ -1326,14 +1331,17 @@ class Cue
 
 Cue::Cue()
 {
-    if (!_texture.loadFromFile("cue.png"))
+    if (!_texture.loadFromFile("cue2.png"))
     {
         std::cout << "Error loading cue texture!" << std::endl;
     }
     _texture.setSmooth(true);
     _sprite.setTexture(_texture);
-    _sprite.scale(58.*dfactor/1369.,58.*dfactor/1369.);
-    _sprite.setOrigin(0.,26.*58.*dfactor/1369.);
+//    _sprite.scale(58.*dfactor/1369.,58.*dfactor/1369.);
+//    _sprite.setOrigin(0.,26.*58.*dfactor/1369.);
+    _sprite.scale(57.*dfactor/5213.,57.*dfactor/5213.);
+    sf::FloatRect bounds=_sprite.getLocalBounds();
+    _sprite.setOrigin(bounds.left,bounds.top+bounds.height*0.5);
 }
 
 void Cue::shot()
@@ -1361,6 +1369,12 @@ void Cue::perturb()
     _alpha+=_varalpha();
     _speed+=_varspeed();
 
+    if (_alpha<0.) {_alpha=0.;}
+    if (_alpha>0.5*pi) {_alpha=0.5*pi;}
+
+    if (_speed<0) {_speed=0.;}
+    if (_speed>100.5*1.2) {_speed=100.5*1.2;}
+
     double dx=_offset*sin(_theta);
     double dy=_offset*cos(_theta);
 
@@ -1369,6 +1383,8 @@ void Cue::perturb()
 
     _offset=sqrt(pow(dx,2.)+pow(dy,2.));
     _theta=atan2(dx,dy);
+
+    if (_offset>ball_radius) {_offset=ball_radius;}
 }
 
 class Server
@@ -1403,7 +1419,7 @@ class Server
 
         std::vector<std::array<double,66> > result;
 
-        Server();
+        Server(bool online=true);
         std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6]);
         Eigen::Matrix<double,46,1> collisions(Ball b[22], Cushion cush[6]);
         void handleIncomingConnections();
@@ -1411,20 +1427,20 @@ class Server
         void shutdown();
 };
 
-Server::Server()
+Server::Server(bool online)
 {
     //setup connections.
-    serverIp=sf::IpAddress::getLocalAddress();
-    listener.setBlocking(false);
-    if (listener.listen(sf::Socket::AnyPort)!=sf::Socket::Done)
+    if (online)
     {
-        //error.
-        std::cout << "Tcp listener could not bind to port." << std::endl;
+        serverIp=sf::IpAddress::getLocalAddress();
+        listener.setBlocking(false);
+        if (listener.listen(sf::Socket::AnyPort)!=sf::Socket::Done)
+        {
+            //error.
+            std::cout << "Tcp listener could not bind to port." << std::endl;
+        }
+        port=listener.getLocalPort();
     }
-    port=listener.getLocalPort();
-
-    std::cout << "Local IP Address: " << serverIp << std::endl;
-    std::cout << "Local port: " << port << std::endl;
 
     for (int i=0;i<2;i++)
     {
@@ -3468,9 +3484,27 @@ void Server::executionThread()
                 else if (packetId==1)
                 {
                     //trajectory display to other clients.
+                    packet >> a >> b >> c >> d >> e;
+                    packet.clear();
+                    packet << sf::Uint16(0) << a << b << c << d << e;
+
+                    if (players[!player_turn].getRemoteAddress()!=sf::IpAddress::None)
+                    {
+                        players[!player_turn].send(packet);
+                    }
+
+                    for (int i=0;i<4;i++)
+                    {
+                        if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
+                        {
+                            spectators[i].send(packet);
+                        }
+                    }
                 }
                 else if (packetId==2)
                 {
+                    //change the turn.
+                    player_turn=!player_turn;
                     //simulate and return the results to everybody.
                     packet >> a >> b >> c >> d >> e;
                     serverballs[0]._vx=a;
