@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <thread>
 #include <SFML/Graphics.hpp>
 #include <SFML/Network.hpp>
 #include "objects.h"
@@ -203,6 +204,16 @@ class InputBox
         InputBox() {};
 };
 
+class NominateBall
+{
+    public:
+        sf::CircleShape _shape;
+        double _abslinethickness=2.;
+        sf::Color _colour;
+
+        NominateBall() {};
+};
+
 class GameState
 {
     public:
@@ -215,7 +226,7 @@ class GameState
         double _sfac;
 
         GameState(double sfac) {_sfac=sfac;}
-        virtual void update(double dt)=0;
+        virtual void update(double dt,sf::Vector2i mouse_pos)=0;
 };
 
 class TitleScreen : public GameState
@@ -328,7 +339,7 @@ class TitleScreen : public GameState
                 _buttons[i]._text.setFillColor(_buttons[i]._textcolour1);
             }
         }
-        void update(double dt) {};
+        void update(double dt,sf::Vector2i mouse_pos) {};
 };
 
 class OptionsScreen : public GameState
@@ -425,7 +436,7 @@ class OptionsScreen : public GameState
                 _buttons[i]._text.setFillColor(_buttons[i]._textcolour1);
             }
         }
-        void update(double dt) {};
+        void update(double dt,sf::Vector2i mouse_pos) {};
 };
 
 class ControlScreen : public GameState
@@ -724,7 +735,7 @@ class ControlScreen : public GameState
                 _buttons[i]._text.setFillColor(_buttons[i]._textcolour1);
             }
         }
-        void update (double dt) {};
+        void update (double dt,sf::Vector2i mouse_pos) {};
 };
 
 class ChangeCueScreen : public GameState
@@ -809,7 +820,7 @@ class ChangeCueScreen : public GameState
                 _buttons[i]._text.setFillColor(_buttons[i]._textcolour1);
             }
         }
-        void update(double dt) {};
+        void update(double dt,sf::Vector2i mouse_pos) {};
 };
 
 class SingleplayerScreen : public GameState
@@ -906,7 +917,7 @@ class SingleplayerScreen : public GameState
                 _buttons[i]._text.setFillColor(_buttons[i]._textcolour1);
             }
         }
-        void update(double dt) {};
+        void update(double dt,sf::Vector2i mouse_pos) {};
 };
 
 class MultiplayerScreen : public GameState
@@ -1090,7 +1101,7 @@ class MultiplayerScreen : public GameState
                 }
             }
         }
-        void update(double dt)
+        void update(double dt,sf::Vector2i mouse_pos)
         {
             for (int i=0;i<_inputboxes.size();i++)
             {
@@ -1124,7 +1135,7 @@ class GameScreen : public GameState
         //gametype 1 - multiplayer but not host.
         //gametype 2 - singleplayer vs. AI.
         //gametype 3 - singleplayer lineup.
-        Server server;
+        Server server=Server();
         std::string targetip;
         unsigned short targetport;
         sf::TcpSocket socket;
@@ -1146,11 +1157,17 @@ class GameScreen : public GameState
         bool touching=false;
         bool isyourturn=true;
         bool isfoul=false;
+        bool ismiss=false;
+        bool isredon=true;
+        int nom_colour_order=0; //1 yellow,2 green, etc.
+        bool isfreeball=false;
+
+        sf::Text ballontitle;
 
         bool change=true;
         bool done=true;
         int t=0;
-        double dt=0.;
+        double deltat=0.;
 
         double power=50.;
         double dist;
@@ -1166,6 +1183,10 @@ class GameScreen : public GameState
         sf::RectangleShape gameoverrect;
         sf::Text gameovertext;
 
+        sf::RectangleShape foulrect;
+        sf::Text foultext;
+        sf::Text foulmisstext;
+
         //stats.
         sf::Text stats_title;
         std::vector<sf::Text> stats_text;
@@ -1174,7 +1195,6 @@ class GameScreen : public GameState
         int p2_highbreak=0;
         int p1_centuries=0;
         int p2_centuries=0;
-
 
         sf::Vector2f spin_selector_pos;
         sf::Vector2f spin_dot_pos;
@@ -1220,6 +1240,18 @@ class GameScreen : public GameState
         sf::CircleShape ghostball;
         sf::CircleShape ghostball2;
 
+        NominateBall nomballs[6];
+        sf::RectangleShape nomback;
+        sf::Text nomtext;
+
+        static const int numlines=4;
+        std::array<std::string,numlines> logstrings={};
+        std::array<sf::Text,numlines> logtext;
+        sf::RectangleShape logback;
+
+        double ds=0.;
+        sf::Vector2f pos;
+
     public:
         //set up the objects.
         GameScreen(double sfac=dfactor,int kind=0,std::string ip="", unsigned short port=50000,std::string name="PLAYER 1") : GameState(sfac)
@@ -1230,6 +1262,29 @@ class GameScreen : public GameState
 
             targetip=ip;
             targetport=port;
+
+            if (gametype<2)
+            {
+                //multiplayer.
+                if (socket.connect(sf::IpAddress(targetip),targetport)!=sf::Socket::Done)
+                {
+                    //error.
+                    std::cout << "Could not connect to self server" << std::endl;
+                }
+                socket.setBlocking(false);
+            }
+            else
+            {
+                if (gametype==2)
+                {
+                    p2name="AI";
+                }
+                else
+                {
+                    p2name="N/A";
+                    framesbestof=1;
+                }
+            }
 
             //set up some stuff depending on the gametype here.
 
@@ -1258,6 +1313,27 @@ class GameScreen : public GameState
             pausetext.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
             pausetext.setPosition(sf::Vector2f(_sfac*raw_width*0.5,_sfac*raw_height*0.15-_sfac*raw_height));
             pausetext.setFillColor(sf::Color(255,255,255));
+
+            //foul text.
+            foulrect.setSize(sf::Vector2f(_sfac*raw_width,_sfac*raw_height));
+            foulrect.setPosition(sf::Vector2f(0.,-_sfac*raw_height));
+            foulrect.setFillColor(sf::Color(100,100,100,150));
+
+            foultext.setFont(_thinfont);
+            foultext.setCharacterSize(int(_sfac*raw_height*0.1));
+            foultext.setString("Foul");
+            textrect=foultext.getLocalBounds();
+            foultext.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
+            foultext.setPosition(sf::Vector2f(_sfac*raw_width*0.5,_sfac*raw_height*0.15-_sfac*raw_height));
+            foultext.setFillColor(sf::Color(255,255,255));
+
+            foulmisstext.setFont(_thinfont);
+            foulmisstext.setCharacterSize(int(_sfac*raw_height*0.1));
+            foulmisstext.setString("Foul");
+            textrect=foulmisstext.getLocalBounds();
+            foulmisstext.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
+            foulmisstext.setPosition(sf::Vector2f(_sfac*raw_width*0.5,_sfac*raw_height*0.15-_sfac*raw_height));
+            foulmisstext.setFillColor(sf::Color(255,255,255));
 
             //set up game over screen.
             gameoverrect.setSize(sf::Vector2f(_sfac*raw_width,_sfac*raw_height));
@@ -1334,21 +1410,11 @@ class GameScreen : public GameState
 
                 stats_text_y.push_back(stats_text[i].getPosition().y);
             }
-//            sf::Text stats_title;
-//            sf::Text stats_p1name;
-//            sf::Text stats_p2name;
-//            sf::Text stats_highbreaktext;
-//            sf::Text stats_centuriestext;
-//            sf::Text stats_framestext;
-//            sf::Text stats_p1frames;
-//            sf::Text stats_p2frames;
-//            sf::Text stats_p1highbreak;
-//            sf::Text stats_p2highbreak;
-//            sf::Text stats_p1centuries;
-//            sf::Text stats_p2centuries;
 
             pausea=2.*_sfac*raw_height;
 
+            _buttons.push_back(RectButton());
+            _buttons.push_back(RectButton());
             _buttons.push_back(RectButton());
             _buttons.push_back(RectButton());
 
@@ -1401,6 +1467,51 @@ class GameScreen : public GameState
                 {
                     _buttons[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width,-_sfac*raw_height+0.75*_sfac*raw_height));
                 }
+
+                _buttons[i]._colour1=sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]);
+                _buttons[i]._colour2=sf::Color(colour2[0],colour2[1],colour2[2],colour2[3]);
+                _buttons[i]._colour3=sf::Color(colour3[0],colour3[1],colour3[2],colour3[3]);
+
+                _buttons[i]._textcolour1=sf::Color(textcolour1[0],textcolour1[1],textcolour1[2],textcolour1[3]);
+                _buttons[i]._textcolour2=sf::Color(textcolour2[0],textcolour2[1],textcolour2[2],textcolour2[3]);
+                _buttons[i]._textcolour3=sf::Color(textcolour3[0],textcolour3[1],textcolour3[2],textcolour3[3]);
+
+                _buttons[i]._outlinecolour1=sf::Color(outlinecolour1[0],outlinecolour1[1],outlinecolour1[2],outlinecolour1[3]);
+                _buttons[i]._outlinecolour2=sf::Color(outlinecolour2[0],outlinecolour2[1],outlinecolour2[2],outlinecolour2[3]);
+                _buttons[i]._outlinecolour3=sf::Color(outlinecolour3[0],outlinecolour3[1],outlinecolour3[2],outlinecolour3[3]);
+
+                _buttons[i]._shape.setFillColor(_buttons[i]._colour1);
+                _buttons[i]._shape.setOutlineColor(_buttons[i]._outlinecolour1);
+                _buttons[i]._text.setFillColor(_buttons[i]._textcolour1);
+            }
+
+            double sbwidth=(_sfac*raw_height*panel_ratio/(1.+panel_ratio))*6.;
+            double sbheight=(_sfac*raw_height*panel_ratio/(1.+panel_ratio))*0.2;
+
+            buttonwidth=0.12*_sfac*raw_width;
+            for (int i=2;i<4;i++)
+            {
+                _buttons[i]._shape.setSize(sf::Vector2f(buttonwidth,sbheight));
+                _buttons[i]._shape.setOrigin(sf::Vector2f(0.5*buttonwidth,0.5*sbheight));
+                _buttons[i]._shape.setOutlineThickness(_buttons[i]._absoutlinethickness);
+                _buttons[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width+0.5*sbwidth-0.5*buttonwidth,0.92*_sfac*raw_height+1.2*(i-2)*sbheight));
+
+                if (!_buttons[i]._font.loadFromFile("Roboto-Thin.ttf")) {std::cout << "Error loading font." << std::endl;}
+                _buttons[i]._text.setFont(_buttons[i]._font);
+                _buttons[i]._text.setCharacterSize(int(0.7*sbheight));
+                if (i==2)
+                {
+                    _buttons[i]._text.setString("Concede frame");
+                    _buttons[i]._target="Concedeframe";
+                }
+                else if (i==3)
+                {
+                    _buttons[i]._text.setString("Concede match");
+                    _buttons[i]._target="Concedematch";
+                }
+                textrect=_buttons[i]._text.getLocalBounds();
+                _buttons[i]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
+                _buttons[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width+0.5*sbwidth-0.5*buttonwidth,0.92*_sfac*raw_height+1.2*(i-2)*sbheight));
 
                 _buttons[i]._colour1=sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]);
                 _buttons[i]._colour2=sf::Color(colour2[0],colour2[1],colour2[2],colour2[3]);
@@ -1486,9 +1597,6 @@ class GameScreen : public GameState
             sf::FloatRect textRect=elevation_display.getLocalBounds();
             elevation_display.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
             elevation_display.setPosition(sf::Vector2f((_sfac*raw_width)-0.5*(_sfac*raw_height*panel_ratio/(1.+panel_ratio)),(_sfac*raw_height/(1.+panel_ratio))+0.5*(_sfac*raw_height*panel_ratio/(1.+panel_ratio))));
-
-            double sbwidth=(_sfac*raw_height*panel_ratio/(1.+panel_ratio))*6.;
-            double sbheight=(_sfac*raw_height*panel_ratio/(1.+panel_ratio))*0.2;
 
             if (!_scorefont.loadFromFile("Roboto-Bold.ttf"))
             {
@@ -1616,6 +1724,88 @@ class GameScreen : public GameState
             _shapes.push_back(&textp1name);
             _shapes.push_back(&textp2name);
 
+            ballontitle.setFont(_thinfont);
+            ballontitle.setString("Ball on - Red");
+            ballontitle.setCharacterSize(int(sbheight*0.7));
+            textrect=ballontitle.getLocalBounds();
+            ballontitle.setOrigin(sf::Vector2f(textrect.left,textrect.top));
+            ballontitle.setPosition(sf::Vector2f((_sfac*raw_width)*0.5-0.5*sbwidth,_sfac*raw_height*0.89));
+            ballontitle.setFillColor(sf::Color(255,255,255));
+            _shapes.push_back(&ballontitle);
+
+            nomtext.setFont(_thinfont);
+            nomtext.setString("Nominate colour");
+            nomtext.setCharacterSize(int(sbheight*0.7));
+            textrect=nomtext.getLocalBounds();
+            nomtext.setOrigin(sf::Vector2f(textrect.left,textrect.top));
+            nomtext.setPosition(sf::Vector2f((_sfac*raw_width)*0.5-0.5*sbwidth,_sfac*raw_height*0.89+1.1*int(sbheight*0.7)));
+            nomtext.setFillColor(sf::Color(255,255,255,100));
+            _shapes.push_back(&nomtext);
+
+            nomback.setSize(sf::Vector2f(((6.)*1.2*2.)*_sfac*raw_height*0.015,1.3*_sfac*raw_height*2.*0.015));
+            nomback.setPosition(sf::Vector2f((_sfac*raw_width)*0.5-0.5*sbwidth,_sfac*raw_height*0.96-1.3*_sfac*raw_height*0.015));
+            nomback.setFillColor(sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]));
+            nomback.setOutlineThickness(_buttons[0]._absoutlinethickness);
+            nomback.setOutlineColor(sf::Color(outlinecolour1[0],outlinecolour1[1],outlinecolour1[2],outlinecolour1[3]));
+            _shapes.push_back(&nomback);
+            for (int i=0;i<6;i++)
+            {
+                nomballs[i]._shape.setRadius(_sfac*raw_height*0.015);
+                nomballs[i]._shape.setOrigin(sf::Vector2f(_sfac*raw_height*0.015,_sfac*raw_height*0.015));
+                nomballs[i]._shape.setPosition(sf::Vector2f((_sfac*raw_width)*0.5-0.5*sbwidth+((i+0.5)*1.2*2.)*_sfac*raw_height*0.015,_sfac*raw_height*0.96));
+                if (i==0)
+                {
+                    nomballs[i]._colour=yellow_col;
+                }
+                else if (i==1)
+                {
+                    nomballs[i]._colour=green_col;
+                }
+                else if (i==2)
+                {
+                    nomballs[i]._colour=brown_col;
+                }
+                else if (i==3)
+                {
+                    nomballs[i]._colour=blue_col;
+                }
+                else if (i==4)
+                {
+                    nomballs[i]._colour=pink_col;
+                }
+                else if (i==5)
+                {
+                    nomballs[i]._colour=black_col;
+                }
+                nomballs[i]._shape.setFillColor(nomballs[i]._colour);
+                nomballs[i]._shape.setOutlineThickness(0.);
+                nomballs[i]._shape.setOutlineColor(sf::Color(255,255,255,100));
+
+                _shapes.push_back(&nomballs[i]._shape);
+            }
+
+            double logheight=(_sfac*raw_height*panel_ratio/(1.+panel_ratio))*0.6;
+            logback.setSize(sf::Vector2f(0.5*sbwidth,logheight));
+            logback.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth,0.89*_sfac*raw_height));
+            logback.setOutlineThickness(_buttons[0]._absoutlinethickness);
+            logback.setFillColor(_buttons[0]._colour1);
+            logback.setOutlineColor(_buttons[0]._outlinecolour1);
+            _shapes.push_back(&logback);
+
+            double cheight=logheight/(numlines*1.2);
+            for (int i=0;i<numlines;i++)
+            {
+                logstrings[i]="Line "+std::to_string(numlines-i);
+                logtext[i].setFont(_thinfont);
+                logtext[i].setCharacterSize(int(cheight));
+                logtext[i].setString(logstrings[i]);
+                textrect=logtext[i].getLocalBounds();
+                logtext[i].setOrigin(sf::Vector2f(textrect.left,textrect.top));
+                logtext[i].setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+0.1*cheight,0.89*_sfac*raw_height+0.1*cheight+1.2*i*cheight));
+                logtext[i].setFillColor(sf::Color(255,255,255));
+                _shapes.push_back(&logtext[i]);
+            }
+
             cushions[0]=Cushion(mpockets[0][0],mpockets[0][1]-0.156,pi,1,0);
             cushions[1]=Cushion(mpockets[1][0],mpockets[1][1]+0.156,0.0,1,0);
             cushions[2]=Cushion(cpockets[0][0],cpockets[0][1],0.0,0,1);
@@ -1653,37 +1843,37 @@ class GameScreen : public GameState
             balls[0]._y=cueball_break_y;
             balls[0]._order=1;
             //yellow.
-            balls[1]._shape.setFillColor(sf::Color(255,255,0));
+            balls[1]._shape.setFillColor(yellow_col);
             balls[1]._x=yellow_x;
             balls[1]._y=yellow_y;
             spots[0].setPosition(sf::Vector2f(yellow_x*_sfac,(_sfac*raw_height/(1.+panel_ratio))-yellow_y*_sfac));
             balls[1]._order=2;
             //green.
-            balls[2]._shape.setFillColor(sf::Color(0,150,0));
+            balls[2]._shape.setFillColor(green_col);
             balls[2]._x=green_x;
             balls[2]._y=green_y;
             spots[1].setPosition(sf::Vector2f(green_x*_sfac,(_sfac*raw_height/(1.+panel_ratio))-green_y*_sfac));
             balls[2]._order=3;
             //brown.
-            balls[3]._shape.setFillColor(sf::Color(131,87,43));
+            balls[3]._shape.setFillColor(brown_col);
             balls[3]._x=brown_x;
             balls[3]._y=brown_y;
             spots[2].setPosition(sf::Vector2f(brown_x*_sfac,(_sfac*raw_height/(1.+panel_ratio))-brown_y*_sfac));
             balls[3]._order=4;
             //blue.
-            balls[4]._shape.setFillColor(sf::Color(0,0,255));
+            balls[4]._shape.setFillColor(blue_col);
             balls[4]._x=blue_x;
             balls[4]._y=blue_y;
             spots[3].setPosition(sf::Vector2f(blue_x*_sfac,(_sfac*raw_height/(1.+panel_ratio))-blue_y*_sfac));
             balls[4]._order=5;
             //pink.
-            balls[5]._shape.setFillColor(sf::Color(255,105,180));
+            balls[5]._shape.setFillColor(pink_col);
             balls[5]._x=pink_x;
             balls[5]._y=pink_y;
             spots[4].setPosition(sf::Vector2f(pink_x*_sfac,(_sfac*raw_height/(1.+panel_ratio))-pink_y*_sfac));
             balls[5]._order=6;
             //black.
-            balls[6]._shape.setFillColor(sf::Color(0,0,0));
+            balls[6]._shape.setFillColor(black_col);
             balls[6]._x=black_x;
             balls[6]._y=black_y;
             spots[5].setPosition(sf::Vector2f(black_x*_sfac,(_sfac*raw_height/(1.+panel_ratio))-black_y*_sfac));
@@ -1764,6 +1954,27 @@ class GameScreen : public GameState
                 balls[i]._gpos[3][1]=gymax;
             }
 
+            for (int i=0;i<22;i++)
+            {
+                server.serverballs[i]._x=balls[i]._x;
+                server.serverballs[i]._y=balls[i]._y;
+                server.serverballs[i]._order=balls[i]._order;
+
+                gxmin=int(floor((server.serverballs[i]._x-server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
+                gxmax=int(floor((server.serverballs[i]._x+server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
+                gymin=int(floor((server.serverballs[i]._y-server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
+                gymax=int(floor((server.serverballs[i]._y+server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
+
+                server.serverballs[i]._gpos[0][0]=gxmin;
+                server.serverballs[i]._gpos[0][1]=gymin;
+                server.serverballs[i]._gpos[1][0]=gxmax;
+                server.serverballs[i]._gpos[1][1]=gymin;
+                server.serverballs[i]._gpos[2][0]=gxmax;
+                server.serverballs[i]._gpos[2][1]=gymax;
+                server.serverballs[i]._gpos[3][0]=gxmin;
+                server.serverballs[i]._gpos[3][1]=gymax;
+            }
+
             baulkline.setPrimitiveType(sf::PrimitiveType::LineStrip);
             baulkline.resize(2);
             baulkcircle.setPrimitiveType(sf::PrimitiveType::LineStrip);
@@ -1821,13 +2032,96 @@ class GameScreen : public GameState
                 _shapes.push_back(&stats_text[i]);
             }
         }
-        void update(double dt);
+        void update(double dt,sf::Vector2i mouse_pos);
+        void scores_update();
 };
 
-void GameScreen::update(double dt)
+void GameScreen::scores_update()
+{
+    //multiplayer.
+    textp1score.setString(std::to_string(p1score));
+    textp2score.setString(std::to_string(p2score));
+
+    sf::FloatRect bounds;
+    bounds=textp1score.getLocalBounds();
+    textp1score.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+    bounds=textp2score.getLocalBounds();
+    textp2score.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+
+    textp1frames.setString(std::to_string(p1frames));
+    textp2frames.setString(std::to_string(p2frames));
+    bounds=textp1frames.getLocalBounds();
+    textp1frames.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+    bounds=textp2frames.getLocalBounds();
+    textp2frames.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+
+    if (isyourturn)
+    {
+        p1pointer.setFillColor(sf::Color(0,0,0));
+        p2pointer.setFillColor(sf::Color(0,0,0,0));
+    }
+    else
+    {
+        p1pointer.setFillColor(sf::Color(0,0,0,0));
+        p2pointer.setFillColor(sf::Color(0,0,0));
+    }
+
+    //gameover stats.
+    stats_text[4].setString(std::to_string(p1frames));
+    stats_text[5].setString(std::to_string(p2frames));
+    stats_text[7].setString(std::to_string(p1_highbreak));
+    stats_text[8].setString(std::to_string(p2_highbreak));
+    stats_text[10].setString(std::to_string(p1_centuries));
+    stats_text[11].setString(std::to_string(p2_centuries));
+
+    if (p1frames>p2frames) {stats_text[4].setFont(_boldfont);stats_text[5].setFont(_thinfont);}
+    else if (p1frames<p2frames) {stats_text[4].setFont(_thinfont);stats_text[5].setFont(_boldfont);}
+    else {stats_text[4].setFont(_thinfont);stats_text[5].setFont(_thinfont);}
+
+    if (p1_highbreak>p2_highbreak) {stats_text[7].setFont(_boldfont);stats_text[8].setFont(_thinfont);}
+    else if (p1_highbreak<p2_highbreak) {stats_text[7].setFont(_thinfont);stats_text[8].setFont(_boldfont);}
+    else {stats_text[7].setFont(_thinfont);stats_text[8].setFont(_thinfont);}
+
+    if (p1_centuries>p2_centuries) {stats_text[10].setFont(_boldfont);stats_text[11].setFont(_thinfont);}
+    else if (p1_centuries<p2_centuries) {stats_text[10].setFont(_thinfont);stats_text[11].setFont(_boldfont);}
+    else {stats_text[10].setFont(_thinfont);stats_text[11].setFont(_thinfont);}
+
+    for (int i=0;i<stats_text.size();i++)
+    {
+        bounds=stats_text[i].getLocalBounds();
+        stats_text[i].setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+    }
+}
+
+void GameScreen::update(double dt,sf::Vector2i mouse_pos)
 {
     if (!gameover)
     {
+        //concession packets.
+        if (_buttons[2]._target=="Concedeframe1")
+        {
+            _buttons[2]._target="Concedeframe";
+            if (gametype<2)
+            {
+                packet.clear();
+                packetId=4;
+                packet << packetId;
+                socket.send(packet);
+            }
+        }
+        else if (_buttons[3]._target=="Concedematch1")
+        {
+            _buttons[3]._target="Concedematch";
+            if (gametype<2)
+            {
+                packet.clear();
+                packetId=5;
+                packet << packetId;
+                socket.send(packet);
+            }
+        }
+
+        change=false;
         //listen for packets.
         if (gametype<2)
         {
@@ -1839,6 +2133,8 @@ void GameScreen::update(double dt)
                 if (packetId==0)
                 {
                     //display cue trajectory prediction.
+                    packet >> power >> cue._angle >> cue._offset >> cue._theta >> cue._alpha >> balls[0]._x >> balls[0]._y;
+                    change=true;
                 }
                 else if (packetId==1)
                 {
@@ -1858,13 +2154,17 @@ void GameScreen::update(double dt)
                 else if (packetId==2)
                 {
                     //whose turn it is.
+                    packet >> isyourturn >> isfoul >> ismiss >> placing_white >> isredon >> isfreeball >> gameover;
+                    packet >> p1score >> p2score >> p1frames >> p2frames >> p1_highbreak >> p2_highbreak >> p1_centuries >> p2_centuries;
+                    if (done) {scores_update();}
+                    if (gameover) {scores_update();}
                 }
             }
         }
 
         if (int(floor(t*100./framerate))<result.size())
         {
-            dt=t*100./framerate-int(floor(t*100./framerate));
+            deltat=t*100./framerate-int(floor(t*100./framerate));
             for (int i=0;i<22;i++)
             {
                 if (int(floor(t*100./framerate))==int(result.size()-1))
@@ -1876,32 +2176,113 @@ void GameScreen::update(double dt)
                 }
                 else
                 {
-                    balls[i]._x=result[int(floor(t*100./framerate))][i*3]+dt*(result[int(floor(t*100./framerate))+1][i*3]-result[int(floor(t*100./framerate))][i*3]);
-                    balls[i]._y=result[int(floor(t*100./framerate))][i*3+1]+dt*(result[int(floor(t*100./framerate))+1][i*3+1]-result[int(floor(t*100./framerate))][i*3+1]);
-                    balls[i]._z=result[int(floor(t*100./framerate))][i*3+2]+dt*(result[int(floor(t*100./framerate))+1][i*3+2]-result[int(floor(t*100./framerate))][i*3+2]);
+                    balls[i]._x=result[int(floor(t*100./framerate))][i*3]+deltat*(result[int(floor(t*100./framerate))+1][i*3]-result[int(floor(t*100./framerate))][i*3]);
+                    balls[i]._y=result[int(floor(t*100./framerate))][i*3+1]+deltat*(result[int(floor(t*100./framerate))+1][i*3+1]-result[int(floor(t*100./framerate))][i*3+1]);
+                    balls[i]._z=result[int(floor(t*100./framerate))][i*3+2]+deltat*(result[int(floor(t*100./framerate))+1][i*3+2]-result[int(floor(t*100./framerate))][i*3+2]);
                 }
             }
         }
-        if (!done)
+        if (!done && result.size()>0)
         {
             t=t+1;
             if (int(floor(t*100./framerate))>=result.size())
             {
                 done=true;
-                change=true;
                 for (int i=0;i<22;i++)
                 {
                     balls[i]._x=result[result.size()-1][i*3];
                     balls[i]._y=result[result.size()-1][i*3+1];
                     balls[i]._z=result[result.size()-1][i*3+2];
                 }
+
+                if (isyourturn) {change=true;}
+
+                if (gametype<2)
+                {
+                    scores_update();
+                }
+                else if (gametype==2)
+                {
+                    //singleplayer vs. AI.
+                }
+                else if (gametype==3)
+                {
+                    change=true;
+                    //solo lineup.
+                    //check if correct ball hit.
+                    if (server.ball_hit_order.size()==0) {gameover=true; return;}
+                    if (server.ball_potted_order.size()==0) {gameover=true; return;}
+
+                    if (isredon)
+                    {
+                        for (int i=0;i<server.ball_hit_order.size();i++)
+                        {
+                            if (server.ball_hit_order[i]<8) {gameover=true; return;}
+                        }
+                        //check pots.
+                        for (int i=0;i<server.ball_potted_order.size();i++)
+                        {
+                            if (server.ball_potted_order[i]<8) {gameover=true; return;}
+                        }
+                        //add scores.
+                        p1score+=server.ball_potted_order.size();
+                        p1_highbreak=p1score;
+                    }
+                    else
+                    {
+                        if (server.ball_hit_order.size()>1) {gameover=true; return;}
+                        if (server.ball_hit_order[0]!=nom_colour_order) {gameover=true; return;}
+                        if (server.ball_potted_order.size()>1) {gameover=true; return;}
+                        if (server.ball_potted_order[0]!=nom_colour_order) {gameover=true; return;}
+                        p1score+=server.ball_potted_order[0];
+                        p1_highbreak=p1score;
+                    }
+                    isredon=!isredon;
+
+                    stats_text[4].setString("N/A");
+                    stats_text[5].setString("N/A");
+                    stats_text[7].setString(std::to_string(p1_highbreak));
+                    stats_text[8].setString("N/A");
+                    if (p1_highbreak>=100) {stats_text[10].setString("1");}
+                    stats_text[11].setString("N/A");
+
+                    sf::FloatRect bounds;
+                    for (int i=0;i<stats_text.size();i++)
+                    {
+                        bounds=stats_text[i].getLocalBounds();
+                        stats_text[i].setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+                    }
+                    server.respot();
+                    for (int i=1;i<7;i++)
+                    {
+                        balls[i]._x=server.serverballs[i]._x;
+                        balls[i]._y=server.serverballs[i]._y;
+                        balls[i]._z=ball_radius;
+                    }
+
+                    //scoreboard stuff.
+                    textp1score.setString(std::to_string(p1score));
+//                    textp2score.setString(std::to_string(p2score));
+
+                    bounds=textp1score.getLocalBounds();
+                    textp1score.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+//                    bounds=textp2score.getLocalBounds();
+//                    textp2score.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+
+//                    textp1frames.setString(std::to_string(p1frames));
+//                    textp2frames.setString(std::to_string(p2frames));
+//                    bounds=textp1frames.getLocalBounds();
+//                    textp1frames.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+//                    bounds=textp2frames.getLocalBounds();
+//                    textp2frames.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+                }
             }
         }
 
         if (ispaused)
         {
-            sf::Vector2f pos=pauserect.getPosition();
-            double ds=sqrt(fabs(pos.y)*2.*pausea)*dt;
+            pos=pauserect.getPosition();
+            ds=sqrt(fabs(pos.y)*2.*pausea)*dt;
             pauserect.setPosition(sf::Vector2f(0.,fmin(0.,pos.y+ds)));
             pos=_buttons[0]._shape.getPosition();
             _buttons[0]._shape.setPosition(sf::Vector2f(pos.x,fmin(0.5*_sfac*raw_height,pos.y+ds)));
@@ -1911,8 +2292,8 @@ void GameScreen::update(double dt)
         }
         else
         {
-            sf::Vector2f pos=pauserect.getPosition();
-            double ds=-sqrt(fabs(pos.y+_sfac*raw_height)*2.*pausea)*dt;
+            pos=pauserect.getPosition();
+            ds=-sqrt(fabs(pos.y+_sfac*raw_height)*2.*pausea)*dt;
             pauserect.setPosition(sf::Vector2f(0.,fmax(-_sfac*raw_height,pos.y+ds)));
             pos=_buttons[0]._shape.getPosition();
             _buttons[0]._shape.setPosition(sf::Vector2f(pos.x,fmax(-0.5*_sfac*raw_height,pos.y+ds)));
@@ -1956,7 +2337,6 @@ void GameScreen::update(double dt)
             ispausepressed=false;
         }
 
-        change=false;
         if (isyourturn && done && fabs(pauserect.getPosition().y+_sfac*raw_height)<0.001)
         {
             //get user input when it is their turn.
@@ -2030,6 +2410,11 @@ void GameScreen::update(double dt)
                     if (!touching)
                     {
                         placing_white=false;
+                    }
+                    if (gametype==3)
+                    {
+                        server.serverballs[0]._x=balls[0]._x;
+                        server.serverballs[0]._y=balls[0]._y;
                     }
                 }
             }
@@ -2130,6 +2515,58 @@ void GameScreen::update(double dt)
                 if (sf::Keyboard::isKeyPressed(user_controls["Strike cueball"]))
                 {
                     //strike cueball.
+                    cue._speed=1.2*power;
+                    cue.perturb();
+                    cue.shot();
+                    balls[0]._vx=cue._ballv*sin(cue._angle);
+                    balls[0]._vy=cue._ballv*cos(cue._angle);
+                    balls[0]._xspin=cue._ballparspin*sin(cue._angle)+cue._ballperspin*cos(cue._angle);
+                    balls[0]._yspin=cue._ballparspin*cos(cue._angle)-cue._ballperspin*sin(cue._angle);
+                    balls[0]._rspin=cue._ballrspin;
+
+                    if (gametype<2)
+                    {
+                        result.clear();
+                        packet.clear();
+                        packetId=2;
+                        packet << packetId << balls[0]._vx << balls[0]._vy << balls[0]._xspin << balls[0]._yspin << balls[0]._rspin;
+                        socket.send(packet);
+                        done=false;
+                        return;
+                    }
+
+                    if (gametype==3)
+                    {
+                        //solo lineup.
+                        server.serverballs[0]._vx=balls[0]._vx;
+                        server.serverballs[0]._vy=balls[0]._vy;
+                        server.serverballs[0]._xspin=balls[0]._xspin;
+                        server.serverballs[0]._yspin=balls[0]._yspin;
+                        server.serverballs[0]._rspin=balls[0]._rspin;
+
+                        server.result=server.simulate(server.serverballs,server.servercushions);
+                        result=server.result;
+                        t=0;
+                        done=false;
+                        return;
+                    }
+                }
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                {
+                    //ball on.
+                    if (!isredon || isfreeball)
+                    {
+                        for (int i=0;i<6;i++)
+                        {
+                            dist=sqrt(pow(mouse_pos.x-nomballs[i]._shape.getPosition().x,2.)+pow(mouse_pos.y-nomballs[i]._shape.getPosition().y,2.));
+                            if (dist<nomballs[i]._shape.getRadius())
+                            {
+                                change=true;
+                                nom_colour_order=i+2;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -2146,6 +2583,19 @@ void GameScreen::update(double dt)
                 c=power_bar[99-i].getFillColor();
                 if (i<int(floor(power))) {power_bar[99-i].setFillColor(sf::Color(c.r,c.g,c.b,255));}
                 else {power_bar[99-i].setFillColor(sf::Color(c.r,c.g,c.b,0));}
+            }
+
+            spin_dot_pos=elevation_ball.getPosition();
+            elevation_pointer.setPosition(sf::Vector2f(spin_dot_pos.x+elevation_ball.getRadius()*cos(cue._alpha),spin_dot_pos.y-elevation_ball.getRadius()*sin(cue._alpha)));
+            elevation_pointer.setRotation(-cue._alpha*180./pi);
+
+            if (int(cue._alpha*180./pi)<10)
+            {
+                elevation_display.setString("0"+std::to_string(int(cue._alpha*180./pi))+"°");
+            }
+            else
+            {
+                elevation_display.setString(std::to_string(int(cue._alpha*180./pi))+"°");
             }
 
             spin_selector_pos=spin_selector.getPosition();
@@ -2203,6 +2653,73 @@ void GameScreen::update(double dt)
             {
                 obtraj[i].position=sf::Vector2f(dfactor*predict[2][2*i],window_height-dfactor*predict[2][2*i+1]);
             }
+
+            if (ghostball2.getPosition().x>=0.)
+            {
+                //contacts a ball directly.
+                spin_dot_pos=ghostball.getPosition();
+                dist=999.;
+                int contacted=0;
+                for (int i=1;i<22;i++)
+                {
+                    if (sqrt(pow(spin_dot_pos.x-_sfac*balls[i]._x,2.)+pow(spin_dot_pos.y-_sfac*raw_height/(1.+panel_ratio)+_sfac*balls[i]._y,2.))<dist)
+                    {
+                        dist=sqrt(pow(spin_dot_pos.x-_sfac*balls[i]._x,2.)+pow(spin_dot_pos.y-_sfac*raw_height/(1.+panel_ratio)+_sfac*balls[i]._y,2.));
+                        contacted=balls[i]._order;
+                    }
+                }
+
+                if (contacted<=7)
+                {
+                    //hits a colour.
+                    nom_colour_order=contacted;
+                }
+            }
+
+            if (isredon)
+            {
+                //colour choice.
+                c=nomtext.getColor();
+                nomtext.setColor(sf::Color(c.r,c.g,c.b,100));
+                for (int i=0;i<6;i++)
+                {
+                    nomballs[i]._shape.setFillColor(sf::Color(nomballs[i]._colour.r,nomballs[i]._colour.g,nomballs[i]._colour.b,100));
+                    nomballs[i]._shape.setOutlineThickness(0.);
+                }
+                ballontitle.setString("Ball on - Red");
+            }
+            else
+            {
+                c=nomtext.getColor();
+                nomtext.setColor(sf::Color(c.r,c.g,c.b,255));
+                for (int i=0;i<6;i++)
+                {
+                    nomballs[i]._shape.setFillColor(sf::Color(nomballs[i]._colour.r,nomballs[i]._colour.g,nomballs[i]._colour.b,255));
+                    nomballs[i]._shape.setOutlineThickness(0.);
+                }
+                if (nom_colour_order>=2 && nom_colour_order<=7)
+                {
+                    nomballs[nom_colour_order-2]._shape.setOutlineThickness(nomballs[nom_colour_order-2]._abslinethickness);
+                }
+                if (isfreeball)
+                {
+                    ballontitle.setString("Ball on - Free ball");
+                }
+                else
+                {
+                    ballontitle.setString("Ball on - Colour");
+                }
+            }
+
+            if (gametype==0 || gametype==1)
+            {
+                //send the info packet.
+                packetId=1;
+                packet.clear();
+
+                packet << packetId << power << cue._angle << cue._offset << cue._theta << cue._alpha << balls[0]._x << balls[0]._y;
+                socket.send(packet);
+            }
         }
         if (placing_white || !done)
         {
@@ -2217,19 +2734,33 @@ void GameScreen::update(double dt)
     else
     {
         //game over!
-        sf::Vector2f pos=gameoverrect.getPosition();
-        double ds=sqrt(fabs(pos.y)*2.*pausea)*dt;
-        gameoverrect.setPosition(sf::Vector2f(0.,fmin(0.,pos.y+ds)));
-        pos=_buttons[1]._shape.getPosition();
-        _buttons[1]._shape.setPosition(sf::Vector2f(pos.x,fmin(0.75*_sfac*raw_height,pos.y+ds)));
-        _buttons[1]._text.setPosition(sf::Vector2f(pos.x,fmin(0.75*_sfac*raw_height,pos.y+ds)));
-        pos=gameovertext.getPosition();
-        gameovertext.setPosition(sf::Vector2f(pos.x,fmin(0.15*_sfac*raw_height,pos.y+ds)));
-
-        for (int i=0;i<stats_text.size();i++)
+        if (fabs(pauserect.getPosition().y+_sfac*raw_height)<0.001)
         {
-            pos=stats_text[i].getPosition();
-            stats_text[i].setPosition(sf::Vector2f(pos.x,fmin(stats_text_y[i]+_sfac*raw_height,pos.y+ds)));
+            pos=gameoverrect.getPosition();
+            ds=sqrt(fabs(pos.y)*2.*pausea)*dt;
+            gameoverrect.setPosition(sf::Vector2f(0.,fmin(0.,pos.y+ds)));
+            pos=_buttons[1]._shape.getPosition();
+            _buttons[1]._shape.setPosition(sf::Vector2f(pos.x,fmin(0.75*_sfac*raw_height,pos.y+ds)));
+            _buttons[1]._text.setPosition(sf::Vector2f(pos.x,fmin(0.75*_sfac*raw_height,pos.y+ds)));
+            pos=gameovertext.getPosition();
+            gameovertext.setPosition(sf::Vector2f(pos.x,fmin(0.15*_sfac*raw_height,pos.y+ds)));
+
+            for (int i=0;i<stats_text.size();i++)
+            {
+                pos=stats_text[i].getPosition();
+                stats_text[i].setPosition(sf::Vector2f(pos.x,fmin(stats_text_y[i]+_sfac*raw_height,pos.y+ds)));
+            }
+        }
+        else
+        {
+            pos=pauserect.getPosition();
+            ds=-sqrt(fabs(pos.y+_sfac*raw_height)*2.*pausea)*dt;
+            pauserect.setPosition(sf::Vector2f(0.,fmax(-_sfac*raw_height,pos.y+ds)));
+            pos=_buttons[0]._shape.getPosition();
+            _buttons[0]._shape.setPosition(sf::Vector2f(pos.x,fmax(-0.5*_sfac*raw_height,pos.y+ds)));
+            _buttons[0]._text.setPosition(sf::Vector2f(pos.x,fmax(-0.5*_sfac*raw_height,pos.y+ds)));
+            pos=pausetext.getPosition();
+            pausetext.setPosition(sf::Vector2f(pos.x,fmax(-0.85*_sfac*raw_height,pos.y+ds)));
         }
     }
 }

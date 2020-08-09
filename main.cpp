@@ -7,20 +7,43 @@
 #include "objects.h"
 #include "client.h"
 
+void resetBalls(Server &server)
+{
+    for (int i=0;i<server.players.size();i++)
+    {
+        server.players[i].disconnect();
+    }
+    for (int i=0;i<server.spectators.size();i++)
+    {
+        server.spectators[i].disconnect();
+    }
+    server.player_turn=0;
+    server.names[0]="PLAYER 1";
+    server.names[1]="PLAYER 2";
+    server.scores[0]=0;
+    server.scores[1]=0;
+    server.frames[0]=0;
+    server.frames[1]=0;
+    server.framesbestof=35;
+    server.placing_white=true;
+    server.touching=false;
+    server.isyourturn=true;
+    server.isfoul=false;
+    server.isredon=true;
+    server.nom_colour_order=0; //1 yellow,2 green, etc.
+    server.isfreeball=false;
+
+    server.gameover=false;
+    server.highbreak[0]=0;
+    server.highbreak[1]=0;
+    server.centuries[0]=0;
+    server.centuries[0]=0;
+
+    server.rackballs();
+}
+
 int main()
 {
-//    Server server;
-//    std::thread server_thread(&Server::executionThread,std::ref(server));
-//    server_thread.detach();
-//
-//    sf::TcpSocket socket;
-//    if (socket.connect(sf::IpAddress(targetip),targetport)!=sf::Socket::Done)
-//    {
-//        //error.
-//        std::cout << "Could not connect to self server" << std::endl;
-//    }
-//    socket.setBlocking(false);
-
     std::cout.precision(std::numeric_limits<double>::max_digits10);
     sf::ContextSettings settings;
     settings.antialiasingLevel=8;
@@ -45,7 +68,6 @@ int main()
 
     sf::View view;
     view.reset(sf::FloatRect(-0.5*sdiff,0.,float(sf::VideoMode::getDesktopMode().width),float(sf::VideoMode::getDesktopMode().height)));
-    //view.setCenter(float(0.5*sf::VideoMode::getDesktopMode().width-0.5*sdiff),float(0.5*sf::VideoMode::getDesktopMode().height));
     window.setView(view);
 
     //prepare matrix.
@@ -81,6 +103,24 @@ int main()
     std::string name;
     std::string ip;
     unsigned short port;
+    std::string localip;
+    unsigned short localport;
+
+    Server server;
+    server.serverIp=sf::IpAddress::getLocalAddress();
+    server.listener.setBlocking(false);
+    if (server.listener.listen(sf::Socket::AnyPort)!=sf::Socket::Done)
+    {
+        //error.
+        std::cout << "Tcp listener could not bind to port." << std::endl;
+    }
+    server.port=server.listener.getLocalPort();
+
+    localip=server.serverIp.toString();
+    localport=server.port;
+
+    std::thread server_thread(&Server::executionThread,std::ref(server));
+    server_thread.detach();
 
     while (window.isOpen())
     {
@@ -119,9 +159,14 @@ int main()
                                 if (target=="Quit") {delete states.back(); states.pop_back();}
                                 else if (target=="Options") {states.push_back(new OptionsScreen());}
                                 else if (target=="Singleplayer") {states.push_back(new SingleplayerScreen());}
-                                else if (target=="Multiplayer") {states.push_back(new MultiplayerScreen(dfactor,std::string("192.168.823.106"),std::string("50000")));}
-                                else if (target=="MultiplayerHost") {states.push_back(new GameScreen(dfactor,0,"",50000,name));}
-                                else if (target=="MultiplayerJoin") {states.push_back(new GameScreen(dfactor,1,"",50000,name));}
+                                else if (target=="Multiplayer") {states.push_back(new MultiplayerScreen(dfactor,localip,std::to_string(localport)));}
+                                else if (target=="MultiplayerHost") {resetBalls(server); states.push_back(new GameScreen(dfactor,0,localip,localport,name));}
+                                else if (target=="MultiplayerJoin")
+                                {
+                                    ip=states.back()->_inputboxes[0]._text.getString();
+                                    port=std::stoi(std::string(states.back()->_inputboxes[1]._text.getString()));
+                                    states.push_back(new GameScreen(dfactor,1,ip,port,name));
+                                }
                                 else if (target=="SingleplayerAI") {states.push_back(new GameScreen(dfactor,2,"",50000,name));}
                                 else if (target=="SingleplayerLineup") {states.push_back(new GameScreen(dfactor,3,"",50000,name));}
                                 else if (target=="Controls") {states.push_back(new ControlScreen());}
@@ -137,6 +182,8 @@ int main()
                                         states.back()->_buttons[i]._text.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
                                     }
                                 }
+                                else if (target=="Concedeframe") {states.back()->_buttons[i]._target="Concedeframe1";}
+                                else if (target=="Concedematch") {states.back()->_buttons[i]._target="Concedematch1";}
                                 break;
                             }
                             else
@@ -320,7 +367,7 @@ int main()
             }
         }
 
-        if (!wait) {states.back()->update(1.0/framerate);}
+        if (!wait) {states.back()->update(1.0/framerate,mouse_pos);}
 
         window.clear(states.back()->_background);
 
@@ -349,80 +396,5 @@ int main()
         diff=period-elapsed;
         if (diff.asSeconds()>0) {sf::sleep(diff);}
     }
-//    while (window.isOpen())
-//    {
-//        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-//        {
-//            if (!placing_white && done)
-//            {
-//                //take the shot!
-//                spin_selector_pos=spin_selector.getPosition();
-//                spin_dot_pos=spin_dot.getPosition();
-//                dist=(ball_radius/(0.4*panel_height))*sqrt(pow(spin_selector_pos.x-spin_dot_pos.x,2.)+pow(spin_selector_pos.y-spin_dot_pos.y,2.));
-//                angle=atan2(spin_dot_pos.x-spin_selector_pos.x,spin_selector_pos.y-spin_dot_pos.y);
-//                cue._offset=dist;
-//                cue._theta=angle;
-//                cue._speed=1.2*power;
-//                //cue.perturb();
-//                cue.shot();
-//                balls[0]._vx=cue._ballv*sin(cue._angle);
-//                balls[0]._vy=cue._ballv*cos(cue._angle);
-//                balls[0]._xspin=cue._ballparspin*sin(cue._angle)+cue._ballperspin*cos(cue._angle);
-//                balls[0]._yspin=cue._ballparspin*cos(cue._angle)-cue._ballperspin*sin(cue._angle);
-//                balls[0]._rspin=cue._ballrspin;
-//
-//                packet.clear();
-//                packetId=2;
-//                packet << packetId << balls[0]._vx << balls[0]._vy << balls[0]._xspin << balls[0]._yspin << balls[0]._rspin;
-//                socket.send(packet);
-//                continue;
-//            }
-//        }
-//        if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
-//        {
-//            if (!placing_white && done)
-//            {
-//                mouse_pos=sf::Mouse::getPosition(window);
-//                if (mouse_pos.x>=0 && mouse_pos.x<=panel_height && mouse_pos.y>=window_height && mouse_pos.y<=window_height+panel_height)
-//                {
-//                    dist=fmin(sqrt(pow(mouse_pos.x-0.5*panel_height,2.)+pow(mouse_pos.y-0.5*panel_height-window_height,2.)),0.4*panel_height-panel_height*0.4*0.005/0.02625);
-//                    angle=atan2(mouse_pos.x-0.5*panel_height,mouse_pos.y-0.5*panel_height-window_height);
-//                    spin_dot.setPosition(sf::Vector2f(0.5*panel_height+dist*sin(angle),window_height+panel_height*0.5+dist*cos(angle)));
-//
-//                    spin_selector_pos=spin_selector.getPosition();
-//                    spin_dot_pos=spin_dot.getPosition();
-//                    dist=(spin_selector_pos.y-spin_dot_pos.y)*0.5;
-//                    roots=qsolve_quadratic(1.,2*(sqrt(pow(0.2*panel_height,2.)-pow(dist,2.))*cos(alpha)+dist*sin(alpha)),pow(0.2*panel_height,2.)-pow(0.4*panel_height,2.));
-//                    elevation_pointer.setPosition(sf::Vector2f(window_width-0.5*panel_height+sqrt(pow(0.2*panel_height,2.)-pow(dist,2.)),window_height+0.5*panel_height-dist));
-//                    elevation_pointer.setRotation(-alpha*180./pi);
-//                    if (roots[0]!=roots[0])
-//                    {
-//                        elevation_pointer.setSize(sf::Vector2f(roots[1],0.2*panel_height*0.005/0.02625));
-//                    }
-//                    else if (roots[1]!=roots[1])
-//                    {
-//                        elevation_pointer.setSize(sf::Vector2f(roots[0],0.2*panel_height*0.005/0.02625));
-//                    }
-//                    else
-//                    {
-//                        elevation_pointer.setSize(sf::Vector2f(fmax(roots[0],roots[1]),0.2*panel_height*0.005/0.02625));
-//                    }
-//                    change=true;
-//                }
-//            }
-//        }
-//
-//        if (change)
-//        {
-//            spin_selector_pos=spin_selector.getPosition();
-//            spin_dot_pos=spin_dot.getPosition();
-//            dist=(ball_radius/(0.4*panel_height))*sqrt(pow(spin_selector_pos.x-spin_dot_pos.x,2.)+pow(spin_selector_pos.y-spin_dot_pos.y,2.));
-//            angle=atan2(spin_dot_pos.x-spin_selector_pos.x,spin_selector_pos.y-spin_dot_pos.y);
-//            cue._offset=dist;
-//            cue._theta=angle;
-//            cue._speed=1.2*power;
-//            cue._alpha=alpha;
-//        }
-
     return 0;
 }
