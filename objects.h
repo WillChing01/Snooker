@@ -1406,7 +1406,6 @@ class Server
         int framesbestof=35;
         bool placing_white=true;
         bool touching=false;
-        bool isyourturn=true;
         bool isfoul=false;
         bool ismiss=false;
         bool ispush=false;
@@ -1430,6 +1429,9 @@ class Server
 
         std::array<sf::TcpSocket,2> players;
         std::array<sf::TcpSocket,4> spectators;
+
+        std::array<std::string,2> pnames;
+        std::array<std::string,4> snames;
 
         sf::Packet packet;
 
@@ -1460,6 +1462,7 @@ class Server
         void turnpacket();
         void resetframe();
         bool is_snookered();
+        void broadcast(std::string name, std::string message);
 };
 
 Server::Server()
@@ -1489,14 +1492,91 @@ Server::Server()
     sM_(45,45)=0;
 }
 
+void Server::broadcast(std::string name, std::string message)
+{
+    packet.clear();
+    packet << sf::Uint16(3) << name << message;
+    for (int i=0;i<2;i++)
+    {
+        if (players[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            players[i].send(packet);
+        }
+    }
+    for (int i=0;i<4;i++)
+    {
+        if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            spectators[i].send(packet);
+        }
+    }
+}
+
 void Server::resetframe()
 {
+    scores[0]=0;
+    scores[1]=0;
 
+    if ((frames[0]+frames[1])%2==0) {player_turn=0;}
+    else {player_turn=1;}
+
+    isredon=true;
+    isfreeball=false;
+    placing_white=true;
+    current_break=0;
+
+    rackballs();
+
+    packet.clear();
+    packet << sf::Uint16(1) << sf::Uint32(1);
+    for (int i=0;i<22;i++)
+    {
+        packet << serverballs[i]._x;
+        packet << serverballs[i]._y;
+        packet << serverballs[i]._z;
+    }
+    for (int i=0;i<2;i++)
+    {
+        if (players[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            players[i].send(packet);
+        }
+    }
+    for (int i=0;i<4;i++)
+    {
+        if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            spectators[i].send(packet);
+        }
+    }
 }
 
 bool Server::is_snookered()
 {
-    return false;
+    bool snookered=false;
+
+    bool reds=false;
+    for (int i=7;i<22;i++)
+    {
+        if (!serverballs[i]._potted) {reds=true; break;}
+    }
+
+    if (reds)
+    {
+        //reds on table. check them.
+    }
+    else
+    {
+        //down to the colours.
+        int col_order=0;
+        for (int i=1;i<7;i++)
+        {
+            if (!serverballs[i]._potted) {col_order=serverballs[i]._order; break;}
+        }
+
+    }
+
+    return snookered;
 }
 
 void Server::turnpacket()
@@ -3659,7 +3739,14 @@ void Server::executionThread()
     double e=0.;
     double f=0.;
     double g=0.;
+    std::string msg;
     std::vector<double> flatresult;
+
+    std::array<double,66> posbefore;
+    std::array<bool,22> potbefore;
+    bool wasredon=false;
+    bool wasfreeball=false;
+
     while (running)
     {
         handleIncomingConnections();
@@ -3702,6 +3789,16 @@ void Server::executionThread()
                 }
                 else if (packetId==2)
                 {
+                    //store original position.
+                    for (int i=0;i<22;i++)
+                    {
+                        potbefore[i]=serverballs[i]._potted;
+                        posbefore[3*i]=serverballs[i]._x;
+                        posbefore[3*i+1]=serverballs[i]._y;
+                        posbefore[3*i+2]=serverballs[i]._z;
+                    }
+                    wasredon=isredon;
+                    wasfreeball=isfreeball;
                     //simulate and return the results to everybody.
                     packet >> a >> b >> c >> d >> e;
                     serverballs[0]._vx=a;
@@ -3745,7 +3842,6 @@ void Server::executionThread()
 
                     if (isredon)
                     {
-                        //pass
                         bool redhit=false;
                         for (int i=0;i<ball_hit_order.size();i++)
                         {
@@ -3791,7 +3887,6 @@ void Server::executionThread()
                     }
                     else if (!isredon && !isfreeball)
                     {
-                        //pass
                         bool colhit=false;
                         for (int i=0;i<ball_hit_order.size();i++)
                         {
@@ -3853,8 +3948,78 @@ void Server::executionThread()
                     }
                     else if (!isredon && isfreeball)
                     {
-                        //pass
+                        bool colhit=false;
+                        for (int i=0;i<ball_hit_order.size();i++)
+                        {
+                            if (ball_hit_order[i]<8)
+                            {
+                                if (ball_hit_order[i]!=nom_colour_order)
+                                {
+                                    isfoul=true;
+                                    foulscore=std::max(foulscore,std::max(ball_hit_order[i],4));
+                                }
+                                else {colhit=true;}
+                            }
+                        }
+                        if (!colhit) {isfoul=true; ismiss=true; foulscore=std::max(foulscore,4);}
+                        bool colpot=false;
+                        for (int i=0;i<ball_potted_order.size();i++)
+                        {
+                            if (ball_potted_order[i]>7) {colpot=true;}
+                            if (ball_potted_order[i]<8)
+                            {
+                                if (ball_potted_order[i]!=nom_colour_order)
+                                {
+                                    isfoul=true;
+                                    foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));
+                                }
+                                else {colpot=true;}
+                            }
+                        }
+                        if (!isfoul)
+                        {
+                            //add points.
+                            if (colpot)
+                            {
+                                scores[player_turn]+=ball_potted_order.size();
+                                current_break+=ball_potted_order.size();
+                                if (current_break>highbreak[player_turn]) {highbreak[player_turn]=current_break;}
+                                isredon2=false;
+                                isfreeball2=false;
+                            }
+                            else
+                            {
+                                current_break=0;
+                                player_turn=!player_turn;
+                                isredon2=true;
+                                isfreeball2=false;
+
+                                //check if reds snookered by free ball.
+                                bool before=is_snookered();
+                                serverballs[nom_colour_order-1]._potted=true;
+                                bool after=is_snookered();
+                                serverballs[nom_colour_order-1]._potted=false;
+
+                                if (before && !after)
+                                {
+                                    //snookered by the free ball.
+                                }
+                            }
+                        }
+                        else
+                        {
+                            scores[!player_turn]+=foulscore;
+                            current_break=0;
+                            player_turn=!player_turn;
+
+                            isfreeball2=is_snookered();
+                            if (isfreeball2) {isredon2=false;}
+                            else {isredon=true;}
+                        }
                     }
+
+                    isredon=isredon2;
+                    isfreeball=isfreeball2;
 
                     //send the results in a packet.
                     packet.clear();
@@ -3902,15 +4067,136 @@ void Server::executionThread()
                         }
                     }
                     turnpacket();
+
+                    //send the log message if foul or miss.
+                    if (isfoul)
+                    {
+                        if (ismiss)
+                        {
+                            msg="FOUL AND A MISS - "+pnames[!player_turn]+", enter /1 to play from here, /2 for opponent to play from here, or /3 for opponent to play from original position.";
+                            broadcast("Server",msg);
+                        }
+                        else
+                        {
+                            msg="FOUL - "+pnames[!player_turn]+", enter /1 to play from here or /2 for opponent to play from here.";
+                            broadcast("Server",msg);
+                        }
+                    }
                 }
                 else if (packetId==3)
                 {
-                    //place again after foul.
+                    //message to the server.
+                    packet >> msg;
+
+                    broadcast(pnames[player_turn],msg);
+
+                    if (isfoul)
+                    {
+                        //replace balls etc.
+                        if (ismiss)
+                        {
+                            if (!msg.compare("/1"))
+                            {
+                                //play from here.
+                                isfoul=false;
+                                ismiss=false;
+                                turnpacket();
+                            }
+                            else if (!msg.compare("/2"))
+                            {
+                                //opponent play from here.
+                                isfoul=false;
+                                ismiss=false;
+                                isfreeball=false;
+                                player_turn=!player_turn;
+                                turnpacket();
+                            }
+                            else if (!msg.compare("/3"))
+                            {
+                                //replace balls for opponent.
+                                isfoul=false;
+                                ismiss=false;
+                                isfreeball=false;
+                                player_turn=!player_turn;
+
+                                for (int i=0;i<22;i++)
+                                {
+                                    serverballs[i]._potted=potbefore[i];
+                                    serverballs[i]._x=posbefore[3*i];
+                                    serverballs[i]._y=posbefore[3*i+1];
+                                    serverballs[i]._z=posbefore[3*i+2];
+                                }
+                                isredon=wasredon;
+                                isfreeball=wasfreeball;
+
+                                packet.clear();
+                                flatresult.clear();
+
+                                for (int i=0;i<22;i++)
+                                {
+                                    if (!serverballs[i]._potted)
+                                    {
+                                        flatresult.push_back(serverballs[i]._x);
+                                        flatresult.push_back(serverballs[i]._y);
+                                        flatresult.push_back(serverballs[i]._z);
+                                    }
+                                    else
+                                    {
+                                        flatresult.push_back(-100.);
+                                        flatresult.push_back(-100.);
+                                        flatresult.push_back(-100.);
+                                    }
+                                }
+                                packet << sf::Uint16(1) << sf::Uint32(1);
+                                for (int i=0;i<flatresult.size();i++)
+                                {
+                                    packet << flatresult[i];
+                                }
+                                for (int i=0;i<2;i++)
+                                {
+                                    if (players[i].getRemoteAddress()!=sf::IpAddress::None)
+                                    {
+                                        players[i].send(packet);
+                                    }
+                                }
+                                for (int i=0;i<4;i++)
+                                {
+                                    if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
+                                    {
+                                        spectators[i].send(packet);
+                                    }
+                                }
+                                turnpacket();
+                            }
+                        }
+                        else
+                        {
+                            if (!msg.compare("/1"))
+                            {
+                                //play from here.
+                                isfoul=false;
+                                ismiss=false;
+                                turnpacket();
+                            }
+                            else if (!msg.compare("/2"))
+                            {
+                                //opponent play from here.
+                                isfoul=false;
+                                ismiss=false;
+                                player_turn=!player_turn;
+                                turnpacket();
+                            }
+                        }
+                    }
                 }
                 else if (packetId==4)
                 {
                     //concede frame.
                     frames[!player_turn]+=1;
+                    if (frames[!player_turn]==(framesbestof+1)/2)
+                    {
+                        gameover=true;
+                    }
                     resetframe();
                     turnpacket();
                 }
@@ -3930,7 +4216,13 @@ void Server::executionThread()
             if (players[!player_turn].receive(packet)==sf::Socket::Done)
             {
                 packet >> packetId;
-                if (packetId==4)
+                if (packetId==3)
+                {
+                    packet >> msg;
+
+                    broadcast(pnames[!player_turn],msg);
+                }
+                else if (packetId==4)
                 {
                     //concede frame.
                     frames[player_turn]+=1;
@@ -3946,6 +4238,24 @@ void Server::executionThread()
                 }
             }
         }
+
+//        for (int i=0;i<4;i++)
+//        {
+//            if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
+//            {
+//                packet.clear();
+//                if (spectators[i].receive(packet)==sf::Socket::Done)
+//                {
+//                    packet >> packetId;
+//                    if (packetId==3)
+//                    {
+//                        packet >> msg;
+//
+//                        broadcast(snames[i],msg);
+//                    }
+//                }
+//            }
+//        }
 
         sf::sleep(sf::milliseconds(5));
     }

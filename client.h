@@ -154,6 +154,7 @@ class RectButton
         double _absoutlinethickness=2.;
 
         bool _controlchange=false;
+        bool _isactive=true;
 
         std::string _target;
 
@@ -186,6 +187,8 @@ class InputBox
         double _t=0.;
         double _ton=0.8;
         double _toff=0.8;
+
+        bool _isactive=true;
 
         int _cursorpos=0;
 
@@ -1168,6 +1171,7 @@ class GameScreen : public GameState
         bool done=true;
         int t=0;
         double deltat=0.;
+        bool typing=false;
 
         double power=50.;
         double dist;
@@ -1182,10 +1186,6 @@ class GameScreen : public GameState
         bool gameover=false;
         sf::RectangleShape gameoverrect;
         sf::Text gameovertext;
-
-        sf::RectangleShape foulrect;
-        sf::Text foultext;
-        sf::Text foulmisstext;
 
         //stats.
         sf::Text stats_title;
@@ -1313,27 +1313,6 @@ class GameScreen : public GameState
             pausetext.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
             pausetext.setPosition(sf::Vector2f(_sfac*raw_width*0.5,_sfac*raw_height*0.15-_sfac*raw_height));
             pausetext.setFillColor(sf::Color(255,255,255));
-
-            //foul text.
-            foulrect.setSize(sf::Vector2f(_sfac*raw_width,_sfac*raw_height));
-            foulrect.setPosition(sf::Vector2f(0.,-_sfac*raw_height));
-            foulrect.setFillColor(sf::Color(100,100,100,150));
-
-            foultext.setFont(_thinfont);
-            foultext.setCharacterSize(int(_sfac*raw_height*0.1));
-            foultext.setString("Foul");
-            textrect=foultext.getLocalBounds();
-            foultext.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
-            foultext.setPosition(sf::Vector2f(_sfac*raw_width*0.5,_sfac*raw_height*0.15-_sfac*raw_height));
-            foultext.setFillColor(sf::Color(255,255,255));
-
-            foulmisstext.setFont(_thinfont);
-            foulmisstext.setCharacterSize(int(_sfac*raw_height*0.1));
-            foulmisstext.setString("Foul");
-            textrect=foulmisstext.getLocalBounds();
-            foulmisstext.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
-            foulmisstext.setPosition(sf::Vector2f(_sfac*raw_width*0.5,_sfac*raw_height*0.15-_sfac*raw_height));
-            foulmisstext.setFillColor(sf::Color(255,255,255));
 
             //set up game over screen.
             gameoverrect.setSize(sf::Vector2f(_sfac*raw_width,_sfac*raw_height));
@@ -1784,7 +1763,7 @@ class GameScreen : public GameState
                 _shapes.push_back(&nomballs[i]._shape);
             }
 
-            double logheight=(_sfac*raw_height*panel_ratio/(1.+panel_ratio))*0.6;
+            double logheight=(_sfac*raw_height*panel_ratio/(1.+panel_ratio))*0.6*0.75;
             logback.setSize(sf::Vector2f(0.5*sbwidth,logheight));
             logback.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth,0.89*_sfac*raw_height));
             logback.setOutlineThickness(_buttons[0]._absoutlinethickness);
@@ -1795,7 +1774,7 @@ class GameScreen : public GameState
             double cheight=logheight/(numlines*1.2);
             for (int i=0;i<numlines;i++)
             {
-                logstrings[i]="Line "+std::to_string(numlines-i);
+                logstrings[i]="";
                 logtext[i].setFont(_thinfont);
                 logtext[i].setCharacterSize(int(cheight));
                 logtext[i].setString(logstrings[i]);
@@ -1804,6 +1783,48 @@ class GameScreen : public GameState
                 logtext[i].setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+0.1*cheight,0.89*_sfac*raw_height+0.1*cheight+1.2*i*cheight));
                 logtext[i].setFillColor(sf::Color(255,255,255));
                 _shapes.push_back(&logtext[i]);
+            }
+
+            _inputboxes.push_back(InputBox());
+
+            for (int i=0;i<1;i++)
+            {
+                _inputboxes[i]._shape.setSize(sf::Vector2f(0.5*sbwidth,cheight/_inputboxes[i]._textfactor));
+                _inputboxes[i]._shape.setOrigin(sf::Vector2f(0.25*sbwidth,0.5*cheight/_inputboxes[i]._textfactor));
+                _inputboxes[i]._shape.setOutlineThickness(_inputboxes[i]._absoutlinethickness);
+                _inputboxes[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.89*_sfac*raw_height+1.05*logheight+0.5*cheight/_inputboxes[i]._textfactor));
+
+                if (!_inputboxes[i]._font.loadFromFile("Roboto-Thin.ttf")) {std::cout << "Error loading font." << std::endl;}
+                _inputboxes[i]._text.setFont(_inputboxes[i]._font);
+                _inputboxes[i]._text.setCharacterSize(int(cheight));
+                _inputboxes[i]._text.setFillColor(sf::Color(255,255,255));
+                _inputboxes[i]._text.setString("");
+                textrect=_inputboxes[i]._text.getLocalBounds();
+                _inputboxes[i]._text.setOrigin(sf::Vector2f(textrect.left,textrect.top));
+                _inputboxes[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness,0.89*_sfac*raw_height+1.05*logheight+(cheight/_inputboxes[i]._textfactor)*(0.5*(1.-_inputboxes[i]._textfactor))));
+
+                if (i==0)
+                {
+                    _inputboxes[i]._backtext.setString("Enter message...");
+                }
+                _inputboxes[i]._backtext.setFont(_inputboxes[i]._font);
+                _inputboxes[i]._backtext.setCharacterSize(int(cheight));
+                textrect=_inputboxes[i]._backtext.getLocalBounds();
+                _inputboxes[i]._backtext.setOrigin(sf::Vector2f(textrect.left,textrect.top+textrect.height*0.5));
+                _inputboxes[i]._backtext.setFillColor(sf::Color(255,255,255,150));
+                _inputboxes[i]._backtext.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness,0.89*_sfac*raw_height+1.05*logheight+0.5*(cheight/_inputboxes[i]._textfactor)));
+
+                _inputboxes[i]._abscursorthickness=0.5;
+                _inputboxes[i]._cursor.setSize(sf::Vector2f(_inputboxes[i]._abscursorthickness,cheight));
+                _inputboxes[i]._cursor.setOrigin(sf::Vector2f(0.5*_inputboxes[i]._abscursorthickness,0.5*cheight));
+                _inputboxes[i]._cursor.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness,0.89*_sfac*raw_height+1.05*logheight+0.5*(cheight/_inputboxes[i]._textfactor)));
+
+                _inputboxes[i]._outlinecolour1=sf::Color(outlinecolour1[0],outlinecolour1[1],outlinecolour1[2],outlinecolour1[3]);
+                _inputboxes[i]._outlinecolour2=sf::Color(outlinecolour2[0],outlinecolour2[1],outlinecolour2[2],outlinecolour2[3]);
+
+                _inputboxes[i]._shape.setFillColor(sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]));
+                _inputboxes[i]._shape.setOutlineColor(_inputboxes[i]._outlinecolour1);
+                _inputboxes[i]._cursor.setFillColor(sf::Color(255,255,255,0));
             }
 
             cushions[0]=Cushion(mpockets[0][0],mpockets[0][1]-0.156,pi,1,0);
@@ -2021,6 +2042,7 @@ class GameScreen : public GameState
             }
 
             _shapes.push_back(&cue._sprite);
+
             _shapes.push_back(&pauserect);
             _shapes.push_back(&pausetext);
 
@@ -2095,6 +2117,21 @@ void GameScreen::scores_update()
 
 void GameScreen::update(double dt,sf::Vector2i mouse_pos)
 {
+    //activate or deactive text and buttons.
+
+    if (gameover || !(fabs(pauserect.getPosition().y+_sfac*raw_height)<0.001))
+    {
+        _inputboxes[0]._isactive=false;
+        _buttons[2]._isactive=false;
+        _buttons[3]._isactive=false;
+    }
+    else
+    {
+        _inputboxes[0]._isactive=true;
+        _buttons[2]._isactive=true;
+        _buttons[3]._isactive=true;
+    }
+
     if (!gameover)
     {
         //concession packets.
@@ -2118,6 +2155,55 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                 packetId=5;
                 packet << packetId;
                 socket.send(packet);
+            }
+        }
+
+        typing=false;
+        for (int i=0;i<_inputboxes.size();i++)
+        {
+            if (_inputboxes[i]._shape.getOutlineColor()==_inputboxes[i]._outlinecolour2)
+            {
+                typing=true;
+                _inputboxes[i]._t+=dt;
+                if (int(_inputboxes[i]._cursor.getFillColor().a)==255 && _inputboxes[i]._t>_inputboxes[i]._ton)
+                {
+                    _inputboxes[i]._t=0.;
+                    sf::Color c=_inputboxes[i]._cursor.getFillColor();
+                    _inputboxes[i]._cursor.setFillColor(sf::Color(c.r,c.g,c.b,0));
+                }
+                else if (int(_inputboxes[i]._cursor.getFillColor().a)==0 && _inputboxes[i]._t>_inputboxes[i]._toff)
+                {
+                    _inputboxes[i]._t=0.;
+                    sf::Color c=_inputboxes[i]._cursor.getFillColor();
+                    _inputboxes[i]._cursor.setFillColor(sf::Color(c.r,c.g,c.b,255));
+                }
+            }
+        }
+
+        if (typing)
+        {
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
+            {
+                //send the message if not empty.
+                if (_inputboxes[0]._input.length()>0)
+                {
+                    //non-empty message. Send packet as string.
+                    packet.clear();
+                    packetId=3;
+                    packet << packetId << _inputboxes[0]._input;
+                    socket.send(packet);
+
+                    _inputboxes[0]._input="";
+                    _inputboxes[0]._t=0.;
+                    _inputboxes[0]._cursorpos=0;
+                    sf::Color c=_inputboxes[0]._cursor.getFillColor();
+                    _inputboxes[0]._cursor.setFillColor(sf::Color(c.r,c.g,c.b,255));
+                    sf::Vector2f rectpos=_inputboxes[0]._cursor.getPosition();
+                    _inputboxes[0]._text.setString(_inputboxes[0]._input.substr(0,_inputboxes[0]._cursorpos));
+                    sf::FloatRect bounds=_inputboxes[0]._text.getGlobalBounds();
+                    _inputboxes[0]._cursor.setPosition(sf::Vector2f(bounds.left+bounds.width+5.*_inputboxes[0]._abscursorthickness,rectpos.y));
+                    _inputboxes[0]._text.setString(_inputboxes[0]._input);
+                }
             }
         }
 
@@ -2158,6 +2244,61 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     packet >> p1score >> p2score >> p1frames >> p2frames >> p1_highbreak >> p2_highbreak >> p1_centuries >> p2_centuries;
                     if (done) {scores_update();}
                     if (gameover) {scores_update();}
+                }
+                else if (packetId==3)
+                {
+                    //received log msg from server.
+                    std::string msgname;
+                    std::string msg;
+                    packet >> msgname >> msg;
+
+                    std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
+
+                    for (int i=0;i<numlines;i++)
+                    {
+                        logtext[i].setString(logstrings[i]);
+                    }
+
+                    sf::FloatRect bounds;
+                    float x=_inputboxes[0]._shape.getSize().x;
+                    std::string total=msgname+": "+msg;
+                    int c=0;
+                    while (total.length()!=0)
+                    {
+                        c+=1;
+                        logtext[numlines-1].setString(total.substr(0,c));
+                        logstrings[numlines-1]=total.substr(0,c);
+                        bounds=logtext[numlines-1].getLocalBounds();
+                        if (bounds.width>x)
+                        {
+                            if ((total.substr(c-2,1)).compare(" "))
+                            {
+                                //hyphen.
+                                logtext[numlines-1].setString(total.substr(0,c-2)+"-");
+                                logstrings[numlines-1]=total.substr(0,c-2)+"-";
+                                total.erase(0,c-2);
+                                c=0;
+                            }
+                            else
+                            {
+                                logtext[numlines-1].setString(total.substr(0,c-1));
+                                logstrings[numlines-1]=total.substr(0,c-1);
+                                total.erase(0,c-1);
+                                c=0;
+                            }
+                            //recycle the line.
+                            std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
+
+                            for (int i=0;i<numlines;i++)
+                            {
+                                logtext[i].setString(logstrings[i]);
+                            }
+                        }
+                        if (c==total.length())
+                        {
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -2337,7 +2478,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             ispausepressed=false;
         }
 
-        if (isyourturn && done && fabs(pauserect.getPosition().y+_sfac*raw_height)<0.001)
+        if (!typing && isyourturn && done && fabs(pauserect.getPosition().y+_sfac*raw_height)<0.001)
         {
             //get user input when it is their turn.
             if (placing_white)

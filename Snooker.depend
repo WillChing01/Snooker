@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1596982578 source:c:\users\willi\onedrive\desktop\python\snooker game\snooker\main.cpp
+1597154815 source:c:\users\willi\onedrive\desktop\python\snooker game\snooker\main.cpp
 	<iostream>
 	<SFML/Graphics.hpp>
 	<SFML/System.hpp>
@@ -418,7 +418,7 @@
 	<SFML/Graphics/Drawable.hpp>
 	<SFML/Window/GlResource.hpp>
 
-1596998763 c:\users\willi\onedrive\desktop\python\snooker game\snooker\objects.h
+1597271121 c:\users\willi\onedrive\desktop\python\snooker game\snooker\objects.h
 	<math.h>
 	<Eigen/Dense>
 	<SFML/Graphics.hpp>
@@ -919,7 +919,7 @@
 	<SFML/Network/IpAddress.hpp>
 	<vector>
 
-1596996654 c:\users\willi\onedrive\desktop\python\snooker game\snooker\client.h
+1597092520 c:\users\willi\onedrive\desktop\python\snooker game\snooker\client.h
 	<string>
 	<map>
 	<thread>

@@ -27,7 +27,6 @@ void resetBalls(Server &server)
     server.framesbestof=35;
     server.placing_white=true;
     server.touching=false;
-    server.isyourturn=true;
     server.isfoul=false;
     server.isredon=true;
     server.nom_colour_order=0; //1 yellow,2 green, etc.
@@ -136,7 +135,7 @@ int main()
                     rectpos=states.back()->_buttons[i]._shape.getPosition();
                     rectsize=states.back()->_buttons[i]._shape.getSize();
                     if (mouse_pos.x>=rectpos.x-0.5*rectsize.x && mouse_pos.x<=rectpos.x+0.5*rectsize.x
-                        && mouse_pos.y>=rectpos.y-0.5*rectsize.y && mouse_pos.y<=rectpos.y+0.5*rectsize.y)
+                        && mouse_pos.y>=rectpos.y-0.5*rectsize.y && mouse_pos.y<=rectpos.y+0.5*rectsize.y && states.back()->_buttons[i]._isactive)
                     {
                         //touching the button.
                         if (ispressed)
@@ -214,7 +213,7 @@ int main()
 
             if (states.size()==0) {break;}
 
-            if (mouse_pos.x>=0 && mouse_pos.x<=window_width && mouse_pos.y>=0 && mouse_pos.y<=window_height)
+            if (mouse_pos.x>=0 && mouse_pos.x<=dfactor*raw_width && mouse_pos.y>=0 && mouse_pos.y<=dfactor*raw_height)
             {
                 for (int i=0;i<states.back()->_inputboxes.size();i++)
                 {
@@ -223,7 +222,7 @@ int main()
                     if (ispressed)
                     {
                         if (mouse_pos.x>=rectpos.x-0.5*rectsize.x && mouse_pos.x<=rectpos.x+0.5*rectsize.x
-                            && mouse_pos.y>=rectpos.y-0.5*rectsize.y && mouse_pos.y<=rectpos.y+0.5*rectsize.y)
+                            && mouse_pos.y>=rectpos.y-0.5*rectsize.y && mouse_pos.y<=rectpos.y+0.5*rectsize.y && states.back()->_inputboxes[i]._isactive)
                         {
                             states.back()->_inputboxes[i]._shape.setOutlineColor(states.back()->_inputboxes[i]._outlinecolour2);
                             sf::Color c=states.back()->_inputboxes[i]._backtext.getFillColor();
@@ -257,6 +256,17 @@ int main()
                             c=states.back()->_inputboxes[i]._cursor.getFillColor();
                             states.back()->_inputboxes[i]._cursor.setFillColor(sf::Color(c.r,c.g,c.b,0));
                         }
+                    }
+                    else if (!states.back()->_inputboxes[i]._isactive)
+                    {
+                        states.back()->_inputboxes[i]._shape.setOutlineColor(states.back()->_inputboxes[i]._outlinecolour1);
+                        sf::Color c=states.back()->_inputboxes[i]._backtext.getFillColor();
+                        if (states.back()->_inputboxes[i]._input.empty())
+                        {
+                            states.back()->_inputboxes[i]._backtext.setFillColor(sf::Color(c.r,c.g,c.b,150));
+                        }
+                        c=states.back()->_inputboxes[i]._cursor.getFillColor();
+                        states.back()->_inputboxes[i]._cursor.setFillColor(sf::Color(c.r,c.g,c.b,0));
                     }
                 }
             }
