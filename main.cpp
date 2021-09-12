@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <SFML/Graphics.hpp>
 #include <SFML/System.hpp>
 #include <SFML/Network.hpp>
@@ -55,6 +56,19 @@ int main()
         std::cout << "Error. Shader not loaded." << std::endl;
     }
 
+    std::string custom_input;
+    auto it=user_controls.begin();
+    std::ifstream file("config.txt");
+    if (file.is_open())
+    {
+        while (getline(file,custom_input))
+        {
+            it->second=StringToKey(custom_input);
+            it++;
+        }
+        file.close();
+    }
+
     double sdiff=sf::VideoMode::getDesktopMode().width-dfactor*raw_width;
 
     sf::RectangleShape p1(sf::Vector2f(0.5*sdiff,raw_height*dfactor));
@@ -106,14 +120,16 @@ int main()
     unsigned short localport;
 
     Server server;
-    server.serverIp=sf::IpAddress::getLocalAddress();
+    try {server.serverIp=sf::IpAddress::getLocalAddress();}
+    catch (...) {}
     server.listener.setBlocking(false);
     if (server.listener.listen(sf::Socket::AnyPort)!=sf::Socket::Done)
     {
         //error.
         std::cout << "Tcp listener could not bind to port." << std::endl;
     }
-    server.port=server.listener.getLocalPort();
+    try{server.port=server.listener.getLocalPort();}
+    catch (...) {}
 
     localip=server.serverIp.toString();
     localport=server.port;
@@ -159,12 +175,16 @@ int main()
                                 else if (target=="Options") {states.push_back(new OptionsScreen());}
                                 else if (target=="Singleplayer") {states.push_back(new SingleplayerScreen());}
                                 else if (target=="Multiplayer") {states.push_back(new MultiplayerScreen(dfactor,localip,std::to_string(localport)));}
-                                else if (target=="MultiplayerHost") {resetBalls(server); states.push_back(new GameScreen(dfactor,0,localip,localport,name));}
+                                else if (target=="MultiplayerHost") {resetBalls(server); try{states.push_back(new GameScreen(dfactor,0,localip,localport,name));} catch (...){}}
                                 else if (target=="MultiplayerJoin")
                                 {
+                                    try
+                                    {
                                     ip=states.back()->_inputboxes[0]._text.getString();
                                     port=std::stoi(std::string(states.back()->_inputboxes[1]._text.getString()));
                                     states.push_back(new GameScreen(dfactor,1,ip,port,name));
+                                    }
+                                    catch (...) {}
                                 }
                                 else if (target=="SingleplayerAI") {states.push_back(new GameScreen(dfactor,2,"",50000,name));}
                                 else if (target=="SingleplayerLineup") {states.push_back(new GameScreen(dfactor,3,"",50000,name));}
@@ -180,6 +200,11 @@ int main()
                                         bounds=states.back()->_buttons[i]._text.getLocalBounds();
                                         states.back()->_buttons[i]._text.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
                                     }
+
+                                    //update the config file with new controls.
+                                    std::ofstream file("config.txt",std::ofstream::out | std::ofstream::trunc);
+                                    for (auto thing:user_controls) {file << KeyToString(thing.second) << "\n";}
+                                    file.close();
                                 }
                                 else if (target=="Concedeframe") {states.back()->_buttons[i]._target="Concedeframe1";}
                                 else if (target=="Concedematch") {states.back()->_buttons[i]._target="Concedematch1";}
@@ -335,6 +360,11 @@ int main()
                         states.back()->_buttons[controlindex]._text.setString(target);
                         bounds=states.back()->_buttons[controlindex]._text.getLocalBounds();
                         states.back()->_buttons[controlindex]._text.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+
+                        //update the config file with new controls.
+                        std::ofstream file("config.txt",std::ofstream::out | std::ofstream::trunc);
+                        for (auto thing:user_controls) {file << KeyToString(thing.second) << "\n";}
+                        file.close();
 
                         //reset the button colour.
                         states.back()->_buttons[controlindex]._shape.setFillColor(states.back()->_buttons[controlindex]._colour1);
