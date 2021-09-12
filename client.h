@@ -1369,6 +1369,7 @@ class GameScreen : public GameState
         sf::RectangleShape p1namerect;
         sf::RectangleShape p2namerect;
 
+        RedArrow redarrow;
         Cue cue;
         Ball balls[22];
         Cushion cushions[6];
@@ -2187,6 +2188,8 @@ class GameScreen : public GameState
                 _shapes.push_back(&balls[i]._shape);
             }
 
+            _shapes.push_back(&redarrow._head);
+            _shapes.push_back(&redarrow._tail);
             _shapes.push_back(&cue._sprite);
 
             _shapes.push_back(&pauserect);
@@ -2891,6 +2894,9 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             cue._sprite.setPosition(sf::Vector2f((balls[0]._x-2.*sin(cue._angle))*dfactor,window_height-dfactor*(balls[0]._y-2.*cos(cue._angle))));
             cue._sprite.setRotation((cue._angle+0.5*pi)*180./pi);
 
+            redarrow._head.setPosition(sf::Vector2f(-1000.,-1000.));
+            redarrow._tail.setPosition(sf::Vector2f(-1000.,-1000.));
+
             cue._speed=1.2*power;
             cue.shot();
             balls[0]._vx=cue._ballv*sin(cue._angle);
@@ -3010,6 +3016,11 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
         }
         if (placing_white || !done)
         {
+            if (placing_white && done)
+            {
+                redarrow._head.setPosition(sf::Vector2f(dfactor*balls[0]._x,window_height-dfactor*(balls[0]._y+balls[0]._r*2.)));
+                redarrow._tail.setPosition(sf::Vector2f(dfactor*balls[0]._x,window_height-dfactor*(balls[0]._y+balls[0]._r*3.)));
+            }
             cue._sprite.setPosition(sf::Vector2f(-1000.,-1000.));
             ghostball.setPosition(sf::Vector2f(-1000.,-1000.));
             ghostball2.setPosition(sf::Vector2f(-1000.,-1000.));
