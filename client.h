@@ -855,6 +855,8 @@ class ChangeCueScreen : public GameState
         sf::Font _boldfont;
 
         sf::Text title;
+        sf::Sprite cuepng[3];
+        sf::Texture cuetexture[3];
 
     public:
         ChangeCueScreen(double sfac=dfactor) : GameState(sfac)
@@ -881,6 +883,20 @@ class ChangeCueScreen : public GameState
             title.setFillColor(sf::Color(255,255,255));
             _shapes.push_back(&title);
 
+            sf::FloatRect bounds;
+            for (int i=0;i<3;i++)
+            {
+                cuetexture[i].loadFromFile("cue"+std::to_string(i)+".png");
+                cuetexture[i].setSmooth(true);
+                cuepng[i].setTexture(cuetexture[i]);
+                cuepng[i].scale(65.*dfactor/5213.,65.*dfactor/5213.);
+                bounds=cuepng[i].getLocalBounds();
+                cuepng[i].setOrigin(bounds.left,bounds.top+bounds.height*0.5);
+            }
+
+            _buttons.push_back(RectButton());
+            _buttons.push_back(RectButton());
+            _buttons.push_back(RectButton());
             _buttons.push_back(RectButton());
 
             double buttonwidth=_sfac*raw_width*0.15;
@@ -894,12 +910,22 @@ class ChangeCueScreen : public GameState
             int colour2[4]={100,100,100,150};
             int colour3[4]={169,169,169,200};
 
-            for (int i=0;i<1;i++)
+            for (int i=0;i<4;i++)
             {
                 _buttons[i]._shape.setSize(sf::Vector2f(buttonwidth,buttonwidth/_buttons[i]._ratio));
                 _buttons[i]._shape.setOrigin(0.5*buttonwidth,0.5*buttonwidth/_buttons[i]._ratio);
                 _buttons[i]._shape.setOutlineThickness(_buttons[i]._absoutlinethickness);
-                _buttons[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.50*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
+
+                if (i==0)
+                {
+                    _buttons[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.50*_sfac*raw_height+(4*1.2)*buttonwidth/_buttons[i]._ratio));
+                }
+                else
+                {
+                    _buttons[i]._shape.setPosition(sf::Vector2f(0.75*_sfac*raw_width,0.30*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
+                    cuepng[i-1].setPosition(sf::Vector2f(0.20*_sfac*raw_width,0.30*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
+                    _shapes.push_back(&cuepng[i-1]);
+                }
 
                 if (!_buttons[i]._font.loadFromFile("Roboto-Thin.ttf")) {std::cout << "Error loading font." << std::endl;}
                 _buttons[i]._text.setFont(_buttons[i]._font);
@@ -909,9 +935,22 @@ class ChangeCueScreen : public GameState
                     _buttons[i]._text.setString("Back");
                     _buttons[i]._target="Quit";
                 }
+                else
+                {
+                    _buttons[i]._text.setString("Select");
+                    _buttons[i]._target="Select"+std::to_string(i-1);
+                }
                 textrect=_buttons[i]._text.getLocalBounds();
                 _buttons[i]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
-                _buttons[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.50*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
+
+                if (i==0)
+                {
+                    _buttons[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.50*_sfac*raw_height+(4*1.2)*buttonwidth/_buttons[i]._ratio));
+                }
+                else
+                {
+                    _buttons[i]._text.setPosition(sf::Vector2f(0.75*_sfac*raw_width,0.30*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
+                }
 
                 _buttons[i]._colour1=sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]);
                 _buttons[i]._colour2=sf::Color(colour2[0],colour2[1],colour2[2],colour2[3]);

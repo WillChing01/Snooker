@@ -95,6 +95,9 @@ const int baizecolour[3]={0,110,0};
 const int cushioncolour[3]={0,80,0};
 const int leathercolour[3]={255,229,153};
 
+//cue texture file.
+std::string cuetexturefile="cue0.png";
+
 //grid squares.
 std::array<std::array<std::array<int,7>,39>,73> grid={};
 std::array<std::array<int,39>,73> grid_index={};
@@ -1333,6 +1336,8 @@ class Cue
         sf::Texture _texture;
         sf::Sprite _sprite;
 
+        std::string tfile=cuetexturefile;
+
         Cue();
         void shot();
         void perturb();
@@ -1340,7 +1345,7 @@ class Cue
 
 Cue::Cue()
 {
-    if (!_texture.loadFromFile("cue3.png"))
+    if (!_texture.loadFromFile(tfile))
     {
         std::cout << "Error loading cue texture!" << std::endl;
     }
@@ -1371,6 +1376,8 @@ void Cue::shot()
 
 void Cue::perturb()
 {
+    try
+    {
     _angle+=_varangle();
     _alpha+=_varalpha();
     _speed+=_varspeed();
@@ -1389,6 +1396,8 @@ void Cue::perturb()
 
     _offset=sqrt(pow(dx,2.)+pow(dy,2.));
     _theta=atan2(dx,dy);
+    }
+    catch (...) {}
 
     if (_offset>ball_radius) {_offset=ball_radius;}
 }

@@ -65,8 +65,16 @@ int main()
         {
             it->second=StringToKey(custom_input);
             it++;
-        }
-        file.close();
+        } file.close();
+    }
+
+    std::ifstream cuefile("cueconfig.txt");
+    if (cuefile.is_open())
+    {
+        while (getline(cuefile,custom_input))
+        {
+            cuetexturefile=custom_input;
+        } cuefile.close();
     }
 
     double sdiff=sf::VideoMode::getDesktopMode().width-dfactor*raw_width;
@@ -208,6 +216,12 @@ int main()
                                 }
                                 else if (target=="Concedeframe") {states.back()->_buttons[i]._target="Concedeframe1";}
                                 else if (target=="Concedematch") {states.back()->_buttons[i]._target="Concedematch1";}
+                                else if (target.substr(0,6)=="Select")
+                                {
+                                    cuetexturefile="cue"+target.substr(target.size()-1,1)+".png";
+                                    std::ofstream cuefile("cueconfig.txt",std::ofstream::out | std::ofstream::trunc);
+                                    cuefile << cuetexturefile; cuefile.close();
+                                }
                                 break;
                             }
                             else
