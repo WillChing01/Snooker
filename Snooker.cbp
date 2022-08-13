@@ -34,6 +34,7 @@
 			<Add directory="lib/eigen-3.3.7" />
 			<Add directory="lib/boost_1_73_0" />
 			<Add directory="include" />
+			<Add directory="include/_screens" />
 		</Compiler>
 		<Linker>
 			<Add option="-O3" />
@@ -51,28 +52,28 @@
 			<Add directory="lib/eigen-3.3.7" />
 			<Add directory="lib/boost_1_73_0/stage/lib" />
 		</Linker>
+		<Unit filename="include/_screens/change-cue-screen.h" />
+		<Unit filename="include/_screens/control-screen.h" />
+		<Unit filename="include/_screens/game-screen.h" />
+		<Unit filename="include/_screens/multiplayer-screen.h" />
+		<Unit filename="include/_screens/options-screen.h" />
+		<Unit filename="include/_screens/singleplayer-screen.h" />
+		<Unit filename="include/_screens/title-screen.h" />
 		<Unit filename="include/ball.h" />
-		<Unit filename="include/change-cue-screen.h" />
 		<Unit filename="include/client.h" />
 		<Unit filename="include/common.h" />
-		<Unit filename="include/control-screen.h" />
 		<Unit filename="include/cue.h" />
 		<Unit filename="include/cushion.h" />
-		<Unit filename="include/game-screen.h" />
 		<Unit filename="include/game-state.h" />
 		<Unit filename="include/input-box.h" />
-		<Unit filename="include/multiplayer-screen.h" />
 		<Unit filename="include/nominate-ball.h" />
 		<Unit filename="include/objects.h" />
-		<Unit filename="include/options-screen.h" />
 		<Unit filename="include/polystuff.h" />
 		<Unit filename="include/rect-button.h" />
 		<Unit filename="include/red-arrow.h" />
 		<Unit filename="include/rimode.h" />
 		<Unit filename="include/server.h" />
-		<Unit filename="include/singleplayer-screen.h" />
 		<Unit filename="include/table-constants.h" />
-		<Unit filename="include/title-screen.h" />
 		<Unit filename="include/user-controls.h" />
 		<Unit filename="src/main.cpp" />
 		<Extensions>
