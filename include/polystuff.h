@@ -1,9 +1,6 @@
 #ifndef POLYSTUFF_H_INCLUDED
 #define POLYSTUFF_H_INCLUDED
 
-#include <Eigen/Eigenvalues>
-#include <math.h>
-
 const double DOUBLE_EPSILON=std::numeric_limits<double>::epsilon();
 
 const int qlimit=100;

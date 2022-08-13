@@ -91,4 +91,25 @@ const double cush_z2=0.039/in2m;
 const double cpocket_angle=atan2(3.33402,1.06503);
 const double mpocket_angle=atan2(1.93152,0.652752+0.156);
 
+std::array<double,2> xlim={rail_thickness+cush_thickness+ball_radius,rail_thickness+cush_thickness+table_length-ball_radius};
+std::array<double,2> ylim={rail_thickness+cush_thickness+ball_radius,rail_thickness+cush_thickness+table_width-ball_radius};
+
+std::array<std::array<double,5>,3> cp={{{0.5*k1,0.5*k1,sqrt(2.)*0.5*k1-ball_radius,0.75*pi,-0.75*pi},
+                                        {6.15,-2.445,4.5+ball_radius,-0.25*pi,-atan(6./11.)},
+                                        {5.43,-1.125,3.+ball_radius,-atan(6./11.),0.}}};
+std::array<std::array<double,5>,3> mp={{{0.,1.875,pround-ball_radius,pi-asin(1.625/pround),pi},
+                                        {3.719,-0.438,2.094+ball_radius,-0.5*pi,-atan(0.625/0.812)},
+                                        {4.344,-1.25,3.125+ball_radius,-atan(0.625/0.812),0.}}};
+
+std::array<double,2> mpline={blue_x-1.625,blue_x+1.625};
+std::array<std::array<double,4>,8> cpline={{{1.,-k1,rail_thickness+k1,rail_thickness+k2},
+                                            {1.,k1,rail_thickness,rail_thickness+k2-k1},
+                                            {-1.,2.*rail_thickness+2.*cush_thickness+table_width-k1,rail_thickness,rail_thickness+k2-k1},
+                                            {-1.,2.*rail_thickness+2.*cush_thickness+table_width+k1,rail_thickness+k1,rail_thickness+k2},
+                                            {-1.,2.*rail_thickness+2.*cush_thickness+k1+table_length,rail_thickness+2.*cush_thickness+table_length-k2+k1,rail_thickness+2.*cush_thickness+table_length},
+                                            {-1.,2.*rail_thickness+2.*cush_thickness-k1+table_length,rail_thickness+2.*cush_thickness+table_length-k2,rail_thickness+2.*cush_thickness+table_length-k1},
+                                            {1.,-k1-table_width,rail_thickness+2.*cush_thickness+table_length-k2+k1,rail_thickness+2.*cush_thickness+table_length},
+                                            {1.,k1-table_width,rail_thickness+2.*cush_thickness+table_length-k2,rail_thickness+2.*cush_thickness+table_length-k1}}};
+
+
 #endif // TABLE-CONSTANTS_H_INCLUDED
