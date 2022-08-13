@@ -1,0 +1,18 @@
+###
+### Using 'gcc' toolset.
+###
+
+C:\Users\willi\OneDrive\Desktop\Python\_include\boost_1_73_0\tools\build\src\engine>g++ -x c++ -std=c++11 -s -O3 -o b2.exe   -DNDEBUG  builtins.cpp class.cpp command.cpp compile.cpp constants.cpp cwd.cpp debug.cpp debugger.cpp execcmd.cpp execnt.cpp filent.cpp filesys.cpp frames.cpp function.cpp glob.cpp hash.cpp hcache.cpp hdrmacro.cpp headers.cpp jam.cpp jambase.cpp jamgram.cpp lists.cpp make.cpp make1.cpp md5.cpp mem.cpp modules.cpp native.cpp object.cpp option.cpp output.cpp parse.cpp pathnt.cpp pathsys.cpp regexp.cpp rules.cpp scan.cpp search.cpp jam_strings.cpp subst.cpp sysinfo.cpp timestamp.cpp variable.cpp w32_getreg.cpp modules/order.cpp modules/path.cpp modules/property-set.cpp modules/regex.cpp modules/sequence.cpp modules/set.cpp  
+
+C:\Users\willi\OneDrive\Desktop\Python\_include\boost_1_73_0\tools\build\src\engine>dir *.exe 
+ Volume in drive C is Windows
+ Volume Serial Number is F866-0975
+
+ Directory of C:\Users\willi\OneDrive\Desktop\Python\_include\boost_1_73_0\tools\build\src\engine
+
+23/07/2020  15:07           304,128 b2.exe
+               1 File(s)        304,128 bytes
+               0 Dir(s)  81,624,645,632 bytes free
+
+C:\Users\willi\OneDrive\Desktop\Python\_include\boost_1_73_0\tools\build\src\engine>copy /b .\b2.exe .\bjam.exe 
+        1 file(s) copied.

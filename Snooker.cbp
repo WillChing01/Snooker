@@ -30,9 +30,11 @@
 			<Add option="-std=gnu++17" />
 			<Add option="-fexceptions" />
 			<Add option="-DSFML_STATIC" />
-			<Add directory="../_include/SFML-2.5.1/include" />
-			<Add directory="../_include/eigen-3.3.7" />
-			<Add directory="../_include/boost_1_73_0" />
+			<Add directory="lib/SFML-2.5.1/include" />
+			<Add directory="lib/eigen-3.3.7" />
+			<Add directory="lib/boost_1_73_0" />
+			<Add directory="include" />
+			<Add directory="include/_screens" />
 		</Compiler>
 		<Linker>
 			<Add option="-O3" />
@@ -44,17 +46,36 @@
 			<Add library="opengl32" />
 			<Add library="freetype" />
 			<Add library="gdi32" />
-			<Add library="../_include/boost_1_73_0/stage/lib/libboost_random-mgw8-mt-s-x64-1_73.a" />
+			<Add library="lib/boost_1_73_0/stage/lib/libboost_random-mgw8-mt-s-x64-1_73.a" />
 			<Add library="ws2_32" />
-			<Add directory="../_include/SFML-2.5.1/lib" />
-			<Add directory="../_include/eigen-3.3.7" />
-			<Add directory="../_include/boost_1_73_0/stage/lib" />
+			<Add directory="lib/SFML-2.5.1/lib" />
+			<Add directory="lib/eigen-3.3.7" />
+			<Add directory="lib/boost_1_73_0/stage/lib" />
 		</Linker>
-		<Unit filename="client.h" />
-		<Unit filename="floatsupport.h" />
-		<Unit filename="main.cpp" />
-		<Unit filename="objects.h" />
-		<Unit filename="polystuff.h" />
+		<Unit filename="include/_screens/change-cue-screen.h" />
+		<Unit filename="include/_screens/control-screen.h" />
+		<Unit filename="include/_screens/multiplayer-screen.h" />
+		<Unit filename="include/_screens/options-screen.h" />
+		<Unit filename="include/_screens/play-game-screen.h" />
+		<Unit filename="include/_screens/singleplayer-screen.h" />
+		<Unit filename="include/_screens/title-screen.h" />
+		<Unit filename="include/ball-trajectory.h" />
+		<Unit filename="include/ball.h" />
+		<Unit filename="include/common.h" />
+		<Unit filename="include/cue.h" />
+		<Unit filename="include/cushion.h" />
+		<Unit filename="include/game-state.h" />
+		<Unit filename="include/input-box.h" />
+		<Unit filename="include/nominate-ball.h" />
+		<Unit filename="include/objects.h" />
+		<Unit filename="include/polystuff.h" />
+		<Unit filename="include/rect-button.h" />
+		<Unit filename="include/red-arrow.h" />
+		<Unit filename="include/rimode.h" />
+		<Unit filename="include/server.h" />
+		<Unit filename="include/table-constants.h" />
+		<Unit filename="include/user-controls.h" />
+		<Unit filename="src/main.cpp" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>
