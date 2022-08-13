@@ -16,11 +16,11 @@ class MultiplayerScreen : public GameState
         {
             _background=sf::Color(0,0,0);
 
-            if (!_thinfont.loadFromFile("Roboto-Thin.ttf"))
+            if (!_thinfont.loadFromFile(_thinFontFile))
             {
                 std::cout << "Error loading font." << std::endl;
             }
-            if (!_boldfont.loadFromFile("Roboto-Bold.ttf"))
+            if (!_boldfont.loadFromFile(_boldFontFile))
             {
                 std::cout << "Error loading font." << std::endl;
             }
@@ -75,7 +75,7 @@ class MultiplayerScreen : public GameState
                 _buttons[i]._shape.setOrigin(0.5*buttonwidth,0.5*buttonwidth/_buttons[i]._ratio);
                 _buttons[i]._shape.setOutlineThickness(_buttons[i]._absoutlinethickness);
 
-                if (!_buttons[i]._font.loadFromFile("Roboto-Thin.ttf")) {std::cout << "Error loading font." << std::endl;}
+                if (!_buttons[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
                 _buttons[i]._text.setFont(_buttons[i]._font);
                 _buttons[i]._text.setCharacterSize(int(buttonwidth*_buttons[i]._textfactor/_buttons[i]._ratio));
                 if (i==0)
@@ -136,7 +136,7 @@ class MultiplayerScreen : public GameState
                 _inputboxes[i]._shape.setOutlineThickness(_inputboxes[i]._absoutlinethickness);
                 _inputboxes[i]._shape.setPosition(sf::Vector2f(0.7*_sfac*raw_width,_sfac*raw_height*0.5+i*1.2*buttonwidth/_buttons[0]._ratio));
 
-                if (!_inputboxes[i]._font.loadFromFile("Roboto-Thin.ttf")) {std::cout << "Error loading font." << std::endl;}
+                if (!_inputboxes[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
                 _inputboxes[i]._text.setFont(_inputboxes[i]._font);
                 _inputboxes[i]._text.setCharacterSize(int(buttonwidth*_buttons[0]._textfactor/_buttons[0]._ratio));
                 _inputboxes[i]._text.setFillColor(sf::Color(255,255,255));

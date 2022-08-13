@@ -2,7 +2,7 @@
 #define CUE_H_INCLUDED
 
 //cue texture file.
-std::string cuetexturefile="cue0.png";
+std::string cuetexturefile="assets/cue0.png";
 
 class Cue
 {

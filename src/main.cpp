@@ -1,12 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <SFML/Graphics.hpp>
-#include <SFML/System.hpp>
-#include <SFML/Network.hpp>
-#include <string>
-#include <thread>
 #include "objects.h"
-#include "client.h"
 
 void resetBalls(Server &server)
 {
@@ -51,14 +45,14 @@ int main()
 
     //shaders.
     sf::Shader shader;
-    if (!shader.loadFromFile("vertex_shader.vert","fragment_shader.frag"))
+    if (!shader.loadFromFile(_vertexShaderFile,_fragmentShaderFile))
     {
         std::cout << "Error. Shader not loaded." << std::endl;
     }
 
     std::string custom_input;
     auto it=user_controls.begin();
-    std::ifstream file("config.txt");
+    std::ifstream file(_userConfigFile);
     if (file.is_open())
     {
         while (getline(file,custom_input))
@@ -68,7 +62,7 @@ int main()
         } file.close();
     }
 
-    std::ifstream cuefile("cueconfig.txt");
+    std::ifstream cuefile(_userCueConfigFile);
     if (cuefile.is_open())
     {
         while (getline(cuefile,custom_input))
@@ -210,7 +204,7 @@ int main()
                                     }
 
                                     //update the config file with new controls.
-                                    std::ofstream file("config.txt",std::ofstream::out | std::ofstream::trunc);
+                                    std::ofstream file(_userConfigFile,std::ofstream::out | std::ofstream::trunc);
                                     for (auto thing:user_controls) {file << KeyToString(thing.second) << "\n";}
                                     file.close();
                                 }
@@ -218,8 +212,8 @@ int main()
                                 else if (target=="Concedematch") {states.back()->_buttons[i]._target="Concedematch1";}
                                 else if (target.substr(0,6)=="Select")
                                 {
-                                    cuetexturefile="cue"+target.substr(target.size()-1,1)+".png";
-                                    std::ofstream cuefile("cueconfig.txt",std::ofstream::out | std::ofstream::trunc);
+                                    cuetexturefile=_cueFilePrefix+"cue"+target.substr(target.size()-1,1)+".png";
+                                    std::ofstream cuefile(_userCueConfigFile,std::ofstream::out | std::ofstream::trunc);
                                     cuefile << cuetexturefile; cuefile.close();
                                 }
                                 break;
@@ -376,7 +370,7 @@ int main()
                         states.back()->_buttons[controlindex]._text.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
 
                         //update the config file with new controls.
-                        std::ofstream file("config.txt",std::ofstream::out | std::ofstream::trunc);
+                        std::ofstream file(_userConfigFile,std::ofstream::out | std::ofstream::trunc);
                         for (auto thing:user_controls) {file << KeyToString(thing.second) << "\n";}
                         file.close();
 

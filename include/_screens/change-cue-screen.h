@@ -16,11 +16,11 @@ class ChangeCueScreen : public GameState
         {
             _background=sf::Color(0,0,0);
 
-            if (!_thinfont.loadFromFile("Roboto-Thin.ttf"))
+            if (!_thinfont.loadFromFile(_thinFontFile))
             {
                 std::cout << "Error loading font." << std::endl;
             }
-            if (!_boldfont.loadFromFile("Roboto-Bold.ttf"))
+            if (!_boldfont.loadFromFile(_boldFontFile))
             {
                 std::cout << "Error loading font." << std::endl;
             }
@@ -39,7 +39,7 @@ class ChangeCueScreen : public GameState
             sf::FloatRect bounds;
             for (int i=0;i<3;i++)
             {
-                cuetexture[i].loadFromFile("cue"+std::to_string(i)+".png");
+                cuetexture[i].loadFromFile(_cueFilePrefix+"cue"+std::to_string(i)+".png");
                 cuetexture[i].setSmooth(true);
                 cuepng[i].setTexture(cuetexture[i]);
                 cuepng[i].scale(65.*dfactor/5213.,65.*dfactor/5213.);
@@ -80,7 +80,7 @@ class ChangeCueScreen : public GameState
                     _shapes.push_back(&cuepng[i-1]);
                 }
 
-                if (!_buttons[i]._font.loadFromFile("Roboto-Thin.ttf")) {std::cout << "Error loading font." << std::endl;}
+                if (!_buttons[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
                 _buttons[i]._text.setFont(_buttons[i]._font);
                 _buttons[i]._text.setCharacterSize(int(buttonwidth*_buttons[i]._textfactor/_buttons[i]._ratio));
                 if (i==0)

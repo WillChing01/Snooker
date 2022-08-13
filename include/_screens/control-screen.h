@@ -16,11 +16,11 @@ class ControlScreen : public GameState
         {
             _background=sf::Color(0,0,0);
 
-            if (!_thinfont.loadFromFile("Roboto-Thin.ttf"))
+            if (!_thinfont.loadFromFile(_thinFontFile))
             {
                 std::cout << "Error loading font." << std::endl;
             }
-            if (!_boldfont.loadFromFile("Roboto-Bold.ttf"))
+            if (!_boldfont.loadFromFile(_boldFontFile))
             {
                 std::cout << "Error loading font." << std::endl;
             }
@@ -89,7 +89,7 @@ class ControlScreen : public GameState
 
                 _buttons[i]._shape.setOutlineThickness(_buttons[i]._absoutlinethickness);
 
-                if (!_buttons[i]._font.loadFromFile("Roboto-Thin.ttf")) {std::cout << "Error loading font." << std::endl;}
+                if (!_buttons[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
                 _buttons[i]._text.setFont(_buttons[i]._font);
                 _buttons[i]._text.setCharacterSize(int(buttonwidth*_buttons[i]._textfactor/_buttons[i]._ratio));
 
@@ -253,7 +253,7 @@ class ControlScreen : public GameState
                 _buttons[i]._shape.setOrigin(0.5*buttonwidth,0.5*buttonwidth/_buttons[i]._ratio);
                 _buttons[i]._shape.setOutlineThickness(_buttons[i]._absoutlinethickness);
 
-                if (!_buttons[i]._font.loadFromFile("Roboto-Thin.ttf")) {std::cout << "Error loading font." << std::endl;}
+                if (!_buttons[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
                 _buttons[i]._text.setFont(_buttons[i]._font);
                 _buttons[i]._text.setCharacterSize(int(buttonwidth*_buttons[i]._textfactor/_buttons[i]._ratio));
                 if (i==18)

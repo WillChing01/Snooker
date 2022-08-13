@@ -15,11 +15,11 @@ class TitleScreen : public GameState
         {
             _background=sf::Color(0,0,0);
 
-            if (!_thinfont.loadFromFile("Roboto-Thin.ttf"))
+            if (!_thinfont.loadFromFile(_thinFontFile))
             {
                 std::cout << "Error loading font." << std::endl;
             }
-            if (!_boldfont.loadFromFile("Roboto-Bold.ttf"))
+            if (!_boldfont.loadFromFile(_boldFontFile))
             {
                 std::cout << "Error loading font." << std::endl;
             }
@@ -67,7 +67,7 @@ class TitleScreen : public GameState
                 _buttons[i]._shape.setOutlineThickness(_buttons[i]._absoutlinethickness);
                 _buttons[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.50*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
 
-                if (!_buttons[i]._font.loadFromFile("Roboto-Thin.ttf")) {std::cout << "Error loading font." << std::endl;}
+                if (!_buttons[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
                 _buttons[i]._text.setFont(_buttons[i]._font);
                 _buttons[i]._text.setCharacterSize(int(buttonwidth*_buttons[i]._textfactor/_buttons[i]._ratio));
                 if (i==0)
