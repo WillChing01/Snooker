@@ -50,11 +50,10 @@
 			<Add directory="../_include/eigen-3.3.7" />
 			<Add directory="../_include/boost_1_73_0/stage/lib" />
 		</Linker>
-		<Unit filename="client.h" />
-		<Unit filename="floatsupport.h" />
-		<Unit filename="main.cpp" />
-		<Unit filename="objects.h" />
-		<Unit filename="polystuff.h" />
+		<Unit filename="include/client.h" />
+		<Unit filename="include/objects.h" />
+		<Unit filename="include/polystuff.h" />
+		<Unit filename="src/main.cpp" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>
