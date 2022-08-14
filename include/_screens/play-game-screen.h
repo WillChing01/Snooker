@@ -661,44 +661,47 @@ class GameScreen : public GameState
 
             _inputboxes.push_back(InputBox());
 
-            for (int i=0;i<1;i++)
+            if (gametype<2)
             {
-                _inputboxes[i]._shape.setSize(sf::Vector2f(0.5*sbwidth,cheight/_inputboxes[i]._textfactor));
-                _inputboxes[i]._shape.setOrigin(sf::Vector2f(0.25*sbwidth,0.5*cheight/_inputboxes[i]._textfactor));
-                _inputboxes[i]._shape.setOutlineThickness(_inputboxes[i]._absoutlinethickness);
-                _inputboxes[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.89*_sfac*raw_height+1.05*logheight+0.5*cheight/_inputboxes[i]._textfactor));
-
-                if (!_inputboxes[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
-                _inputboxes[i]._text.setFont(_inputboxes[i]._font);
-                _inputboxes[i]._text.setCharacterSize(int(cheight));
-                _inputboxes[i]._text.setFillColor(sf::Color(255,255,255));
-                _inputboxes[i]._text.setString("");
-                textrect=_inputboxes[i]._text.getLocalBounds();
-                _inputboxes[i]._text.setOrigin(sf::Vector2f(textrect.left,textrect.top));
-                _inputboxes[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness,0.89*_sfac*raw_height+1.05*logheight+(cheight/_inputboxes[i]._textfactor)*(0.5*(1.-_inputboxes[i]._textfactor))));
-
-                if (i==0)
+                for (int i=0;i<1;i++)
                 {
-                    _inputboxes[i]._backtext.setString("Enter message...");
+                    _inputboxes[i]._shape.setSize(sf::Vector2f(0.5*sbwidth,cheight/_inputboxes[i]._textfactor));
+                    _inputboxes[i]._shape.setOrigin(sf::Vector2f(0.25*sbwidth,0.5*cheight/_inputboxes[i]._textfactor));
+                    _inputboxes[i]._shape.setOutlineThickness(_inputboxes[i]._absoutlinethickness);
+                    _inputboxes[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.89*_sfac*raw_height+1.05*logheight+0.5*cheight/_inputboxes[i]._textfactor));
+
+                    if (!_inputboxes[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
+                    _inputboxes[i]._text.setFont(_inputboxes[i]._font);
+                    _inputboxes[i]._text.setCharacterSize(int(cheight));
+                    _inputboxes[i]._text.setFillColor(sf::Color(255,255,255));
+                    _inputboxes[i]._text.setString("");
+                    textrect=_inputboxes[i]._text.getLocalBounds();
+                    _inputboxes[i]._text.setOrigin(sf::Vector2f(textrect.left,textrect.top));
+                    _inputboxes[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness,0.89*_sfac*raw_height+1.05*logheight+(cheight/_inputboxes[i]._textfactor)*(0.5*(1.-_inputboxes[i]._textfactor))));
+
+                    if (i==0)
+                    {
+                        _inputboxes[i]._backtext.setString("Enter message...");
+                    }
+                    _inputboxes[i]._backtext.setFont(_inputboxes[i]._font);
+                    _inputboxes[i]._backtext.setCharacterSize(int(cheight));
+                    textrect=_inputboxes[i]._backtext.getLocalBounds();
+                    _inputboxes[i]._backtext.setOrigin(sf::Vector2f(textrect.left,textrect.top+textrect.height*0.5));
+                    _inputboxes[i]._backtext.setFillColor(sf::Color(255,255,255,150));
+                    _inputboxes[i]._backtext.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness,0.89*_sfac*raw_height+1.05*logheight+0.5*(cheight/_inputboxes[i]._textfactor)));
+
+                    _inputboxes[i]._abscursorthickness=0.5;
+                    _inputboxes[i]._cursor.setSize(sf::Vector2f(_inputboxes[i]._abscursorthickness,cheight));
+                    _inputboxes[i]._cursor.setOrigin(sf::Vector2f(0.5*_inputboxes[i]._abscursorthickness,0.5*cheight));
+                    _inputboxes[i]._cursor.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness,0.89*_sfac*raw_height+1.05*logheight+0.5*(cheight/_inputboxes[i]._textfactor)));
+
+                    _inputboxes[i]._outlinecolour1=sf::Color(outlinecolour1[0],outlinecolour1[1],outlinecolour1[2],outlinecolour1[3]);
+                    _inputboxes[i]._outlinecolour2=sf::Color(outlinecolour2[0],outlinecolour2[1],outlinecolour2[2],outlinecolour2[3]);
+
+                    _inputboxes[i]._shape.setFillColor(sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]));
+                    _inputboxes[i]._shape.setOutlineColor(_inputboxes[i]._outlinecolour1);
+                    _inputboxes[i]._cursor.setFillColor(sf::Color(255,255,255,0));
                 }
-                _inputboxes[i]._backtext.setFont(_inputboxes[i]._font);
-                _inputboxes[i]._backtext.setCharacterSize(int(cheight));
-                textrect=_inputboxes[i]._backtext.getLocalBounds();
-                _inputboxes[i]._backtext.setOrigin(sf::Vector2f(textrect.left,textrect.top+textrect.height*0.5));
-                _inputboxes[i]._backtext.setFillColor(sf::Color(255,255,255,150));
-                _inputboxes[i]._backtext.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness,0.89*_sfac*raw_height+1.05*logheight+0.5*(cheight/_inputboxes[i]._textfactor)));
-
-                _inputboxes[i]._abscursorthickness=0.5;
-                _inputboxes[i]._cursor.setSize(sf::Vector2f(_inputboxes[i]._abscursorthickness,cheight));
-                _inputboxes[i]._cursor.setOrigin(sf::Vector2f(0.5*_inputboxes[i]._abscursorthickness,0.5*cheight));
-                _inputboxes[i]._cursor.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness,0.89*_sfac*raw_height+1.05*logheight+0.5*(cheight/_inputboxes[i]._textfactor)));
-
-                _inputboxes[i]._outlinecolour1=sf::Color(outlinecolour1[0],outlinecolour1[1],outlinecolour1[2],outlinecolour1[3]);
-                _inputboxes[i]._outlinecolour2=sf::Color(outlinecolour2[0],outlinecolour2[1],outlinecolour2[2],outlinecolour2[3]);
-
-                _inputboxes[i]._shape.setFillColor(sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]));
-                _inputboxes[i]._shape.setOutlineColor(_inputboxes[i]._outlinecolour1);
-                _inputboxes[i]._cursor.setFillColor(sf::Color(255,255,255,0));
             }
 
             cushions[0]=Cushion(mpockets[0][0],mpockets[0][1]-0.156,pi,1,0);
