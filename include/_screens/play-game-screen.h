@@ -1357,6 +1357,11 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             ispausepressed=false;
         }
 
+        if (sf::Keyboard::isKeyPressed(user_controls["Toggle mute"]))
+        {
+            //deal with mute/unmute here.
+        }
+
         if (!typing && isyourturn && done && fabs(pauserect.getPosition().y+_sfac*raw_height)<0.001)
         {
             //get user input when it is their turn.

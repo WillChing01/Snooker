@@ -1,9 +1,6 @@
 #ifndef CUE_H_INCLUDED
 #define CUE_H_INCLUDED
 
-//cue texture file.
-std::string cuetexturefile="assets/cue0.png";
-
 class Cue
 {
     public:
