@@ -11,6 +11,8 @@ class ChangeCueScreen : public GameState
         sf::Sprite cuepng[3];
         sf::Texture cuetexture[3];
 
+        sf::RectangleShape selectionBorder;
+
     public:
         ChangeCueScreen(double sfac=dfactor) : GameState(sfac)
         {
@@ -25,6 +27,26 @@ class ChangeCueScreen : public GameState
                 std::cout << "Error loading font." << std::endl;
             }
 
+            std::string custom_input;
+            std::ifstream cuefile(_userCueConfigFile);
+            if (cuefile.is_open())
+            {
+                while (getline(cuefile,custom_input))
+                {
+                    cuetexturefile=custom_input;
+                } cuefile.close();
+            }
+
+            int textcolour1[4]={255,255,255,255};
+            int textcolour2[4]={255,255,255,255};
+            int textcolour3[4]={255,255,255,255};
+            int outlinecolour1[4]={200,200,200,255};
+            int outlinecolour2[4]={255,255,255,255};
+            int outlinecolour3[4]={255,255,255,255};
+            int colour1[4]={100,100,100,150};
+            int colour2[4]={100,100,100,150};
+            int colour3[4]={169,169,169,200};
+
             sf::FloatRect textrect;
 
             title.setFont(_boldfont);
@@ -37,6 +59,13 @@ class ChangeCueScreen : public GameState
             _shapes.push_back(&title);
 
             sf::FloatRect bounds;
+            double buttonwidth=_sfac*raw_width*0.15;
+
+            for (int i=0;i<4;i++)
+            {
+                _buttons.push_back(RectButton());
+            }
+
             for (int i=0;i<3;i++)
             {
                 cuetexture[i].loadFromFile(_cueFilePrefix+"cue"+std::to_string(i)+".png");
@@ -45,23 +74,27 @@ class ChangeCueScreen : public GameState
                 cuepng[i].scale(65.*dfactor/5213.,65.*dfactor/5213.);
                 bounds=cuepng[i].getLocalBounds();
                 cuepng[i].setOrigin(bounds.left,bounds.top+bounds.height*0.5);
+                cuepng[i].setPosition(sf::Vector2f(0.20*_sfac*raw_width,0.30*_sfac*raw_height+((i+1)*1.2)*buttonwidth/_buttons[0]._ratio));
+                _shapes.push_back(&cuepng[i]);
             }
 
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
+            //set up the selection border.
+            const double factor=1.05;
+            bounds=cuepng[0].getLocalBounds();
+            selectionBorder.setSize(sf::Vector2f(factor*bounds.width*65.*dfactor/5213.,buttonwidth/_buttons[0]._ratio));
 
-            double buttonwidth=_sfac*raw_width*0.15;
-            int textcolour1[4]={255,255,255,255};
-            int textcolour2[4]={255,255,255,255};
-            int textcolour3[4]={255,255,255,255};
-            int outlinecolour1[4]={200,200,200,255};
-            int outlinecolour2[4]={255,255,255,255};
-            int outlinecolour3[4]={255,255,255,255};
-            int colour1[4]={100,100,100,150};
-            int colour2[4]={100,100,100,150};
-            int colour3[4]={169,169,169,200};
+            int selectedCueIndex=cuetexturefile[cuetexturefile.size()-5]-'0';
+
+            bounds=selectionBorder.getLocalBounds();
+            selectionBorder.setOrigin(bounds.left+bounds.width*(1.-1./factor)*0.5,bounds.top+bounds.height*0.5);
+            sf::Vector2f pos=cuepng[selectedCueIndex].getPosition();
+            selectionBorder.setPosition(pos);
+
+            selectionBorder.setOutlineColor(sf::Color(outlinecolour2[0],outlinecolour2[1],outlinecolour2[2],outlinecolour2[3]));
+            selectionBorder.setFillColor(sf::Color(0,0,0,0));
+            selectionBorder.setOutlineThickness(absOutlineThickness);
+
+            _shapes.push_back(&selectionBorder);
 
             for (int i=0;i<4;i++)
             {
@@ -76,8 +109,6 @@ class ChangeCueScreen : public GameState
                 else
                 {
                     _buttons[i]._shape.setPosition(sf::Vector2f(0.75*_sfac*raw_width,0.30*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
-                    cuepng[i-1].setPosition(sf::Vector2f(0.20*_sfac*raw_width,0.30*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
-                    _shapes.push_back(&cuepng[i-1]);
                 }
 
                 if (!_buttons[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
@@ -122,7 +153,14 @@ class ChangeCueScreen : public GameState
                 _buttons[i]._text.setFillColor(_buttons[i]._textcolour1);
             }
         }
-        void update(double dt,sf::Vector2i mouse_pos) {};
+
+        void update(double dt,sf::Vector2i mouse_pos)
+        {
+            int selectedCueIndex=cuetexturefile[cuetexturefile.size()-5]-'0';
+
+            sf::Vector2f pos=cuepng[selectedCueIndex].getPosition();
+            selectionBorder.setPosition(pos);
+        };
 };
 
 #endif // CHANGE-CUE-SCREEN_H_INCLUDED

@@ -1,6 +1,19 @@
 #ifndef TABLE-CONSTANTS_H_INCLUDED
 #define TABLE-CONSTANTS_H_INCLUDED
 
+const std::string _thinFontFile = "../../assets/Roboto-Thin.ttf";
+const std::string _boldFontFile = "../../assets/Roboto-Bold.ttf";
+
+const std::string _vertexShaderFile = "../../assets/vertex_shader.vert";
+const std::string _fragmentShaderFile = "../../assets/fragment_shader.vert";
+const std::string _userConfigFile = "../../assets/config.txt";
+const std::string _userCueConfigFile = "../../assets/cueconfig.txt";
+
+const std::string _cueFilePrefix = "../../assets/";
+
+//cue texture file.
+std::string cuetexturefile="assets/cue0.png";
+
 //lengths are in inches.
 
 const int framerate=100;
@@ -29,6 +42,7 @@ const double dfactor=sf::VideoMode::getDesktopMode().height/raw_height;
 const double window_width=(2.*rail_thickness+2.*cush_thickness+table_length)*dfactor;
 const double window_height=(2.*rail_thickness+2.*cush_thickness+table_width)*dfactor;
 const double panel_height=window_height*panel_ratio;
+const double absOutlineThickness=2.;
 
 const double ball_radius=0.02625/in2m;
 const double ball_mass=0.141;

@@ -7,7 +7,7 @@ class RectButton
         double _ratio=4.;
         //ratio is width/height.
         double _textfactor=0.75;
-        double _absoutlinethickness=2.;
+        double _absoutlinethickness=absOutlineThickness;
 
         bool _controlchange=false;
         bool _isactive=true;
