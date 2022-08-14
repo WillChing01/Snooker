@@ -7,6 +7,7 @@
 #include <string>
 #include <map>
 #include <thread>
+#include <vector>
 
 #include <Eigen/Dense>
 #include <SFML/Graphics.hpp>

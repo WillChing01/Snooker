@@ -196,7 +196,7 @@ int main()
                                 {
                                     user_controls=default_controls;
                                     sf::FloatRect bounds;
-                                    for (int i=0;i<18;i++)
+                                    for (int i=0;i<default_controls.size();i++)
                                     {
                                         states.back()->_buttons[i]._text.setString(KeyToString(user_controls[states.back()->_buttons[i]._target]));
                                         bounds=states.back()->_buttons[i]._text.getLocalBounds();

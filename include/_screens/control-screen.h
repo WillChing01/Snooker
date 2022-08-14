@@ -9,7 +9,7 @@ class ControlScreen : public GameState
 
         sf::Text title;
 
-        sf::Text t[18];
+        std::vector<sf::Text> t;
 
     public:
         ControlScreen(double sfac=dfactor) : GameState(sfac)
@@ -36,26 +36,16 @@ class ControlScreen : public GameState
             title.setFillColor(sf::Color(255,255,255));
             _shapes.push_back(&title);
 
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
+            for (int i=0;i<default_controls.size();i++)
+            {
+                sf::Text example;
+                t.push_back(example);
+            }
+
+            for (int i=0;i<default_controls.size()+2;i++)
+            {
+                _buttons.push_back(RectButton());
+            }
 
             double buttonwidth=_sfac*raw_width*0.083;
             double height=0.35*_sfac*raw_height;
@@ -69,7 +59,7 @@ class ControlScreen : public GameState
             int colour2[4]={100,100,100,150};
             int colour3[4]={169,169,169,200};
 
-            for (int i=0;i<18;i++)
+            for (int i=0;i<default_controls.size();i++)
             {
                 t[i].setFont(_thinfont);
                 t[i].setCharacterSize(int(buttonwidth*_buttons[i]._textfactor/_buttons[i]._ratio));
@@ -78,13 +68,13 @@ class ControlScreen : public GameState
                 _buttons[i]._shape.setSize(sf::Vector2f(4.*buttonwidth/_buttons[i]._ratio,buttonwidth/_buttons[i]._ratio));
                 _buttons[i]._shape.setOrigin(2.*buttonwidth/_buttons[i]._ratio,0.5*buttonwidth/_buttons[i]._ratio);
 
-                if (i<9)
+                if (i<default_controls.size()/2)
                 {
                     _buttons[i]._shape.setPosition(sf::Vector2f(0.475*_sfac*raw_width-2.*buttonwidth/_buttons[i]._ratio,height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
                 }
                 else
                 {
-                    _buttons[i]._shape.setPosition(sf::Vector2f(0.775*_sfac*raw_width-2.*buttonwidth/_buttons[i]._ratio,height+((i-9)*1.2)*buttonwidth/_buttons[i]._ratio));
+                    _buttons[i]._shape.setPosition(sf::Vector2f(0.775*_sfac*raw_width-2.*buttonwidth/_buttons[i]._ratio,height+((i-default_controls.size()/2)*1.2)*buttonwidth/_buttons[i]._ratio));
                 }
 
                 _buttons[i]._shape.setOutlineThickness(_buttons[i]._absoutlinethickness);
@@ -123,85 +113,91 @@ class ControlScreen : public GameState
                     _buttons[i]._target="Increase power";
                     _buttons[i]._text.setString(KeyToString(user_controls["Increase power"]));
                 }
-                else if (i==4)
+                else if (i==5)
                 {
                     t[i].setString("Decrease power");
                     _buttons[i]._target="Decrease power";
                     _buttons[i]._text.setString(KeyToString(user_controls["Decrease power"]));
                 }
-                else if (i==5)
+                else if (i==6)
                 {
                     t[i].setString("Increase cue elevation");
                     _buttons[i]._target="Increase cue elevation";
                     _buttons[i]._text.setString(KeyToString(user_controls["Increase cue elevation"]));
                 }
-                else if (i==6)
+                else if (i==7)
                 {
                     t[i].setString("Decrease cue elevation");
                     _buttons[i]._target="Decrease cue elevation";
                     _buttons[i]._text.setString(KeyToString(user_controls["Decrease cue elevation"]));
                 }
-                else if (i==7)
+                else if (i==8)
                 {
                     t[i].setString("Offset cue tip up");
                     _buttons[i]._target="Offset cue tip up";
                     _buttons[i]._text.setString(KeyToString(user_controls["Offset cue tip up"]));
                 }
-                else if (i==8)
+                else if (i==9)
                 {
                     t[i].setString("Offset cue tip down");
                     _buttons[i]._target="Offset cue tip down";
                     _buttons[i]._text.setString(KeyToString(user_controls["Offset cue tip down"]));
                 }
-                else if (i==9)
+                else if (i==10)
                 {
                     t[i].setString("Offset cue tip left");
                     _buttons[i]._target="Offset cue tip left";
                     _buttons[i]._text.setString(KeyToString(user_controls["Offset cue tip left"]));
                 }
-                else if (i==10)
+                else if (i==11)
                 {
                     t[i].setString("Offset cue tip right");
                     _buttons[i]._target="Offset cue tip right";
                     _buttons[i]._text.setString(KeyToString(user_controls["Offset cue tip right"]));
                 }
-                else if (i==11)
+                else if (i==12)
                 {
                     t[i].setString("Strike cueball");
                     _buttons[i]._target="Strike cueball";
                     _buttons[i]._text.setString(KeyToString(user_controls["Strike cueball"]));
                 }
-                else if (i==12)
+                else if (i==13)
                 {
                     t[i].setString("Move ball up");
                     _buttons[i]._target="Move ball up";
                     _buttons[i]._text.setString(KeyToString(user_controls["Move ball up"]));
                 }
-                else if (i==13)
+                else if (i==14)
                 {
                     t[i].setString("Move ball down");
                     _buttons[i]._target="Move ball down";
                     _buttons[i]._text.setString(KeyToString(user_controls["Move ball down"]));
                 }
-                else if (i==14)
+                else if (i==15)
                 {
                     t[i].setString("Move ball left");
                     _buttons[i]._target="Move ball left";
                     _buttons[i]._text.setString(KeyToString(user_controls["Move ball left"]));
                 }
-                else if (i==15)
+                else if (i==16)
                 {
                     t[i].setString("Move ball right");
                     _buttons[i]._target="Move ball right";
                     _buttons[i]._text.setString(KeyToString(user_controls["Move ball right"]));
                 }
-                else if (i==16)
+                else if (i==17)
                 {
                     t[i].setString("Place ball");
                     _buttons[i]._target="Place ball";
                     _buttons[i]._text.setString(KeyToString(user_controls["Place ball"]));
                 }
-                else if (i==17)
+                else if (i==18)
+                {
+                    t[i].setString("Toggle mute");
+                    _buttons[i]._target="Toggle mute";
+                    _buttons[i]._text.setString(KeyToString(user_controls["Toggle mute"]));
+                }
+                else if (i==19)
                 {
                     t[i].setString("Pause game");
                     _buttons[i]._target="Pause game";
@@ -217,15 +213,15 @@ class ControlScreen : public GameState
 
                 _buttons[i]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
 
-                if (i<9)
+                if (i<default_controls.size()/2)
                 {
                     _buttons[i]._text.setPosition(sf::Vector2f(0.475*_sfac*raw_width-2.*buttonwidth/_buttons[i]._ratio,height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
                     t[i].setPosition(sf::Vector2f(0.225*_sfac*raw_width,height+(i*1.2)*buttonwidth/_buttons[i]._ratio-0.5*buttonwidth/_buttons[i]._ratio+0.5*0.25*buttonwidth/_buttons[i]._ratio));
                 }
                 else
                 {
-                    _buttons[i]._text.setPosition(sf::Vector2f(0.775*_sfac*raw_width-2.*buttonwidth/_buttons[i]._ratio,height+((i-9)*1.2)*buttonwidth/_buttons[i]._ratio));
-                    t[i].setPosition(sf::Vector2f(0.525*_sfac*raw_width,height+((i-9)*1.2)*buttonwidth/_buttons[i]._ratio-0.5*buttonwidth/_buttons[i]._ratio+0.5*0.25*buttonwidth/_buttons[i]._ratio));
+                    _buttons[i]._text.setPosition(sf::Vector2f(0.775*_sfac*raw_width-2.*buttonwidth/_buttons[i]._ratio,height+((i-default_controls.size()/2)*1.2)*buttonwidth/_buttons[i]._ratio));
+                    t[i].setPosition(sf::Vector2f(0.525*_sfac*raw_width,height+((i-default_controls.size()/2)*1.2)*buttonwidth/_buttons[i]._ratio-0.5*buttonwidth/_buttons[i]._ratio+0.5*0.25*buttonwidth/_buttons[i]._ratio));
                 }
 
                 _buttons[i]._colour1=sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]);
@@ -246,8 +242,9 @@ class ControlScreen : public GameState
 
                 _shapes.push_back(&t[i]);
             }
+
             buttonwidth=_sfac*raw_width*0.15;
-            for (int i=18;i<20;i++)
+            for (int i=default_controls.size();i<default_controls.size()+2;i++)
             {
                 _buttons[i]._shape.setSize(sf::Vector2f(buttonwidth,buttonwidth/_buttons[i]._ratio));
                 _buttons[i]._shape.setOrigin(0.5*buttonwidth,0.5*buttonwidth/_buttons[i]._ratio);
@@ -256,13 +253,13 @@ class ControlScreen : public GameState
                 if (!_buttons[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
                 _buttons[i]._text.setFont(_buttons[i]._font);
                 _buttons[i]._text.setCharacterSize(int(buttonwidth*_buttons[i]._textfactor/_buttons[i]._ratio));
-                if (i==18)
+                if (i==default_controls.size())
                 {
                     _buttons[i]._text.setString("Back");
                     _buttons[i]._target="Quit";
                     _buttons[i]._shape.setPosition(sf::Vector2f(0.4*_sfac*raw_width,height+(11*1.24)*(_sfac*raw_width*0.083)/_buttons[i]._ratio));
                 }
-                else if (i==19)
+                else if (i==default_controls.size()+1)
                 {
                     _buttons[i]._text.setString("Default");
                     _buttons[i]._target="Default";
@@ -271,11 +268,11 @@ class ControlScreen : public GameState
                 textrect=_buttons[i]._text.getLocalBounds();
                 _buttons[i]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
 
-                if (i==18)
+                if (i==default_controls.size())
                 {
                     _buttons[i]._text.setPosition(sf::Vector2f(0.4*_sfac*raw_width,height+(11*1.24)*(_sfac*raw_width*0.083)/_buttons[i]._ratio));
                 }
-                else if (i==19)
+                else if (i==default_controls.size()+1)
                 {
                     _buttons[i]._text.setPosition(sf::Vector2f(0.6*_sfac*raw_width,height+(11*1.24)*(_sfac*raw_width*0.083)/_buttons[i]._ratio));
                 }

@@ -31,6 +31,7 @@ const std::map<std::string,sf::Keyboard::Key> default_controls=
 {"Move ball left",sf::Keyboard::Left},
 {"Move ball right",sf::Keyboard::Right},
 {"Place ball",sf::Keyboard::Enter},
+{"Toggle mute",sf::Keyboard::M},
 {"Pause game",sf::Keyboard::Escape}
 };
 
