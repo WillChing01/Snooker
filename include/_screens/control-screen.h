@@ -31,8 +31,8 @@ class ControlScreen : public GameState
             title.setCharacterSize(int(_sfac*raw_height*0.1));
             title.setString("Controls");
             textrect=title.getLocalBounds();
-            title.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
-            title.setPosition(sf::Vector2f(_sfac*raw_width*0.5,_sfac*raw_height*0.15));
+            title.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+            title.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5),int(_sfac*raw_height*0.15)));
             title.setFillColor(sf::Color(255,255,255));
             _shapes.push_back(&title);
 
@@ -205,23 +205,23 @@ class ControlScreen : public GameState
                 }
 
                 textrect=t[i].getLocalBounds();
-                t[i].setOrigin(sf::Vector2f(textrect.left,textrect.top));
+                t[i].setOrigin(sf::Vector2f(int(textrect.left),int(textrect.top)));
                 t[i].setFillColor(sf::Color(255,255,255));
 
 
                 textrect=_buttons[i]._text.getLocalBounds();
 
-                _buttons[i]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
+                _buttons[i]._text.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
 
                 if (i<default_controls.size()/2)
                 {
-                    _buttons[i]._text.setPosition(sf::Vector2f(0.475*_sfac*raw_width-2.*buttonwidth/_buttons[i]._ratio,height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
-                    t[i].setPosition(sf::Vector2f(0.225*_sfac*raw_width,height+(i*1.2)*buttonwidth/_buttons[i]._ratio-0.5*buttonwidth/_buttons[i]._ratio+0.5*0.25*buttonwidth/_buttons[i]._ratio));
+                    _buttons[i]._text.setPosition(sf::Vector2f(int(0.475*_sfac*raw_width-2.*buttonwidth/_buttons[i]._ratio),int(height+(i*1.2)*buttonwidth/_buttons[i]._ratio)));
+                    t[i].setPosition(sf::Vector2f(int(0.225*_sfac*raw_width),int(height+(i*1.2)*buttonwidth/_buttons[i]._ratio-0.5*buttonwidth/_buttons[i]._ratio+0.5*0.25*buttonwidth/_buttons[i]._ratio)));
                 }
                 else
                 {
-                    _buttons[i]._text.setPosition(sf::Vector2f(0.775*_sfac*raw_width-2.*buttonwidth/_buttons[i]._ratio,height+((i-default_controls.size()/2)*1.2)*buttonwidth/_buttons[i]._ratio));
-                    t[i].setPosition(sf::Vector2f(0.525*_sfac*raw_width,height+((i-default_controls.size()/2)*1.2)*buttonwidth/_buttons[i]._ratio-0.5*buttonwidth/_buttons[i]._ratio+0.5*0.25*buttonwidth/_buttons[i]._ratio));
+                    _buttons[i]._text.setPosition(sf::Vector2f(int(0.775*_sfac*raw_width-2.*buttonwidth/_buttons[i]._ratio),int(height+((i-default_controls.size()/2)*1.2)*buttonwidth/_buttons[i]._ratio)));
+                    t[i].setPosition(sf::Vector2f(int(0.525*_sfac*raw_width),int(height+((i-default_controls.size()/2)*1.2)*buttonwidth/_buttons[i]._ratio-0.5*buttonwidth/_buttons[i]._ratio+0.5*0.25*buttonwidth/_buttons[i]._ratio)));
                 }
 
                 _buttons[i]._colour1=sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]);
@@ -266,15 +266,15 @@ class ControlScreen : public GameState
                     _buttons[i]._shape.setPosition(sf::Vector2f(0.6*_sfac*raw_width,height+(11*1.24)*(_sfac*raw_width*0.083)/_buttons[i]._ratio));
                 }
                 textrect=_buttons[i]._text.getLocalBounds();
-                _buttons[i]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
+                _buttons[i]._text.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
 
                 if (i==default_controls.size())
                 {
-                    _buttons[i]._text.setPosition(sf::Vector2f(0.4*_sfac*raw_width,height+(11*1.24)*(_sfac*raw_width*0.083)/_buttons[i]._ratio));
+                    _buttons[i]._text.setPosition(sf::Vector2f(int(0.4*_sfac*raw_width),int(height+(11*1.24)*(_sfac*raw_width*0.083)/_buttons[i]._ratio)));
                 }
                 else if (i==default_controls.size()+1)
                 {
-                    _buttons[i]._text.setPosition(sf::Vector2f(0.6*_sfac*raw_width,height+(11*1.24)*(_sfac*raw_width*0.083)/_buttons[i]._ratio));
+                    _buttons[i]._text.setPosition(sf::Vector2f(int(0.6*_sfac*raw_width),int(height+(11*1.24)*(_sfac*raw_width*0.083)/_buttons[i]._ratio)));
                 }
 
                 _buttons[i]._colour1=sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]);

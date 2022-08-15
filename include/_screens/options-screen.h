@@ -29,8 +29,8 @@ class OptionsScreen : public GameState
             title.setCharacterSize(int(_sfac*raw_height*0.1));
             title.setString("Options");
             textrect=title.getLocalBounds();
-            title.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
-            title.setPosition(sf::Vector2f(_sfac*raw_width*0.5,_sfac*raw_height*0.15));
+            title.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+            title.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5),int(_sfac*raw_height*0.15)));
             title.setFillColor(sf::Color(255,255,255));
             _shapes.push_back(&title);
 
@@ -75,8 +75,8 @@ class OptionsScreen : public GameState
                     _buttons[i]._target="Quit";
                 }
                 textrect=_buttons[i]._text.getLocalBounds();
-                _buttons[i]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
-                _buttons[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.50*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
+                _buttons[i]._text.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+                _buttons[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width),int(0.50*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio)));
 
                 _buttons[i]._colour1=sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]);
                 _buttons[i]._colour2=sf::Color(colour2[0],colour2[1],colour2[2],colour2[3]);

@@ -184,8 +184,8 @@ class GameScreen : public GameState
             pausetext.setCharacterSize(int(_sfac*raw_height*0.1));
             pausetext.setString("Paused");
             textrect=pausetext.getLocalBounds();
-            pausetext.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
-            pausetext.setPosition(sf::Vector2f(_sfac*raw_width*0.5,_sfac*raw_height*0.15-_sfac*raw_height));
+            pausetext.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+            pausetext.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5),int(_sfac*raw_height*0.15-_sfac*raw_height)));
             pausetext.setFillColor(sf::Color(255,255,255));
 
             //set up game over screen.
@@ -197,8 +197,8 @@ class GameScreen : public GameState
             gameovertext.setCharacterSize(int(_sfac*raw_height*0.1));
             gameovertext.setString("Game over");
             textrect=gameovertext.getLocalBounds();
-            gameovertext.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
-            gameovertext.setPosition(sf::Vector2f(_sfac*raw_width*0.5,_sfac*raw_height*0.15-_sfac*raw_height));
+            gameovertext.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+            gameovertext.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5),int(_sfac*raw_height*0.15-_sfac*raw_height)));
             gameovertext.setFillColor(sf::Color(255,255,255));
 
             int sh=int(_sfac*raw_height*0.04);
@@ -207,8 +207,8 @@ class GameScreen : public GameState
             stats_title.setCharacterSize(int(sh*1.2));
             stats_title.setString("Overall Stats");
             textrect=stats_title.getLocalBounds();
-            stats_title.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
-            stats_title.setPosition(sf::Vector2f(_sfac*raw_width*0.5,_sfac*raw_height*0.25-_sfac*raw_height));
+            stats_title.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+            stats_title.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5),int(_sfac*raw_height*0.25-_sfac*raw_height)));
             stats_title.setFillColor(sf::Color(255,255,255));
 
             stats_text.push_back(sf::Text());
@@ -246,18 +246,18 @@ class GameScreen : public GameState
                 else if (i==11) {stats_text[i].setString(std::to_string(p2_centuries));}
 
                 textrect=stats_text[i].getLocalBounds();
-                stats_text[i].setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
+                stats_text[i].setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
                 if (i%3==0)
                 {
-                    stats_text[i].setPosition(sf::Vector2f(0.5*_sfac*raw_width,-_sfac*raw_height+starth+((i/3)*1.4)*sh));
+                    stats_text[i].setPosition(sf::Vector2f(int(0.5*_sfac*raw_width),int(-_sfac*raw_height+starth+((i/3)*1.4)*sh)));
                 }
                 else if (i%3==1)
                 {
-                    stats_text[i].setPosition(sf::Vector2f(0.5*_sfac*raw_width-soffset,-_sfac*raw_height+starth+((i/3)*1.4)*sh));
+                    stats_text[i].setPosition(sf::Vector2f(int(0.5*_sfac*raw_width-soffset),int(-_sfac*raw_height+starth+((i/3)*1.4)*sh)));
                 }
                 else if (i%3==2)
                 {
-                    stats_text[i].setPosition(sf::Vector2f(0.5*_sfac*raw_width+soffset,-_sfac*raw_height+starth+((i/3)*1.4)*sh));
+                    stats_text[i].setPosition(sf::Vector2f(int(0.5*_sfac*raw_width+soffset),int(-_sfac*raw_height+starth+((i/3)*1.4)*sh)));
                 }
                 stats_text[i].setFillColor(sf::Color(255,255,255));
 
@@ -310,15 +310,15 @@ class GameScreen : public GameState
                     _buttons[i]._target="Quit";
                 }
                 textrect=_buttons[i]._text.getLocalBounds();
-                _buttons[i]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
+                _buttons[i]._text.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
 
                 if (i==0)
                 {
-                    _buttons[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width,-_sfac*raw_height+0.50*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
+                    _buttons[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width),int(-_sfac*raw_height+0.50*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio)));
                 }
                 else if (i==1)
                 {
-                    _buttons[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width,-_sfac*raw_height+0.75*_sfac*raw_height));
+                    _buttons[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width),int(-_sfac*raw_height+0.75*_sfac*raw_height)));
                 }
 
                 _buttons[i]._colour1=sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]);
@@ -363,8 +363,8 @@ class GameScreen : public GameState
                     _buttons[i]._target="Concedematch";
                 }
                 textrect=_buttons[i]._text.getLocalBounds();
-                _buttons[i]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
-                _buttons[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width+0.5*sbwidth-0.5*buttonwidth,0.92*_sfac*raw_height+1.2*(i-2)*sbheight));
+                _buttons[i]._text.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+                _buttons[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width+0.5*sbwidth-0.5*buttonwidth),int(0.92*_sfac*raw_height+1.2*(i-2)*sbheight)));
 
                 _buttons[i]._colour1=sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]);
                 _buttons[i]._colour2=sf::Color(colour2[0],colour2[1],colour2[2],colour2[3]);
@@ -448,8 +448,8 @@ class GameScreen : public GameState
             elevation_display.setCharacterSize(int(0.15*(_sfac*raw_height*panel_ratio/(1.+panel_ratio))));
             elevation_display.setFillColor(sf::Color(0,0,0));
             sf::FloatRect textRect=elevation_display.getLocalBounds();
-            elevation_display.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
-            elevation_display.setPosition(sf::Vector2f((_sfac*raw_width)-0.5*(_sfac*raw_height*panel_ratio/(1.+panel_ratio)),(_sfac*raw_height/(1.+panel_ratio))+0.5*(_sfac*raw_height*panel_ratio/(1.+panel_ratio))));
+            elevation_display.setOrigin(sf::Vector2f(int(textRect.left+textRect.width/2.),int(textRect.top+textRect.height/2.)));
+            elevation_display.setPosition(sf::Vector2f(int((_sfac*raw_width)-0.5*(_sfac*raw_height*panel_ratio/(1.+panel_ratio))),int((_sfac*raw_height/(1.+panel_ratio))+0.5*(_sfac*raw_height*panel_ratio/(1.+panel_ratio)))));
 
             if (!_scorefont.loadFromFile(_boldFontFile))
             {
@@ -460,56 +460,56 @@ class GameScreen : public GameState
             textframesbestof.setCharacterSize(int(sbheight*0.7));
             textframesbestof.setFillColor(sf::Color(255,255,255));
             textRect=textframesbestof.getLocalBounds();
-            textframesbestof.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
-            textframesbestof.setPosition(sf::Vector2f((_sfac*raw_width)*0.5,(_sfac*raw_height/(1.+panel_ratio))+sbheight));
+            textframesbestof.setOrigin(sf::Vector2f(int(textRect.left+textRect.width/2.),int(textRect.top+textRect.height/2.)));
+            textframesbestof.setPosition(sf::Vector2f(int((_sfac*raw_width)*0.5),int((_sfac*raw_height/(1.+panel_ratio))+sbheight)));
 
             textp1frames.setFont(_scorefont);
             textp1frames.setString(std::to_string(p1frames));
             textp1frames.setCharacterSize(int(sbheight*0.7));
             textp1frames.setFillColor(sf::Color(255,255,255));
             textRect=textp1frames.getLocalBounds();
-            textp1frames.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
-            textp1frames.setPosition(sf::Vector2f((_sfac*raw_width)*0.5-0.06*sbwidth,(_sfac*raw_height/(1.+panel_ratio))+sbheight));
+            textp1frames.setOrigin(sf::Vector2f(int(textRect.left+textRect.width/2.),int(textRect.top+textRect.height/2.)));
+            textp1frames.setPosition(sf::Vector2f(int((_sfac*raw_width)*0.5-0.06*sbwidth),int((_sfac*raw_height/(1.+panel_ratio))+sbheight)));
 
             textp2frames.setFont(_scorefont);
             textp2frames.setString(std::to_string(p2frames));
             textp2frames.setCharacterSize(int(sbheight*0.7));
             textp2frames.setFillColor(sf::Color(255,255,255));
             textRect=textp2frames.getLocalBounds();
-            textp2frames.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
-            textp2frames.setPosition(sf::Vector2f((_sfac*raw_width)*0.5+0.06*sbwidth,(_sfac*raw_height/(1.+panel_ratio))+sbheight));
+            textp2frames.setOrigin(sf::Vector2f(int(textRect.left+textRect.width/2.),int(textRect.top+textRect.height/2.)));
+            textp2frames.setPosition(sf::Vector2f(int((_sfac*raw_width)*0.5+0.06*sbwidth),int((_sfac*raw_height/(1.+panel_ratio))+sbheight)));
 
             textp1score.setFont(_scorefont);
             textp1score.setString(std::to_string(p1score));
             textp1score.setCharacterSize(int(sbheight*0.7));
             textp1score.setFillColor(sf::Color(0,0,0));
             textRect=textp1score.getLocalBounds();
-            textp1score.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
-            textp1score.setPosition(sf::Vector2f((_sfac*raw_width)*0.5-0.1*sbwidth-0.5*0.15*sbwidth,(_sfac*raw_height/(1.+panel_ratio))+sbheight));
+            textp1score.setOrigin(sf::Vector2f(int(textRect.left+textRect.width/2.),int(textRect.top+textRect.height/2.)));
+            textp1score.setPosition(sf::Vector2f(int((_sfac*raw_width)*0.5-0.1*sbwidth-0.5*0.15*sbwidth),int((_sfac*raw_height/(1.+panel_ratio))+sbheight)));
 
             textp2score.setFont(_scorefont);
             textp2score.setString(std::to_string(p2score));
             textp2score.setCharacterSize(int(sbheight*0.7));
             textp2score.setFillColor(sf::Color(0,0,0));
             textRect=textp2score.getLocalBounds();
-            textp2score.setOrigin(sf::Vector2f(textRect.left+textRect.width/2.,textRect.top+textRect.height/2.));
-            textp2score.setPosition(sf::Vector2f((_sfac*raw_width)*0.5+0.1*sbwidth+0.5*0.15*sbwidth,(_sfac*raw_height/(1.+panel_ratio))+sbheight));
+            textp2score.setOrigin(sf::Vector2f(int(textRect.left+textRect.width/2.),int(textRect.top+textRect.height/2.)));
+            textp2score.setPosition(sf::Vector2f(int((_sfac*raw_width)*0.5+0.1*sbwidth+0.5*0.15*sbwidth),int((_sfac*raw_height/(1.+panel_ratio))+sbheight)));
 
             textp1name.setFont(_scorefont);
             textp1name.setString(p1name);
             textp1name.setCharacterSize(int(sbheight*0.7));
             textp1name.setFillColor(sf::Color(0,0,0));
             textRect=textp1name.getLocalBounds();
-            textp1name.setOrigin(sf::Vector2f(0.,textRect.top+textRect.height/2.));
-            textp1name.setPosition(sf::Vector2f((_sfac*raw_width)*0.5-0.47*sbwidth,(_sfac*raw_height/(1.+panel_ratio))+sbheight));
+            textp1name.setOrigin(sf::Vector2f(int(0.),int(textRect.top+textRect.height/2.)));
+            textp1name.setPosition(sf::Vector2f(int((_sfac*raw_width)*0.5-0.47*sbwidth),int((_sfac*raw_height/(1.+panel_ratio))+sbheight)));
 
             textp2name.setFont(_scorefont);
             textp2name.setString(p2name);
             textp2name.setCharacterSize(int(sbheight*0.7));
             textp2name.setFillColor(sf::Color(0,0,0));
             textRect=textp2name.getLocalBounds();
-            textp2name.setOrigin(sf::Vector2f(textRect.left+textRect.width,textRect.top+textRect.height/2.));
-            textp2name.setPosition(sf::Vector2f((_sfac*raw_width)*0.5+0.47*sbwidth,(_sfac*raw_height/(1.+panel_ratio))+sbheight));
+            textp2name.setOrigin(sf::Vector2f(int(textRect.left+textRect.width),int(textRect.top+textRect.height/2.)));
+            textp2name.setPosition(sf::Vector2f(int((_sfac*raw_width)*0.5+0.47*sbwidth),int((_sfac*raw_height/(1.+panel_ratio))+sbheight)));
 
             p1pointer.setRadius(sbheight*0.2);
             p1pointer.setPointCount(3);
@@ -581,8 +581,8 @@ class GameScreen : public GameState
             ballontitle.setString("Ball on - Red");
             ballontitle.setCharacterSize(int(sbheight*0.7));
             textrect=ballontitle.getLocalBounds();
-            ballontitle.setOrigin(sf::Vector2f(textrect.left,textrect.top));
-            ballontitle.setPosition(sf::Vector2f((_sfac*raw_width)*0.5-0.5*sbwidth,_sfac*raw_height*0.89));
+            ballontitle.setOrigin(sf::Vector2f(int(textrect.left),int(textrect.top)));
+            ballontitle.setPosition(sf::Vector2f(int((_sfac*raw_width)*0.5-0.5*sbwidth),int(_sfac*raw_height*0.89)));
             ballontitle.setFillColor(sf::Color(255,255,255));
             _shapes.push_back(&ballontitle);
 
@@ -590,8 +590,8 @@ class GameScreen : public GameState
             nomtext.setString("Nominate colour");
             nomtext.setCharacterSize(int(sbheight*0.7));
             textrect=nomtext.getLocalBounds();
-            nomtext.setOrigin(sf::Vector2f(textrect.left,textrect.top));
-            nomtext.setPosition(sf::Vector2f((_sfac*raw_width)*0.5-0.5*sbwidth,_sfac*raw_height*0.89+1.1*int(sbheight*0.7)));
+            nomtext.setOrigin(sf::Vector2f(int(textrect.left),int(textrect.top)));
+            nomtext.setPosition(sf::Vector2f(int((_sfac*raw_width)*0.5-0.5*sbwidth),int(_sfac*raw_height*0.89+1.1*int(sbheight*0.7))));
             nomtext.setFillColor(sf::Color(255,255,255,100));
             _shapes.push_back(&nomtext);
 
@@ -653,8 +653,8 @@ class GameScreen : public GameState
                 logtext[i].setCharacterSize(int(cheight));
                 logtext[i].setString(logstrings[i]);
                 textrect=logtext[i].getLocalBounds();
-                logtext[i].setOrigin(sf::Vector2f(textrect.left,textrect.top));
-                logtext[i].setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+0.1*cheight,0.89*_sfac*raw_height+0.1*cheight+1.2*i*cheight));
+                logtext[i].setOrigin(sf::Vector2f(int(textrect.left),int(textrect.top)));
+                logtext[i].setPosition(sf::Vector2f(int(0.5*_sfac*raw_width-0.25*sbwidth+0.1*cheight),int(0.89*_sfac*raw_height+0.1*cheight+1.2*i*cheight)));
                 logtext[i].setFillColor(sf::Color(255,255,255));
                 _shapes.push_back(&logtext[i]);
             }
@@ -676,8 +676,8 @@ class GameScreen : public GameState
                     _inputboxes[i]._text.setFillColor(sf::Color(255,255,255));
                     _inputboxes[i]._text.setString("");
                     textrect=_inputboxes[i]._text.getLocalBounds();
-                    _inputboxes[i]._text.setOrigin(sf::Vector2f(textrect.left,textrect.top));
-                    _inputboxes[i]._text.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness,0.89*_sfac*raw_height+1.05*logheight+(cheight/_inputboxes[i]._textfactor)*(0.5*(1.-_inputboxes[i]._textfactor))));
+                    _inputboxes[i]._text.setOrigin(sf::Vector2f(int(textrect.left),int(textrect.top)));
+                    _inputboxes[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness),int(0.89*_sfac*raw_height+1.05*logheight+(cheight/_inputboxes[i]._textfactor)*(0.5*(1.-_inputboxes[i]._textfactor)))));
 
                     if (i==0)
                     {
@@ -686,9 +686,9 @@ class GameScreen : public GameState
                     _inputboxes[i]._backtext.setFont(_inputboxes[i]._font);
                     _inputboxes[i]._backtext.setCharacterSize(int(cheight));
                     textrect=_inputboxes[i]._backtext.getLocalBounds();
-                    _inputboxes[i]._backtext.setOrigin(sf::Vector2f(textrect.left,textrect.top+textrect.height*0.5));
+                    _inputboxes[i]._backtext.setOrigin(sf::Vector2f(int(textrect.left),int(textrect.top+textrect.height*0.5)));
                     _inputboxes[i]._backtext.setFillColor(sf::Color(255,255,255,150));
-                    _inputboxes[i]._backtext.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness,0.89*_sfac*raw_height+1.05*logheight+0.5*(cheight/_inputboxes[i]._textfactor)));
+                    _inputboxes[i]._backtext.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width-0.25*sbwidth+2.*_inputboxes[i]._absoutlinethickness),int(0.89*_sfac*raw_height+1.05*logheight+0.5*(cheight/_inputboxes[i]._textfactor))));
 
                     _inputboxes[i]._abscursorthickness=0.5;
                     _inputboxes[i]._cursor.setSize(sf::Vector2f(_inputboxes[i]._abscursorthickness,cheight));
@@ -945,16 +945,16 @@ void GameScreen::scores_update()
 
     sf::FloatRect bounds;
     bounds=textp1score.getLocalBounds();
-    textp1score.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+    textp1score.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
     bounds=textp2score.getLocalBounds();
-    textp2score.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+    textp2score.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
 
     textp1frames.setString(std::to_string(p1frames));
     textp2frames.setString(std::to_string(p2frames));
     bounds=textp1frames.getLocalBounds();
-    textp1frames.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+    textp1frames.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
     bounds=textp2frames.getLocalBounds();
-    textp2frames.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+    textp2frames.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
 
     if (isyourturn)
     {
@@ -990,7 +990,7 @@ void GameScreen::scores_update()
     for (int i=0;i<stats_text.size();i++)
     {
         bounds=stats_text[i].getLocalBounds();
-        stats_text[i].setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+        stats_text[i].setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
     }
 }
 
@@ -1270,7 +1270,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     for (int i=0;i<stats_text.size();i++)
                     {
                         bounds=stats_text[i].getLocalBounds();
-                        stats_text[i].setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+                        stats_text[i].setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
                     }
                     server.respot();
                     for (int i=1;i<7;i++)
@@ -1285,7 +1285,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
 //                    textp2score.setString(std::to_string(p2score));
 
                     bounds=textp1score.getLocalBounds();
-                    textp1score.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+                    textp1score.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
 //                    bounds=textp2score.getLocalBounds();
 //                    textp2score.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
 
@@ -1306,9 +1306,9 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             pauserect.setPosition(sf::Vector2f(0.,fmin(0.,pos.y+ds)));
             pos=_buttons[0]._shape.getPosition();
             _buttons[0]._shape.setPosition(sf::Vector2f(pos.x,fmin(0.5*_sfac*raw_height,pos.y+ds)));
-            _buttons[0]._text.setPosition(sf::Vector2f(pos.x,fmin(0.5*_sfac*raw_height,pos.y+ds)));
+            _buttons[0]._text.setPosition(sf::Vector2f(int(pos.x),int(fmin(0.5*_sfac*raw_height,pos.y+ds))));
             pos=pausetext.getPosition();
-            pausetext.setPosition(sf::Vector2f(pos.x,fmin(0.15*_sfac*raw_height,pos.y+ds)));
+            pausetext.setPosition(sf::Vector2f(int(pos.x),int(fmin(0.15*_sfac*raw_height,pos.y+ds))));
         }
         else
         {
@@ -1317,9 +1317,9 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             pauserect.setPosition(sf::Vector2f(0.,fmax(-_sfac*raw_height,pos.y+ds)));
             pos=_buttons[0]._shape.getPosition();
             _buttons[0]._shape.setPosition(sf::Vector2f(pos.x,fmax(-0.5*_sfac*raw_height,pos.y+ds)));
-            _buttons[0]._text.setPosition(sf::Vector2f(pos.x,fmax(-0.5*_sfac*raw_height,pos.y+ds)));
+            _buttons[0]._text.setPosition(sf::Vector2f(int(pos.x),int(fmax(-0.5*_sfac*raw_height,pos.y+ds))));
             pos=pausetext.getPosition();
-            pausetext.setPosition(sf::Vector2f(pos.x,fmax(-0.85*_sfac*raw_height,pos.y+ds)));
+            pausetext.setPosition(sf::Vector2f(int(pos.x),int(fmax(-0.85*_sfac*raw_height,pos.y+ds))));
         }
 
         if (placing_white)
@@ -1774,14 +1774,14 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             gameoverrect.setPosition(sf::Vector2f(0.,fmin(0.,pos.y+ds)));
             pos=_buttons[1]._shape.getPosition();
             _buttons[1]._shape.setPosition(sf::Vector2f(pos.x,fmin(0.75*_sfac*raw_height,pos.y+ds)));
-            _buttons[1]._text.setPosition(sf::Vector2f(pos.x,fmin(0.75*_sfac*raw_height,pos.y+ds)));
+            _buttons[1]._text.setPosition(sf::Vector2f(int(pos.x),int(fmin(0.75*_sfac*raw_height,pos.y+ds))));
             pos=gameovertext.getPosition();
-            gameovertext.setPosition(sf::Vector2f(pos.x,fmin(0.15*_sfac*raw_height,pos.y+ds)));
+            gameovertext.setPosition(sf::Vector2f(int(pos.x),int(fmin(0.15*_sfac*raw_height,pos.y+ds))));
 
             for (int i=0;i<stats_text.size();i++)
             {
                 pos=stats_text[i].getPosition();
-                stats_text[i].setPosition(sf::Vector2f(pos.x,fmin(stats_text_y[i]+_sfac*raw_height,pos.y+ds)));
+                stats_text[i].setPosition(sf::Vector2f(int(pos.x),int(fmin(stats_text_y[i]+_sfac*raw_height,pos.y+ds))));
             }
         }
         else
@@ -1791,9 +1791,9 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             pauserect.setPosition(sf::Vector2f(0.,fmax(-_sfac*raw_height,pos.y+ds)));
             pos=_buttons[0]._shape.getPosition();
             _buttons[0]._shape.setPosition(sf::Vector2f(pos.x,fmax(-0.5*_sfac*raw_height,pos.y+ds)));
-            _buttons[0]._text.setPosition(sf::Vector2f(pos.x,fmax(-0.5*_sfac*raw_height,pos.y+ds)));
+            _buttons[0]._text.setPosition(sf::Vector2f(int(pos.x),int(fmax(-0.5*_sfac*raw_height,pos.y+ds))));
             pos=pausetext.getPosition();
-            pausetext.setPosition(sf::Vector2f(pos.x,fmax(-0.85*_sfac*raw_height,pos.y+ds)));
+            pausetext.setPosition(sf::Vector2f(int(pos.x),int(fmax(-0.85*_sfac*raw_height,pos.y+ds))));
         }
     }
 }
