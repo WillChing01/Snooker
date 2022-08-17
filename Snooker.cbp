@@ -64,6 +64,7 @@
 		<Unit filename="include/common.h" />
 		<Unit filename="include/cue.h" />
 		<Unit filename="include/cushion.h" />
+		<Unit filename="include/file-locations.h" />
 		<Unit filename="include/game-state.h" />
 		<Unit filename="include/input-box.h" />
 		<Unit filename="include/nominate-ball.h" />

@@ -25,7 +25,66 @@ const std::map<std::string,sf::Keyboard::Key> default_controls=
 {"Pause game",sf::Keyboard::Escape}
 };
 
+const std::vector<std::string> universal_controls={"Toggle mute", "Pause game"};
+const std::vector<std::string> shot_controls={"Aim left", "Aim right", "Precise aim left", "Precise aim right", "Increase power", "Decrease power",
+"Increase cue elevation", "Decrease cue elevation", "Offset cue tip up", "Offset cue tip down", "Offset cue tip left", "Offset cue tip right",
+"Strike cueball"};
+const std::vector<std::string> place_controls={"Move ball up", "Move ball down", "Move ball left", "Move ball right", "Place ball"};
+
 std::map<std::string,sf::Keyboard::Key> user_controls=default_controls;
+
+std::map<std::string,bool> getControlConflicts()
+{
+    std::map<std::string,bool> result;
+    for (auto it: default_controls) {result[it.first]=false;}
+
+    std::vector<std::string> akeys;
+    std::vector<std::string> bkeys;
+
+    //check universal controls against everything.
+    akeys=universal_controls;
+    for (auto it: default_controls) {bkeys.push_back(it.first);}
+    for (int i=0;i<akeys.size();i++)
+    {
+        for (int j=0;j<bkeys.size();j++)
+        {
+            if (akeys[i]==bkeys[j]) {continue;}
+            if (user_controls[akeys[i]]==user_controls[bkeys[j]])
+            {
+                result[akeys[i]]=true;
+                result[bkeys[j]]=true;
+            }
+        }
+    }
+
+    akeys=shot_controls;
+    for (int i=0;i<akeys.size();i++)
+    {
+        for (int j=i+1;j<akeys.size();j++)
+        {
+            if (user_controls[akeys[i]]==user_controls[akeys[j]])
+            {
+                result[akeys[i]]=true;
+                result[akeys[j]]=true;
+            }
+        }
+    }
+
+    akeys=place_controls;
+    for (int i=0;i<akeys.size();i++)
+    {
+        for (int j=i+1;j<akeys.size();j++)
+        {
+            if (user_controls[akeys[i]]==user_controls[akeys[j]])
+            {
+                result[akeys[i]]=true;
+                result[akeys[j]]=true;
+            }
+        }
+    }
+
+    return result;
+};
 
 #define ITEM(x) case sf::Keyboard::x : return #x;
 

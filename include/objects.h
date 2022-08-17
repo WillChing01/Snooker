@@ -21,6 +21,7 @@
 #include "polystuff.h"
 #include "table-constants.h"
 #include "common.h"
+#include "file-locations.h"
 
 #include "rimode.h"
 #include "red-arrow.h"
