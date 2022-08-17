@@ -14,6 +14,8 @@ class ControlScreen : public GameState
     public:
         ControlScreen(double sfac=dfactor) : GameState(sfac)
         {
+            _shouldUpdate=false;
+
             _background=sf::Color(0,0,0);
 
             if (!_thinfont.loadFromFile(_thinFontFile))
@@ -294,7 +296,44 @@ class ControlScreen : public GameState
                 _buttons[i]._text.setFillColor(_buttons[i]._textcolour1);
             }
         }
-        void update (double dt,sf::Vector2i mouse_pos) {};
+        void update (double dt,sf::Vector2i mouse_pos)
+        {
+            _shouldUpdate=false;
+
+            //check for key conflicts.
+            std::map<std::string,bool> result=getControlConflicts();
+
+            sf::Color red1=sf::Color(170,0,0);
+            sf::Color red2=sf::Color(170,0,0);
+            sf::Color red3=sf::Color(200,0,0);
+
+            int colour1[4]={100,100,100,150};
+            int colour2[4]={100,100,100,150};
+            int colour3[4]={169,169,169,200};
+
+            for (auto it: result)
+            {
+                //make the button red.
+                for (int i=0;i<_buttons.size();i++)
+                {
+                    if (_buttons[i]._target==it.first)
+                    {
+                        if (it.second==true)
+                        {
+                            _buttons[i]._colour1=red1;
+                            _buttons[i]._colour2=red2;
+                            _buttons[i]._colour3=red3;
+                        }
+                        else
+                        {
+                            _buttons[i]._colour1=sf::Color(colour1[0],colour1[1],colour1[2],colour1[3]);
+                            _buttons[i]._colour2=sf::Color(colour2[0],colour2[1],colour2[2],colour2[3]);
+                            _buttons[i]._colour3=sf::Color(colour3[0],colour3[1],colour3[2],colour3[3]);
+                        }
+                    }
+                }
+            }
+        };
 };
 
 #endif // CONTROL-SCREEN_H_INCLUDED

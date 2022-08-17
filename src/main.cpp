@@ -182,9 +182,9 @@ int main()
                                 {
                                     try
                                     {
-                                    ip=states.back()->_inputboxes[0]._text.getString();
-                                    port=std::stoi(std::string(states.back()->_inputboxes[1]._text.getString()));
-                                    states.push_back(new GameScreen(dfactor,1,ip,port,name));
+                                        ip=states.back()->_inputboxes[0]._text.getString();
+                                        port=std::stoi(std::string(states.back()->_inputboxes[1]._text.getString()));
+                                        states.push_back(new GameScreen(dfactor,1,ip,port,name));
                                     }
                                     catch (...) {}
                                 }
@@ -200,13 +200,15 @@ int main()
                                     {
                                         states.back()->_buttons[i]._text.setString(KeyToString(user_controls[states.back()->_buttons[i]._target]));
                                         bounds=states.back()->_buttons[i]._text.getLocalBounds();
-                                        states.back()->_buttons[i]._text.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+                                        states.back()->_buttons[i]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
                                     }
 
                                     //update the config file with new controls.
                                     std::ofstream file(_userConfigFile,std::ofstream::out | std::ofstream::trunc);
                                     for (auto thing:user_controls) {file << KeyToString(thing.second) << "\n";}
                                     file.close();
+
+                                    states.back()->_shouldUpdate=true;
                                 }
                                 else if (target=="Concedeframe") {states.back()->_buttons[i]._target="Concedeframe1";}
                                 else if (target=="Concedematch") {states.back()->_buttons[i]._target="Concedematch1";}
@@ -223,7 +225,7 @@ int main()
                                 controlindex=i;
                                 states.back()->_buttons[controlindex]._text.setString("?");
                                 bounds=states.back()->_buttons[controlindex]._text.getLocalBounds();
-                                states.back()->_buttons[controlindex]._text.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+                                states.back()->_buttons[controlindex]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
                                 wait=true;
                                 break;
                             }
@@ -367,7 +369,7 @@ int main()
                         user_controls[states.back()->_buttons[controlindex]._target]=event.key.code;
                         states.back()->_buttons[controlindex]._text.setString(target);
                         bounds=states.back()->_buttons[controlindex]._text.getLocalBounds();
-                        states.back()->_buttons[controlindex]._text.setOrigin(sf::Vector2f(bounds.left+0.5*bounds.width,bounds.top+0.5*bounds.height));
+                        states.back()->_buttons[controlindex]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
 
                         //update the config file with new controls.
                         std::ofstream file(_userConfigFile,std::ofstream::out | std::ofstream::trunc);
@@ -378,6 +380,8 @@ int main()
                         states.back()->_buttons[controlindex]._shape.setFillColor(states.back()->_buttons[controlindex]._colour1);
                         states.back()->_buttons[controlindex]._shape.setOutlineColor(states.back()->_buttons[controlindex]._outlinecolour1);
                         states.back()->_buttons[controlindex]._text.setFillColor(states.back()->_buttons[controlindex]._textcolour1);
+
+                        states.back()->_shouldUpdate=true;
 
                         wait=false;
                         controlindex=-1;
@@ -415,7 +419,7 @@ int main()
             }
         }
 
-        if (!wait) {states.back()->update(1.0/framerate,mouse_pos);}
+        if (!wait && states.back()->_shouldUpdate) {states.back()->update(1.0/framerate,mouse_pos);}
 
         window.clear(states.back()->_background);
 

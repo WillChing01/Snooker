@@ -4,6 +4,8 @@
 class GameState
 {
     public:
+        bool _shouldUpdate=true;
+
         std::vector<RectButton> _buttons;
         std::vector<InputBox> _inputboxes;
         std::vector<sf::Drawable*> _shapes;
