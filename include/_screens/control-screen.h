@@ -8,6 +8,14 @@ class ControlScreen : public GameState
         sf::Font _boldfont;
 
         sf::Text title;
+        sf::Text universalControlsText;
+        sf::Text shotControlsText;
+        sf::Text placeControlsText;
+        sf::Text infoText;
+
+        sf::RectangleShape universalControlsShape;
+        sf::RectangleShape shotControlsShape;
+        sf::RectangleShape placeControlsShape;
 
         std::vector<sf::Text> t;
 
@@ -37,6 +45,69 @@ class ControlScreen : public GameState
             title.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5),int(_sfac*raw_height*0.15)));
             title.setFillColor(sf::Color(255,255,255));
             _shapes.push_back(&title);
+
+            const int keyCharSize=int(_sfac*raw_height*0.02);
+            const int controlShapesOffset=_sfac*raw_width*0.07;
+
+            universalControlsText.setFont(_boldfont);
+            universalControlsText.setString("Universal controls:");
+            universalControlsText.setCharacterSize(keyCharSize);
+            textrect=universalControlsText.getLocalBounds();
+            universalControlsText.setOrigin(sf::Vector2f(0.,int(textrect.top+0.5*textrect.height)));
+            universalControlsText.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5-controlShapesOffset),int(_sfac*raw_height*0.225)));
+            universalControlsText.setFillColor(sf::Color(255,255,255));
+            _shapes.push_back(&universalControlsText);
+
+            shotControlsText.setFont(_boldfont);
+            shotControlsText.setString("Shot controls:");
+            shotControlsText.setCharacterSize(keyCharSize);
+            textrect=shotControlsText.getLocalBounds();
+            shotControlsText.setOrigin(sf::Vector2f(0.,int(textrect.top+0.5*textrect.height)));
+            shotControlsText.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5-controlShapesOffset),int(_sfac*raw_height*0.25)));
+            shotControlsText.setFillColor(sf::Color(255,255,255));
+            _shapes.push_back(&shotControlsText);
+
+            placeControlsText.setFont(_boldfont);
+            placeControlsText.setString("Place ball controls:");
+            placeControlsText.setCharacterSize(keyCharSize);
+            textrect=placeControlsText.getLocalBounds();
+            placeControlsText.setOrigin(sf::Vector2f(0.,int(textrect.top+0.5*textrect.height)));
+            placeControlsText.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5-controlShapesOffset),int(_sfac*raw_height*0.275)));
+            placeControlsText.setFillColor(sf::Color(255,255,255));
+            _shapes.push_back(&placeControlsText);
+
+            infoText.setFont(_thinfont);
+            infoText.setString("Controls in the same category can overlap but universal controls can overlap with all others");
+            infoText.setCharacterSize(int(keyCharSize*0.75));
+            textrect=infoText.getLocalBounds();
+            infoText.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+            infoText.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5),int(_sfac*raw_height*0.3)));
+            infoText.setFillColor(sf::Color(255,255,255));
+            _shapes.push_back(&infoText);
+
+            universalControlsShape.setSize(sf::Vector2f(keyCharSize,keyCharSize));
+            universalControlsShape.setFillColor(universalControlsColour);
+            textrect=universalControlsShape.getLocalBounds();
+            universalControlsShape.setOrigin(sf::Vector2f(textrect.left+textrect.width,textrect.top+0.5*textrect.height));
+            textrect=universalControlsText.getGlobalBounds();
+            universalControlsShape.setPosition(sf::Vector2f(_sfac*raw_width*0.5+controlShapesOffset,textrect.top+textrect.height*0.5));
+            _shapes.push_back(&universalControlsShape);
+
+            shotControlsShape.setSize(sf::Vector2f(keyCharSize,keyCharSize));
+            shotControlsShape.setFillColor(shotControlsColour);
+            textrect=shotControlsShape.getLocalBounds();
+            shotControlsShape.setOrigin(sf::Vector2f(textrect.left+textrect.width,textrect.top+0.5*textrect.height));
+            textrect=shotControlsText.getGlobalBounds();
+            shotControlsShape.setPosition(sf::Vector2f(_sfac*raw_width*0.5+controlShapesOffset,textrect.top+textrect.height*0.5));
+            _shapes.push_back(&shotControlsShape);
+
+            placeControlsShape.setSize(sf::Vector2f(keyCharSize,keyCharSize));
+            placeControlsShape.setFillColor(placeControlsColour);
+            textrect=placeControlsShape.getLocalBounds();
+            placeControlsShape.setOrigin(sf::Vector2f(textrect.left+textrect.width,textrect.top+0.5*textrect.height));
+            textrect=placeControlsText.getGlobalBounds();
+            placeControlsShape.setPosition(sf::Vector2f(_sfac*raw_width*0.5+controlShapesOffset,textrect.top+textrect.height*0.5));
+            _shapes.push_back(&placeControlsShape);
 
             for (int i=0;i<default_controls.size();i++)
             {
