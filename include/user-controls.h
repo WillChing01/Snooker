@@ -25,6 +25,10 @@ const std::map<std::string,sf::Keyboard::Key> default_controls=
 {"Pause game",sf::Keyboard::Escape}
 };
 
+const sf::Color shotControlsColour=sf::Color(0,255,255);
+const sf::Color placeControlsColour=sf::Color(255,255,0);
+const sf::Color universalControlsColour=sf::Color(0,255,0);
+
 const std::vector<std::string> universal_controls={"Toggle mute", "Pause game"};
 const std::vector<std::string> shot_controls={"Aim left", "Aim right", "Precise aim left", "Precise aim right", "Increase power", "Decrease power",
 "Increase cue elevation", "Decrease cue elevation", "Offset cue tip up", "Offset cue tip down", "Offset cue tip left", "Offset cue tip right",
@@ -85,6 +89,28 @@ std::map<std::string,bool> getControlConflicts()
 
     return result;
 };
+
+sf::Color getControlColour(std::string controlText)
+{
+    //check if universal.
+    for (int i=0;i<universal_controls.size();i++)
+    {
+        if (controlText==universal_controls[i]) {return universalControlsColour;}
+    }
+    //check if shot.
+    for (int i=0;i<shot_controls.size();i++)
+    {
+        if (controlText==shot_controls[i]) {return shotControlsColour;}
+    }
+    //check if placing.
+    for (int i=0;i<place_controls.size();i++)
+    {
+        if (controlText==place_controls[i]) {return placeControlsColour;}
+    }
+
+    //default case.
+    return sf::Color(0,0,0);
+}
 
 #define ITEM(x) case sf::Keyboard::x : return #x;
 

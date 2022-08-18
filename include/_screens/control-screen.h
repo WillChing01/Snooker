@@ -61,6 +61,30 @@ class ControlScreen : public GameState
             int colour2[4]={100,100,100,150};
             int colour3[4]={169,169,169,200};
 
+            const std::vector<std::string> controlsOrder=
+            {
+                "Pause game",
+                "Toggle mute",
+                "Aim left",
+                "Aim right",
+                "Precise aim left",
+                "Precise aim right",
+                "Increase power",
+                "Decrease power",
+                "Increase cue elevation",
+                "Decrease cue elevation",
+                "Offset cue tip up",
+                "Offset cue tip down",
+                "Offset cue tip left",
+                "Offset cue tip right",
+                "Strike cueball",
+                "Move ball up",
+                "Move ball down",
+                "Move ball left",
+                "Move ball right",
+                "Place ball"
+            };
+
             for (int i=0;i<default_controls.size();i++)
             {
                 t[i].setFont(_thinfont);
@@ -85,131 +109,13 @@ class ControlScreen : public GameState
                 _buttons[i]._text.setFont(_buttons[i]._font);
                 _buttons[i]._text.setCharacterSize(int(buttonwidth*_buttons[i]._textfactor/_buttons[i]._ratio));
 
-                if (i==0)
-                {
-                    t[i].setString("Aim left");
-                    _buttons[i]._target="Aim left";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Aim left"]));
-                }
-                else if (i==1)
-                {
-                    t[i].setString("Aim right");
-                    _buttons[i]._target="Aim right";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Aim right"]));
-                }
-                else if (i==2)
-                {
-                    t[i].setString("Precise aim left");
-                    _buttons[i]._target="Precise aim left";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Precise aim left"]));
-                }
-                else if (i==3)
-                {
-                    t[i].setString("Precise aim right");
-                    _buttons[i]._target="Precise aim right";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Precise aim right"]));
-                }
-                else if (i==4)
-                {
-                    t[i].setString("Increase power");
-                    _buttons[i]._target="Increase power";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Increase power"]));
-                }
-                else if (i==5)
-                {
-                    t[i].setString("Decrease power");
-                    _buttons[i]._target="Decrease power";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Decrease power"]));
-                }
-                else if (i==6)
-                {
-                    t[i].setString("Increase cue elevation");
-                    _buttons[i]._target="Increase cue elevation";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Increase cue elevation"]));
-                }
-                else if (i==7)
-                {
-                    t[i].setString("Decrease cue elevation");
-                    _buttons[i]._target="Decrease cue elevation";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Decrease cue elevation"]));
-                }
-                else if (i==8)
-                {
-                    t[i].setString("Offset cue tip up");
-                    _buttons[i]._target="Offset cue tip up";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Offset cue tip up"]));
-                }
-                else if (i==9)
-                {
-                    t[i].setString("Offset cue tip down");
-                    _buttons[i]._target="Offset cue tip down";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Offset cue tip down"]));
-                }
-                else if (i==10)
-                {
-                    t[i].setString("Offset cue tip left");
-                    _buttons[i]._target="Offset cue tip left";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Offset cue tip left"]));
-                }
-                else if (i==11)
-                {
-                    t[i].setString("Offset cue tip right");
-                    _buttons[i]._target="Offset cue tip right";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Offset cue tip right"]));
-                }
-                else if (i==12)
-                {
-                    t[i].setString("Strike cueball");
-                    _buttons[i]._target="Strike cueball";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Strike cueball"]));
-                }
-                else if (i==13)
-                {
-                    t[i].setString("Move ball up");
-                    _buttons[i]._target="Move ball up";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Move ball up"]));
-                }
-                else if (i==14)
-                {
-                    t[i].setString("Move ball down");
-                    _buttons[i]._target="Move ball down";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Move ball down"]));
-                }
-                else if (i==15)
-                {
-                    t[i].setString("Move ball left");
-                    _buttons[i]._target="Move ball left";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Move ball left"]));
-                }
-                else if (i==16)
-                {
-                    t[i].setString("Move ball right");
-                    _buttons[i]._target="Move ball right";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Move ball right"]));
-                }
-                else if (i==17)
-                {
-                    t[i].setString("Place ball");
-                    _buttons[i]._target="Place ball";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Place ball"]));
-                }
-                else if (i==18)
-                {
-                    t[i].setString("Toggle mute");
-                    _buttons[i]._target="Toggle mute";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Toggle mute"]));
-                }
-                else if (i==19)
-                {
-                    t[i].setString("Pause game");
-                    _buttons[i]._target="Pause game";
-                    _buttons[i]._text.setString(KeyToString(user_controls["Pause game"]));
-                }
+                t[i].setString(controlsOrder[i]);
+                _buttons[i]._target=controlsOrder[i];
+                _buttons[i]._text.setString(KeyToString(user_controls[controlsOrder[i]]));
 
                 textrect=t[i].getLocalBounds();
                 t[i].setOrigin(sf::Vector2f(int(textrect.left),int(textrect.top)));
-                t[i].setFillColor(sf::Color(255,255,255));
-
+                t[i].setFillColor(getControlColour(t[i].getString()));
 
                 textrect=_buttons[i]._text.getLocalBounds();
 
@@ -303,9 +209,9 @@ class ControlScreen : public GameState
             //check for key conflicts.
             std::map<std::string,bool> result=getControlConflicts();
 
-            sf::Color red1=sf::Color(170,0,0);
-            sf::Color red2=sf::Color(170,0,0);
-            sf::Color red3=sf::Color(200,0,0);
+            sf::Color red1=sf::Color(170,0,0,150);
+            sf::Color red2=sf::Color(170,0,0,150);
+            sf::Color red3=sf::Color(170,0,0,200);
 
             int colour1[4]={100,100,100,150};
             int colour2[4]={100,100,100,150};
