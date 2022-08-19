@@ -180,7 +180,7 @@ class GameScreen : public GameState
             pauserect.setPosition(sf::Vector2f(0.,-_sfac*raw_height));
             pauserect.setFillColor(sf::Color(100,100,100,150));
 
-            pausetext.setFont(_thinfont);
+            pausetext.setFont(_boldfont);
             pausetext.setCharacterSize(int(_sfac*raw_height*0.1));
             pausetext.setString("Paused");
             textrect=pausetext.getLocalBounds();
@@ -193,7 +193,7 @@ class GameScreen : public GameState
             gameoverrect.setPosition(sf::Vector2f(0.,-_sfac*raw_height));
             gameoverrect.setFillColor(sf::Color(100,100,100,150));
 
-            gameovertext.setFont(_thinfont);
+            gameovertext.setFont(_boldfont);
             gameovertext.setCharacterSize(int(_sfac*raw_height*0.1));
             gameovertext.setString("Game over");
             textrect=gameovertext.getLocalBounds();
@@ -203,12 +203,12 @@ class GameScreen : public GameState
 
             int sh=int(_sfac*raw_height*0.04);
 
-            stats_title.setFont(_thinfont);
+            stats_title.setFont(_boldfont);
             stats_title.setCharacterSize(int(sh*1.2));
             stats_title.setString("Overall Stats");
             textrect=stats_title.getLocalBounds();
             stats_title.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
-            stats_title.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5),int(_sfac*raw_height*0.25-_sfac*raw_height)));
+            stats_title.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5),int(_sfac*raw_height*0.275-_sfac*raw_height)));
             stats_title.setFillColor(sf::Color(255,255,255));
 
             stats_text.push_back(sf::Text());
@@ -1306,9 +1306,9 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             pauserect.setPosition(sf::Vector2f(0.,fmin(0.,pos.y+ds)));
             pos=_buttons[0]._shape.getPosition();
             _buttons[0]._shape.setPosition(sf::Vector2f(pos.x,fmin(0.5*_sfac*raw_height,pos.y+ds)));
-            _buttons[0]._text.setPosition(sf::Vector2f(int(pos.x),int(fmin(0.5*_sfac*raw_height,pos.y+ds))));
+            _buttons[0]._text.setPosition(sf::Vector2f(int(pos.x),fmin(0.5*_sfac*raw_height,pos.y+ds)));
             pos=pausetext.getPosition();
-            pausetext.setPosition(sf::Vector2f(int(pos.x),int(fmin(0.15*_sfac*raw_height,pos.y+ds))));
+            pausetext.setPosition(sf::Vector2f(int(pos.x),fmin(0.15*_sfac*raw_height,pos.y+ds)));
         }
         else
         {
@@ -1317,9 +1317,9 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             pauserect.setPosition(sf::Vector2f(0.,fmax(-_sfac*raw_height,pos.y+ds)));
             pos=_buttons[0]._shape.getPosition();
             _buttons[0]._shape.setPosition(sf::Vector2f(pos.x,fmax(-0.5*_sfac*raw_height,pos.y+ds)));
-            _buttons[0]._text.setPosition(sf::Vector2f(int(pos.x),int(fmax(-0.5*_sfac*raw_height,pos.y+ds))));
+            _buttons[0]._text.setPosition(sf::Vector2f(int(pos.x),fmax(-0.5*_sfac*raw_height,pos.y+ds)));
             pos=pausetext.getPosition();
-            pausetext.setPosition(sf::Vector2f(int(pos.x),int(fmax(-0.85*_sfac*raw_height,pos.y+ds))));
+            pausetext.setPosition(sf::Vector2f(int(pos.x),fmax(-0.85*_sfac*raw_height,pos.y+ds)));
         }
 
         if (placing_white)
@@ -1774,9 +1774,11 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             gameoverrect.setPosition(sf::Vector2f(0.,fmin(0.,pos.y+ds)));
             pos=_buttons[1]._shape.getPosition();
             _buttons[1]._shape.setPosition(sf::Vector2f(pos.x,fmin(0.75*_sfac*raw_height,pos.y+ds)));
-            _buttons[1]._text.setPosition(sf::Vector2f(int(pos.x),int(fmin(0.75*_sfac*raw_height,pos.y+ds))));
+            _buttons[1]._text.setPosition(sf::Vector2f(int(pos.x),fmin(0.75*_sfac*raw_height,pos.y+ds)));
             pos=gameovertext.getPosition();
-            gameovertext.setPosition(sf::Vector2f(int(pos.x),int(fmin(0.15*_sfac*raw_height,pos.y+ds))));
+            gameovertext.setPosition(sf::Vector2f(int(pos.x),fmin(0.15*_sfac*raw_height,pos.y+ds)));
+            pos=stats_title.getPosition();
+            stats_title.setPosition(sf::Vector2f(int(_sfac*raw_width*0.5),fmin(_sfac*raw_height*0.275,pos.y+ds)));
 
             for (int i=0;i<stats_text.size();i++)
             {
@@ -1786,14 +1788,15 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
         }
         else
         {
+            //if currently paused, then put paused screen up before showing game over screen.
             pos=pauserect.getPosition();
             ds=-sqrt(fabs(pos.y+_sfac*raw_height)*2.*pausea)*dt;
             pauserect.setPosition(sf::Vector2f(0.,fmax(-_sfac*raw_height,pos.y+ds)));
             pos=_buttons[0]._shape.getPosition();
             _buttons[0]._shape.setPosition(sf::Vector2f(pos.x,fmax(-0.5*_sfac*raw_height,pos.y+ds)));
-            _buttons[0]._text.setPosition(sf::Vector2f(int(pos.x),int(fmax(-0.5*_sfac*raw_height,pos.y+ds))));
+            _buttons[0]._text.setPosition(sf::Vector2f(int(pos.x),fmax(-0.5*_sfac*raw_height,pos.y+ds)));
             pos=pausetext.getPosition();
-            pausetext.setPosition(sf::Vector2f(int(pos.x),int(fmax(-0.85*_sfac*raw_height,pos.y+ds))));
+            pausetext.setPosition(sf::Vector2f(int(pos.x),fmax(-0.85*_sfac*raw_height,pos.y+ds)));
         }
     }
 }
