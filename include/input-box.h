@@ -1,6 +1,10 @@
 #ifndef INPUT-BOX_H_INCLUDED
 #define INPUT-BOX_H_INCLUDED
 
+const sf::Color inputOutlineColour1=sf::Color(200,200,200,255);
+const sf::Color inputOutlineColour2=sf::Color(255,255,255,255);
+const sf::Color inputColour1=sf::Color(100,100,100,150);
+
 class InputBox
 {
     public:
@@ -25,8 +29,10 @@ class InputBox
 
         sf::Text _backtext;
 
-        sf::Color _outlinecolour1;
-        sf::Color _outlinecolour2;
+        sf::Color _outlinecolour1=inputOutlineColour1;
+        sf::Color _outlinecolour2=inputOutlineColour2;
+
+        sf::Color _colour1=inputColour1;
 
         InputBox() {};
 };
