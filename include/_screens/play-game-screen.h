@@ -11,7 +11,10 @@ class GameScreen : public GameState
         //gametype 1 - multiplayer but not host.
         //gametype 2 - singleplayer vs. AI.
         //gametype 3 - singleplayer lineup.
-        Server server=Server();
+
+        //this is local server for singleplayer lineup only!
+        Server localServer=Server();
+
         std::string targetip;
         unsigned short targetport;
         sf::TcpSocket socket;
@@ -837,23 +840,23 @@ class GameScreen : public GameState
 
             for (int i=0;i<22;i++)
             {
-                server.serverballs[i]._x=balls[i]._x;
-                server.serverballs[i]._y=balls[i]._y;
-                server.serverballs[i]._order=balls[i]._order;
+                localServer.serverballs[i]._x=balls[i]._x;
+                localServer.serverballs[i]._y=balls[i]._y;
+                localServer.serverballs[i]._order=balls[i]._order;
 
-                gxmin=int(floor((server.serverballs[i]._x-server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
-                gxmax=int(floor((server.serverballs[i]._x+server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
-                gymin=int(floor((server.serverballs[i]._y-server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
-                gymax=int(floor((server.serverballs[i]._y+server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
+                gxmin=int(floor((localServer.serverballs[i]._x-localServer.serverballs[i]._r)/(2.*localServer.serverballs[i]._r)));
+                gxmax=int(floor((localServer.serverballs[i]._x+localServer.serverballs[i]._r)/(2.*localServer.serverballs[i]._r)));
+                gymin=int(floor((localServer.serverballs[i]._y-localServer.serverballs[i]._r)/(2.*localServer.serverballs[i]._r)));
+                gymax=int(floor((localServer.serverballs[i]._y+localServer.serverballs[i]._r)/(2.*localServer.serverballs[i]._r)));
 
-                server.serverballs[i]._gpos[0][0]=gxmin;
-                server.serverballs[i]._gpos[0][1]=gymin;
-                server.serverballs[i]._gpos[1][0]=gxmax;
-                server.serverballs[i]._gpos[1][1]=gymin;
-                server.serverballs[i]._gpos[2][0]=gxmax;
-                server.serverballs[i]._gpos[2][1]=gymax;
-                server.serverballs[i]._gpos[3][0]=gxmin;
-                server.serverballs[i]._gpos[3][1]=gymax;
+                localServer.serverballs[i]._gpos[0][0]=gxmin;
+                localServer.serverballs[i]._gpos[0][1]=gymin;
+                localServer.serverballs[i]._gpos[1][0]=gxmax;
+                localServer.serverballs[i]._gpos[1][1]=gymin;
+                localServer.serverballs[i]._gpos[2][0]=gxmax;
+                localServer.serverballs[i]._gpos[2][1]=gymax;
+                localServer.serverballs[i]._gpos[3][0]=gxmin;
+                localServer.serverballs[i]._gpos[3][1]=gymax;
             }
 
             baulkline.setPrimitiveType(sf::PrimitiveType::LineStrip);
@@ -1213,31 +1216,31 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     change=true;
                     //solo lineup.
                     //check if correct ball hit.
-                    if (server.ball_hit_order.size()==0) {gameover=true; return;}
-                    if (server.ball_potted_order.size()==0) {gameover=true; return;}
+                    if (localServer.ball_hit_order.size()==0) {gameover=true; return;}
+                    if (localServer.ball_potted_order.size()==0) {gameover=true; return;}
 
                     if (isredon)
                     {
-                        for (int i=0;i<server.ball_hit_order.size();i++)
+                        for (int i=0;i<localServer.ball_hit_order.size();i++)
                         {
-                            if (server.ball_hit_order[i]<8) {gameover=true; return;}
+                            if (localServer.ball_hit_order[i]<8) {gameover=true; return;}
                         }
                         //check pots.
-                        for (int i=0;i<server.ball_potted_order.size();i++)
+                        for (int i=0;i<localServer.ball_potted_order.size();i++)
                         {
-                            if (server.ball_potted_order[i]<8) {gameover=true; return;}
+                            if (localServer.ball_potted_order[i]<8) {gameover=true; return;}
                         }
                         //add scores.
-                        p1score+=server.ball_potted_order.size();
+                        p1score+=localServer.ball_potted_order.size();
                         p1_highbreak=p1score;
                     }
                     else
                     {
-                        if (server.ball_hit_order.size()>1) {gameover=true; return;}
-                        if (server.ball_hit_order[0]!=nom_colour_order) {gameover=true; return;}
-                        if (server.ball_potted_order.size()>1) {gameover=true; return;}
-                        if (server.ball_potted_order[0]!=nom_colour_order) {gameover=true; return;}
-                        p1score+=server.ball_potted_order[0];
+                        if (localServer.ball_hit_order.size()>1) {gameover=true; return;}
+                        if (localServer.ball_hit_order[0]!=nom_colour_order) {gameover=true; return;}
+                        if (localServer.ball_potted_order.size()>1) {gameover=true; return;}
+                        if (localServer.ball_potted_order[0]!=nom_colour_order) {gameover=true; return;}
+                        p1score+=localServer.ball_potted_order[0];
                         p1_highbreak=p1score;
                     }
                     isredon=!isredon;
@@ -1255,11 +1258,11 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                         bounds=stats_text[i].getLocalBounds();
                         stats_text[i].setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
                     }
-                    server.respot();
+                    localServer.respot();
                     for (int i=1;i<7;i++)
                     {
-                        balls[i]._x=server.serverballs[i]._x;
-                        balls[i]._y=server.serverballs[i]._y;
+                        balls[i]._x=localServer.serverballs[i]._x;
+                        balls[i]._y=localServer.serverballs[i]._y;
                         balls[i]._z=ball_radius;
                     }
 
@@ -1411,8 +1414,8 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     }
                     if (gametype==3)
                     {
-                        server.serverballs[0]._x=balls[0]._x;
-                        server.serverballs[0]._y=balls[0]._y;
+                        localServer.serverballs[0]._x=balls[0]._x;
+                        localServer.serverballs[0]._y=balls[0]._y;
                     }
                 }
             }
@@ -1536,14 +1539,14 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     if (gametype==3)
                     {
                         //solo lineup.
-                        server.serverballs[0]._vx=balls[0]._vx;
-                        server.serverballs[0]._vy=balls[0]._vy;
-                        server.serverballs[0]._xspin=balls[0]._xspin;
-                        server.serverballs[0]._yspin=balls[0]._yspin;
-                        server.serverballs[0]._rspin=balls[0]._rspin;
+                        localServer.serverballs[0]._vx=balls[0]._vx;
+                        localServer.serverballs[0]._vy=balls[0]._vy;
+                        localServer.serverballs[0]._xspin=balls[0]._xspin;
+                        localServer.serverballs[0]._yspin=balls[0]._yspin;
+                        localServer.serverballs[0]._rspin=balls[0]._rspin;
 
-                        server.result=server.simulate(server.serverballs,server.servercushions);
-                        result=server.result;
+                        localServer.result=localServer.simulate(localServer.serverballs,localServer.servercushions);
+                        result=localServer.result;
                         t=0;
                         done=false;
                         return;

@@ -8,7 +8,6 @@ class Server
 
         bool player_turn=0;
 
-        std::string names[2]={"PLAYER 1","PLAYER 2"};
         int scores[2]={0,0};
         int frames[2]={0,0};
         int framesbestof=35;
@@ -38,7 +37,7 @@ class Server
         std::array<sf::TcpSocket,2> players;
         std::array<sf::TcpSocket,4> spectators;
 
-        std::array<std::string,2> pnames;
+        std::array<std::string,2> pnames={"PLAYER 1","PLAYER 2"};
         std::array<std::string,4> snames;
 
         sf::Packet packet;

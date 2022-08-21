@@ -13,8 +13,8 @@ void resetBalls(Server &server)
         server.spectators[i].disconnect();
     }
     server.player_turn=0;
-    server.names[0]="PLAYER 1";
-    server.names[1]="PLAYER 2";
+    server.pnames[0]="PLAYER 1";
+    server.pnames[1]="PLAYER 2";
     server.scores[0]=0;
     server.scores[1]=0;
     server.frames[0]=0;
@@ -177,14 +177,23 @@ int main()
                                 else if (target=="Options") {states.push_back(new OptionsScreen());}
                                 else if (target=="Singleplayer") {states.push_back(new SingleplayerScreen());}
                                 else if (target=="Multiplayer") {states.push_back(new MultiplayerScreen(dfactor,localip,std::to_string(localport)));}
-                                else if (target=="MultiplayerHost") {resetBalls(server); try{states.push_back(new GameScreen(dfactor,0,localip,localport,name));} catch (...){}}
+                                else if (target=="MultiplayerHost")
+                                {
+                                    resetBalls(server);
+                                    server.pnames[0]=std::string(states.back()->_inputboxes[2]._text.getString());
+                                    try
+                                    {
+                                        states.push_back(new GameScreen(dfactor,0,localip,localport,std::string(states.back()->_inputboxes[2]._text.getString())));
+                                    }
+                                    catch (...) {}
+                                }
                                 else if (target=="MultiplayerJoin")
                                 {
                                     try
                                     {
                                         ip=states.back()->_inputboxes[0]._text.getString();
                                         port=std::stoi(std::string(states.back()->_inputboxes[1]._text.getString()));
-                                        states.push_back(new GameScreen(dfactor,1,ip,port,name));
+                                        states.push_back(new GameScreen(dfactor,1,ip,port,std::string(states.back()->_inputboxes[2]._text.getString())));
                                     }
                                     catch (...) {}
                                 }
