@@ -72,6 +72,8 @@ class Server
         void resetframe();
         bool is_snookered();
         void broadcast(std::string name, std::string message);
+        void sendBallPositions();
+        void sendShotSimulation();
 };
 
 Server::Server()
@@ -122,21 +124,8 @@ void Server::broadcast(std::string name, std::string message)
     }
 }
 
-void Server::resetframe()
+void Server::sendBallPositions()
 {
-    scores[0]=0;
-    scores[1]=0;
-
-    if ((frames[0]+frames[1])%2==0) {player_turn=0;}
-    else {player_turn=1;}
-
-    isredon=true;
-    isfreeball=false;
-    placing_white=true;
-    current_break=0;
-
-    rackballs();
-
     packet.clear();
     packet << sf::Uint16(1) << sf::Uint32(1);
     for (int i=0;i<22;i++)
@@ -159,6 +148,73 @@ void Server::resetframe()
             spectators[i].send(packet);
         }
     }
+}
+
+void Server::sendShotSimulation()
+{
+    //send the results in a packet.
+    packet.clear();
+    std::vector<double> flatresult;
+    for (int i=0;i<result.size();i++)
+    {
+        for (int j=0;j<66;j++)
+        {
+            flatresult.push_back(result[i][j]);
+        }
+    }
+    for (int i=0;i<22;i++)
+    {
+        if (!serverballs[i]._potted)
+        {
+            flatresult.push_back(serverballs[i]._x);
+            flatresult.push_back(serverballs[i]._y);
+            flatresult.push_back(serverballs[i]._z);
+        }
+        else
+        {
+            flatresult.push_back(-100.);
+            flatresult.push_back(-100.);
+            flatresult.push_back(-100.);
+        }
+    }
+    packet << sf::Uint16(1) << sf::Uint32(result.size()+1);
+    for (int i=0;i<flatresult.size();i++)
+    {
+        packet << flatresult[i];
+    }
+
+    for (int i=0;i<2;i++)
+    {
+        if (players[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            players[i].send(packet);
+        }
+    }
+    for (int i=0;i<4;i++)
+    {
+        if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            spectators[i].send(packet);
+        }
+    }
+}
+
+void Server::resetframe()
+{
+    scores[0]=0;
+    scores[1]=0;
+
+    if ((frames[0]+frames[1])%2==0) {player_turn=0;}
+    else {player_turn=1;}
+
+    isredon=true;
+    isfreeball=false;
+    placing_white=true;
+    current_break=0;
+
+    rackballs();
+
+    sendBallPositions();
 }
 
 bool Server::is_snookered()
@@ -2670,51 +2726,8 @@ void Server::executionThread()
                     isredon=isredon2;
                     isfreeball=isfreeball2;
 
-                    //send the results in a packet.
-                    packet.clear();
-                    flatresult.clear();
-                    for (int i=0;i<result.size();i++)
-                    {
-                        for (int j=0;j<66;j++)
-                        {
-                            flatresult.push_back(result[i][j]);
-                        }
-                    }
-                    for (int i=0;i<22;i++)
-                    {
-                        if (!serverballs[i]._potted)
-                        {
-                            flatresult.push_back(serverballs[i]._x);
-                            flatresult.push_back(serverballs[i]._y);
-                            flatresult.push_back(serverballs[i]._z);
-                        }
-                        else
-                        {
-                            flatresult.push_back(-100.);
-                            flatresult.push_back(-100.);
-                            flatresult.push_back(-100.);
-                        }
-                    }
-                    packet << sf::Uint16(1) << sf::Uint32(result.size()+1);
-                    for (int i=0;i<flatresult.size();i++)
-                    {
-                        packet << flatresult[i];
-                    }
+                    sendShotSimulation();
 
-                    for (int i=0;i<2;i++)
-                    {
-                        if (players[i].getRemoteAddress()!=sf::IpAddress::None)
-                        {
-                            players[i].send(packet);
-                        }
-                    }
-                    for (int i=0;i<4;i++)
-                    {
-                        if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
-                        {
-                            spectators[i].send(packet);
-                        }
-                    }
                     turnpacket();
 
                     //send the log message if foul or miss.
