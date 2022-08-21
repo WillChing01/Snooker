@@ -180,7 +180,6 @@ int main()
                                 else if (target=="MultiplayerHost")
                                 {
                                     resetBalls(server);
-                                    server.pnames[0]=std::string(states.back()->_inputboxes[2]._text.getString());
                                     try
                                     {
                                         states.push_back(new GameScreen(dfactor,0,localip,localport,std::string(states.back()->_inputboxes[2]._text.getString())));

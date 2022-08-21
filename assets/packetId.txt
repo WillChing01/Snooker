@@ -1,0 +1,15 @@
+Server to client
+0: cue trajectory
+1: ball positions for shot animation
+2: game state (whose turn etc.)
+3: log message
+4: names of players
+
+Client to server
+0: user disconnect
+1: cue trajectory
+2: cue parameters for making shot
+3: user message
+4: concede frame
+5: concede match
+6: name of newly connected player

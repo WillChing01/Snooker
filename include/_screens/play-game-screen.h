@@ -149,6 +149,12 @@ class GameScreen : public GameState
                     std::cout << "Could not connect to self server" << std::endl;
                 }
                 socket.setBlocking(false);
+
+                //now send initial message with name of client.
+                packet.clear();
+                packetId=6;
+                packet << packetId << p1name;
+                socket.send(packet);
             }
             else
             {
@@ -921,6 +927,8 @@ class GameScreen : public GameState
         }
         void update(double dt,sf::Vector2i mouse_pos);
         void scores_update();
+        void updateNames();
+        void listenForPackets();
 };
 
 void GameScreen::scores_update()
@@ -1073,99 +1081,10 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
         }
 
         change=false;
-        //listen for packets.
         if (gametype<2)
         {
-            packet.clear();
-            if (socket.receive(packet)==sf::Socket::Done)
-            {
-                packet >> packetId;
-
-                if (packetId==0)
-                {
-                    //display cue trajectory prediction.
-                    packet >> power >> cue._angle >> cue._offset >> cue._theta >> cue._alpha >> balls[0]._x >> balls[0]._y;
-                    change=true;
-                }
-                else if (packetId==1)
-                {
-                    packet >> resultsize;
-                    result.clear();
-                    for (int i=0;i<resultsize;i++)
-                    {
-                        for (int j=0;j<66;j++)
-                        {
-                            packet >> temp[j];
-                        }
-                        result.push_back(temp);
-                    }
-                    t=0;
-                    done=false;
-                }
-                else if (packetId==2)
-                {
-                    //whose turn it is.
-                    packet >> isyourturn >> isfoul >> ismiss >> placing_white >> isredon >> isfreeball >> gameover;
-                    packet >> p1score >> p2score >> p1frames >> p2frames >> p1_highbreak >> p2_highbreak >> p1_centuries >> p2_centuries;
-                    if (done) {scores_update();}
-                    if (gameover) {scores_update();}
-                }
-                else if (packetId==3)
-                {
-                    //received log msg from server.
-                    std::string msgname;
-                    std::string msg;
-                    packet >> msgname >> msg;
-
-                    std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
-
-                    for (int i=0;i<numlines;i++)
-                    {
-                        logtext[i].setString(logstrings[i]);
-                    }
-
-                    sf::FloatRect bounds;
-                    float x=_inputboxes[0]._shape.getSize().x;
-                    std::string total=msgname+": "+msg;
-                    int c=0;
-                    while (total.length()!=0)
-                    {
-                        c+=1;
-                        logtext[numlines-1].setString(total.substr(0,c));
-                        logstrings[numlines-1]=total.substr(0,c);
-                        bounds=logtext[numlines-1].getLocalBounds();
-                        if (bounds.width>x)
-                        {
-                            if ((total.substr(c-2,1)).compare(" "))
-                            {
-                                //hyphen.
-                                logtext[numlines-1].setString(total.substr(0,c-2)+"-");
-                                logstrings[numlines-1]=total.substr(0,c-2)+"-";
-                                total.erase(0,c-2);
-                                c=0;
-                            }
-                            else
-                            {
-                                logtext[numlines-1].setString(total.substr(0,c-1));
-                                logstrings[numlines-1]=total.substr(0,c-1);
-                                total.erase(0,c-1);
-                                c=0;
-                            }
-                            //recycle the line.
-                            std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
-
-                            for (int i=0;i<numlines;i++)
-                            {
-                                logtext[i].setString(logstrings[i]);
-                            }
-                        }
-                        if (c==total.length())
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
+            //multiplayer only.
+            listenForPackets();
         }
 
         if (int(floor(t*100./framerate))<result.size())
@@ -1777,5 +1696,146 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
     }
 }
 
+void GameScreen::updateNames()
+{
+    //truncate names if too long.
+    const int charLim=20;
+
+    if (p1name.length()>charLim)
+    {
+        p1name=p1name.substr(0,charLim)+"...";
+    }
+    if (p2name.length()>charLim)
+    {
+        p2name=p2name.substr(0,charLim)+"...";
+    }
+
+    sf::FloatRect textrect;
+
+    //names on score bar.
+    textp1name.setString(p1name);
+    textrect=textp1name.getLocalBounds();
+    textp1name.setOrigin(sf::Vector2f(int(0.),int(textrect.top+textrect.height/2.)));
+
+    textp2name.setString(p2name);
+    textrect=textp2name.getLocalBounds();
+    textp2name.setOrigin(sf::Vector2f(int(textrect.left+textrect.width),int(textrect.top+textrect.height/2.)));
+
+    //names shown on game over screen.
+    double starth=0.35*_sfac*raw_height;
+    double soffset=0.15*_sfac*raw_width;
+
+    for (int i=1;i<3;i++)
+    {
+        if (i==1) {stats_text[i].setString(p1name);}
+        else if (i==2) {stats_text[i].setString(p2name);}
+
+        textrect=stats_text[i].getLocalBounds();
+        stats_text[i].setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+    }
+}
+
+void GameScreen::listenForPackets()
+{
+    //listen for packets.
+    packet.clear();
+    if (socket.receive(packet)==sf::Socket::Done)
+    {
+        packet >> packetId;
+
+        if (packetId==0)
+        {
+            //display cue trajectory prediction.
+            packet >> power >> cue._angle >> cue._offset >> cue._theta >> cue._alpha >> balls[0]._x >> balls[0]._y;
+            change=true;
+        }
+        else if (packetId==1)
+        {
+            packet >> resultsize;
+            result.clear();
+            for (int i=0;i<resultsize;i++)
+            {
+                for (int j=0;j<66;j++)
+                {
+                    packet >> temp[j];
+                }
+                result.push_back(temp);
+            }
+            t=0;
+            done=false;
+        }
+        else if (packetId==2)
+        {
+            //whose turn it is.
+            packet >> isyourturn >> isfoul >> ismiss >> placing_white >> isredon >> isfreeball >> gameover;
+            packet >> p1score >> p2score >> p1frames >> p2frames >> p1_highbreak >> p2_highbreak >> p1_centuries >> p2_centuries;
+            if (done) {scores_update();}
+            if (gameover) {scores_update();}
+        }
+        else if (packetId==3)
+        {
+            //received log msg from server.
+            std::string msgname;
+            std::string msg;
+            packet >> msgname >> msg;
+
+            std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
+
+            for (int i=0;i<numlines;i++)
+            {
+                logtext[i].setString(logstrings[i]);
+            }
+
+            sf::FloatRect bounds;
+            float x=_inputboxes[0]._shape.getSize().x;
+            std::string total=msgname+": "+msg;
+            int c=0;
+            while (total.length()!=0)
+            {
+                c+=1;
+                logtext[numlines-1].setString(total.substr(0,c));
+                logstrings[numlines-1]=total.substr(0,c);
+                bounds=logtext[numlines-1].getLocalBounds();
+                if (bounds.width>x)
+                {
+                    if ((total.substr(c-2,1)).compare(" "))
+                    {
+                        //hyphen.
+                        logtext[numlines-1].setString(total.substr(0,c-2)+"-");
+                        logstrings[numlines-1]=total.substr(0,c-2)+"-";
+                        total.erase(0,c-2);
+                        c=0;
+                    }
+                    else
+                    {
+                        logtext[numlines-1].setString(total.substr(0,c-1));
+                        logstrings[numlines-1]=total.substr(0,c-1);
+                        total.erase(0,c-1);
+                        c=0;
+                    }
+                    //recycle the line.
+                    std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
+
+                    for (int i=0;i<numlines;i++)
+                    {
+                        logtext[i].setString(logstrings[i]);
+                    }
+                }
+                if (c==total.length())
+                {
+                    break;
+                }
+            }
+        }
+        else if (packetId==4)
+        {
+            //received names of players to update client.
+            packet >> p1name >> p2name;
+
+            //update the text on screen.
+            updateNames();
+        }
+    }
+}
 
 #endif // PLAY-GAME-SCREEN_H_INCLUDED
