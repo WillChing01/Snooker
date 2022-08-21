@@ -151,10 +151,7 @@ class GameScreen : public GameState
                 socket.setBlocking(false);
 
                 //now send initial message with name of client.
-                packet.clear();
-                packetId=6;
-                packet << packetId << p1name;
-                socket.send(packet);
+                sendPacket(6);
             }
             else
             {
@@ -929,6 +926,7 @@ class GameScreen : public GameState
         void scores_update();
         void updateNames();
         void listenForPackets();
+        void sendPacket(int id);
 };
 
 void GameScreen::scores_update()
@@ -1013,10 +1011,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             _buttons[2]._target="Concedeframe";
             if (gametype<2)
             {
-                packet.clear();
-                packetId=4;
-                packet << packetId;
-                socket.send(packet);
+                sendPacket(4);
             }
         }
         else if (_buttons[3]._target=="Concedematch1")
@@ -1024,10 +1019,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             _buttons[3]._target="Concedematch";
             if (gametype<2)
             {
-                packet.clear();
-                packetId=5;
-                packet << packetId;
-                socket.send(packet);
+                sendPacket(5);
             }
         }
 
@@ -1061,10 +1053,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                 if (_inputboxes[0]._input.length()>0)
                 {
                     //non-empty message. Send packet as string.
-                    packet.clear();
-                    packetId=3;
-                    packet << packetId << _inputboxes[0]._input;
-                    socket.send(packet);
+                    sendPacket(3);
 
                     _inputboxes[0]._input="";
                     _inputboxes[0]._t=0.;
@@ -1332,11 +1321,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                         placing_white=false;
                         if (gametype<2)
                         {
-                            packet.clear();
-                            packetId=7;
-
-                            packet << packetId << placing_white;
-                            socket.send(packet);
+                            sendPacket(7);
                         }
                     }
                     if (gametype==3)
@@ -1455,10 +1440,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     if (gametype<2)
                     {
                         result.clear();
-                        packet.clear();
-                        packetId=2;
-                        packet << packetId << balls[0]._vx << balls[0]._vy << balls[0]._xspin << balls[0]._yspin << balls[0]._rspin;
-                        socket.send(packet);
+                        sendPacket(2);
                         done=false;
                         return;
                     }
@@ -1645,11 +1627,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             if (gametype<2)
             {
                 //send the info packet.
-                packetId=1;
-                packet.clear();
-
-                packet << packetId << power << cue._angle << cue._offset << cue._theta << cue._alpha << balls[0]._x << balls[0]._y;
-                socket.send(packet);
+                sendPacket(1);
             }
         }
         if (placing_white || !done)
@@ -1669,11 +1647,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             //send packet to server.
             if (gametype<2)
             {
-                packet.clear();
-                packetId=1;
-
-                packet << packetId << power << cue._angle << cue._offset << cue._theta << cue._alpha << balls[0]._x << balls[0]._y;
-                socket.send(packet);
+                sendPacket(1);
             }
         }
     }
@@ -1854,6 +1828,53 @@ void GameScreen::listenForPackets()
             updateNames();
         }
     }
+}
+
+void GameScreen::sendPacket(int id)
+{
+    packet.clear();
+    packetId=id;
+    packet << packetId;
+
+    if (packetId==0)
+    {
+        //user disconnect.
+    }
+    else if (packetId==1)
+    {
+        //send trajectory.
+        packet << power << cue._angle << cue._offset << cue._theta << cue._alpha << balls[0]._x << balls[0]._y;
+    }
+    else if (packetId==2)
+    {
+        //send shot.
+        packet << balls[0]._vx << balls[0]._vy << balls[0]._xspin << balls[0]._yspin << balls[0]._rspin;
+    }
+    else if (packetId==3)
+    {
+        //send text message.
+        packet << _inputboxes[0]._input;
+    }
+    else if (packetId==4)
+    {
+        //concede frame.
+    }
+    else if (packetId==5)
+    {
+        //concede match.
+    }
+    else if (packetId==6)
+    {
+        //send name of player.
+        packet << p1name;
+    }
+    else if (packetId==7)
+    {
+        //send status of placing_white.
+        packet << placing_white;
+    }
+
+    socket.send(packet);
 }
 
 #endif // PLAY-GAME-SCREEN_H_INCLUDED
