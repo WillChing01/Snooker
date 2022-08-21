@@ -9,7 +9,15 @@ Client to server
 0: user disconnect
 1: cue trajectory
 2: cue parameters for making shot
+	- cueball x velocity
+	- cueball y velocity
+	- cueball x spin
+	- cueball y spin
+	- cueball axial spin (side)
 3: user message
 4: concede frame
 5: concede match
 6: name of newly connected player
+	- 
+7: state of placing_white
+	- placing_white

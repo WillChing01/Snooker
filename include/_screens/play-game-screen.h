@@ -1313,7 +1313,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     change=true;
                     if (gametype!=3)
                     {
-                        if (sqrt(pow(balls[0]._x+0.1*(dt/0.01)-brown_x,2.)+pow(balls[0]._y-brown_y,2.))<11.687)
+                        if (sqrt(pow(balls[0]._x+0.1*(dt/0.01)-brown_x,2.)+pow(balls[0]._y-brown_y,2.))<(yellow_y-brown_y))
                         {
                             balls[0]._x+=0.1*(dt/0.01);
                         }
@@ -1330,6 +1330,14 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     if (!touching)
                     {
                         placing_white=false;
+                        if (gametype<2)
+                        {
+                            packet.clear();
+                            packetId=7;
+
+                            packet << packetId << placing_white;
+                            socket.send(packet);
+                        }
                     }
                     if (gametype==3)
                     {
@@ -1634,7 +1642,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                 }
             }
 
-            if (gametype==0 || gametype==1)
+            if (gametype<2)
             {
                 //send the info packet.
                 packetId=1;
@@ -1657,6 +1665,16 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             cuetraj.clear();
             cuetraj2.clear();
             obtraj.clear();
+
+            //send packet to server.
+            if (gametype<2)
+            {
+                packet.clear();
+                packetId=1;
+
+                packet << packetId << power << cue._angle << cue._offset << cue._theta << cue._alpha << balls[0]._x << balls[0]._y;
+                socket.send(packet);
+            }
         }
     }
     else
