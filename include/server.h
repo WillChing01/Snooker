@@ -2876,6 +2876,7 @@ void Server::executionThread()
                     pnames[player_turn]=msg;
                     broadcast("~","Welcome, "+pnames[player_turn]+"!");
                     sendNamePacket();
+                    sendBallPositions();
                     turnpacket();
                 }
                 else if (packetId==7)
@@ -2920,6 +2921,7 @@ void Server::executionThread()
                     pnames[!player_turn]=msg;
                     broadcast("~","Welcome, "+pnames[!player_turn]+"!");
                     sendNamePacket();
+                    sendBallPositions();
                     turnpacket();
                 }
             }

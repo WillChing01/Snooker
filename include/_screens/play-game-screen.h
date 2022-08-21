@@ -1763,6 +1763,8 @@ void GameScreen::listenForPackets()
             packet >> p1score >> p2score >> p1frames >> p2frames >> p1_highbreak >> p2_highbreak >> p1_centuries >> p2_centuries;
             if (done) {scores_update();}
             if (gameover) {scores_update();}
+
+            change=true;
         }
         else if (packetId==3)
         {
