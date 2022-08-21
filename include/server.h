@@ -222,9 +222,6 @@ void Server::turnpacket()
 void Server::sendNamePacket()
 {
     //send packet with names of playing players (not spectators).
-    packet.clear();
-    packetId=4;
-    packet << packetId << pnames[0] << pnames[1];
 
     for (int i=0;i<2;i++)
     {
@@ -247,6 +244,11 @@ void Server::sendNamePacket()
             players[i].send(packet);
         }
     }
+
+    packet.clear();
+    packetId=4;
+    packet << packetId << pnames[0] << pnames[1];
+
     for (int i=0;i<4;i++)
     {
         if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
@@ -2860,6 +2862,7 @@ void Server::executionThread()
                     packet >> msg;
                     pnames[player_turn]=msg;
                     broadcast("~","Welcome, "+pnames[player_turn]+"!");
+                    sendNamePacket();
                 }
             }
         }
@@ -2896,6 +2899,7 @@ void Server::executionThread()
                     packet >> msg;
                     pnames[!player_turn]=msg;
                     broadcast("~","Welcome, "+pnames[!player_turn]+"!");
+                    sendNamePacket();
                 }
             }
         }
