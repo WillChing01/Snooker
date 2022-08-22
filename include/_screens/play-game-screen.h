@@ -988,7 +988,7 @@ void GameScreen::scores_update()
 
 void GameScreen::update(double dt,sf::Vector2i mouse_pos)
 {
-    //activate or deactive text and buttons.
+    //activate or deactivate text and buttons.
 
     if (gameover || !(fabs(pauserect.getPosition().y+_sfac*raw_height)<0.001))
     {
