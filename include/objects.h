@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <string>
 #include <map>
-#include <thread>
 #include <vector>
 
 #include <Eigen/Dense>

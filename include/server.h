@@ -8,7 +8,6 @@ class Server
 
         bool player_turn=0;
 
-        std::string names[2]={"PLAYER 1","PLAYER 2"};
         int scores[2]={0,0};
         int frames[2]={0,0};
         int framesbestof=35;
@@ -38,10 +37,11 @@ class Server
         std::array<sf::TcpSocket,2> players;
         std::array<sf::TcpSocket,4> spectators;
 
-        std::array<std::string,2> pnames;
+        std::array<std::string,2> pnames={"PLAYER 1","PLAYER 2"};
         std::array<std::string,4> snames;
 
         sf::Packet packet;
+        sf::Uint16 packetId=0;
 
         //for objects just need balls and cushions.
 
@@ -68,9 +68,12 @@ class Server
         void respot();
         void rackballs();
         void turnpacket();
+        void sendNamePacket();
         void resetframe();
         bool is_snookered();
         void broadcast(std::string name, std::string message);
+        void sendBallPositions();
+        void sendShotSimulation();
 };
 
 Server::Server()
@@ -103,7 +106,83 @@ Server::Server()
 void Server::broadcast(std::string name, std::string message)
 {
     packet.clear();
-    packet << sf::Uint16(3) << name << message;
+    packetId=3;
+    packet << packetId << name << message;
+    for (int i=0;i<2;i++)
+    {
+        if (players[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            players[i].send(packet);
+        }
+    }
+    for (int i=0;i<4;i++)
+    {
+        if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            spectators[i].send(packet);
+        }
+    }
+}
+
+void Server::sendBallPositions()
+{
+    packet.clear();
+    packet << sf::Uint16(1) << sf::Uint32(1);
+    for (int i=0;i<22;i++)
+    {
+        packet << serverballs[i]._x;
+        packet << serverballs[i]._y;
+        packet << serverballs[i]._z;
+    }
+    for (int i=0;i<2;i++)
+    {
+        if (players[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            players[i].send(packet);
+        }
+    }
+    for (int i=0;i<4;i++)
+    {
+        if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            spectators[i].send(packet);
+        }
+    }
+}
+
+void Server::sendShotSimulation()
+{
+    //send the results in a packet.
+    packet.clear();
+    std::vector<double> flatresult;
+    for (int i=0;i<result.size();i++)
+    {
+        for (int j=0;j<66;j++)
+        {
+            flatresult.push_back(result[i][j]);
+        }
+    }
+    for (int i=0;i<22;i++)
+    {
+        if (!serverballs[i]._potted)
+        {
+            flatresult.push_back(serverballs[i]._x);
+            flatresult.push_back(serverballs[i]._y);
+            flatresult.push_back(serverballs[i]._z);
+        }
+        else
+        {
+            flatresult.push_back(-100.);
+            flatresult.push_back(-100.);
+            flatresult.push_back(-100.);
+        }
+    }
+    packet << sf::Uint16(1) << sf::Uint32(result.size()+1);
+    for (int i=0;i<flatresult.size();i++)
+    {
+        packet << flatresult[i];
+    }
+
     for (int i=0;i<2;i++)
     {
         if (players[i].getRemoteAddress()!=sf::IpAddress::None)
@@ -135,28 +214,7 @@ void Server::resetframe()
 
     rackballs();
 
-    packet.clear();
-    packet << sf::Uint16(1) << sf::Uint32(1);
-    for (int i=0;i<22;i++)
-    {
-        packet << serverballs[i]._x;
-        packet << serverballs[i]._y;
-        packet << serverballs[i]._z;
-    }
-    for (int i=0;i<2;i++)
-    {
-        if (players[i].getRemoteAddress()!=sf::IpAddress::None)
-        {
-            players[i].send(packet);
-        }
-    }
-    for (int i=0;i<4;i++)
-    {
-        if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
-        {
-            spectators[i].send(packet);
-        }
-    }
+    sendBallPositions();
 }
 
 bool Server::is_snookered()
@@ -190,12 +248,13 @@ bool Server::is_snookered()
 void Server::turnpacket()
 {
     //send turn packet.
+    packetId=2;
     for (int i=0;i<2;i++)
     {
         if (players[i].getRemoteAddress()!=sf::IpAddress::None)
         {
             packet.clear();
-            packet << sf::Uint16(2);
+            packet << packetId;
             packet << (player_turn==i);
             packet << isfoul << ismiss << placing_white << isredon << isfreeball << gameover;
             packet << sf::Uint32(scores[i]) << sf::Uint32(scores[(i+1)%2]) << sf::Uint32(frames[i]) << sf::Uint32(frames[(i+1)%2]) << sf::Uint32(highbreak[i]) << sf::Uint32(highbreak[(i+1)%2]) << sf::Uint32(centuries[i]) << sf::Uint32(centuries[(i+1)%2]);
@@ -207,10 +266,49 @@ void Server::turnpacket()
         if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
         {
             packet.clear();
-            packet << sf::Uint16(2);
+            packet << packetId;
             packet << false;
             packet << isfoul << ismiss << placing_white << isredon << isfreeball << gameover;
             packet << sf::Uint32(scores[0]) << sf::Uint32(scores[1]) << sf::Uint32(frames[0]) << sf::Uint32(frames[1]) << sf::Uint32(highbreak[0]) << sf::Uint32(highbreak[1]) << sf::Uint32(centuries[0]) << sf::Uint32(centuries[1]);
+            spectators[i].send(packet);
+        }
+    }
+}
+
+void Server::sendNamePacket()
+{
+    //send packet with names of playing players (not spectators).
+
+    for (int i=0;i<2;i++)
+    {
+        if (players[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
+            if (i==0)
+            {
+                //host.
+                packet.clear();
+                packetId=4;
+                packet << packetId << pnames[0] << pnames[1];
+            }
+            else
+            {
+                //joined player.
+                packet.clear();
+                packetId=4;
+                packet << packetId << pnames[1] << pnames[0];
+            }
+            players[i].send(packet);
+        }
+    }
+
+    packet.clear();
+    packetId=4;
+    packet << packetId << pnames[0] << pnames[1];
+
+    for (int i=0;i<4;i++)
+    {
+        if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
+        {
             spectators[i].send(packet);
         }
     }
@@ -2339,7 +2437,6 @@ void Server::handleIncomingConnections()
 
 void Server::executionThread()
 {
-    sf::Uint16 packetId=0;
     double a=0.;
     double b=0.;
     double c=0.;
@@ -2629,51 +2726,8 @@ void Server::executionThread()
                     isredon=isredon2;
                     isfreeball=isfreeball2;
 
-                    //send the results in a packet.
-                    packet.clear();
-                    flatresult.clear();
-                    for (int i=0;i<result.size();i++)
-                    {
-                        for (int j=0;j<66;j++)
-                        {
-                            flatresult.push_back(result[i][j]);
-                        }
-                    }
-                    for (int i=0;i<22;i++)
-                    {
-                        if (!serverballs[i]._potted)
-                        {
-                            flatresult.push_back(serverballs[i]._x);
-                            flatresult.push_back(serverballs[i]._y);
-                            flatresult.push_back(serverballs[i]._z);
-                        }
-                        else
-                        {
-                            flatresult.push_back(-100.);
-                            flatresult.push_back(-100.);
-                            flatresult.push_back(-100.);
-                        }
-                    }
-                    packet << sf::Uint16(1) << sf::Uint32(result.size()+1);
-                    for (int i=0;i<flatresult.size();i++)
-                    {
-                        packet << flatresult[i];
-                    }
+                    sendShotSimulation();
 
-                    for (int i=0;i<2;i++)
-                    {
-                        if (players[i].getRemoteAddress()!=sf::IpAddress::None)
-                        {
-                            players[i].send(packet);
-                        }
-                    }
-                    for (int i=0;i<4;i++)
-                    {
-                        if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
-                        {
-                            spectators[i].send(packet);
-                        }
-                    }
                     turnpacket();
 
                     //send the log message if foul or miss.
@@ -2682,12 +2736,12 @@ void Server::executionThread()
                         if (ismiss)
                         {
                             msg="FOUL AND A MISS - "+pnames[!player_turn]+", enter /1 to play from here, /2 for opponent to play from here, or /3 for opponent to play from original position.";
-                            broadcast("Server",msg);
+                            broadcast("~",msg);
                         }
                         else
                         {
                             msg="FOUL - "+pnames[!player_turn]+", enter /1 to play from here or /2 for opponent to play from here.";
-                            broadcast("Server",msg);
+                            broadcast("~",msg);
                         }
                     }
                 }
@@ -2815,6 +2869,22 @@ void Server::executionThread()
                     gameover=true;
                     turnpacket();
                 }
+                else if (packetId==6)
+                {
+                    //name of player.
+                    packet >> msg;
+                    pnames[player_turn]=msg;
+                    broadcast("~","Welcome, "+pnames[player_turn]+"!");
+                    sendNamePacket();
+                    sendBallPositions();
+                    turnpacket();
+                }
+                else if (packetId==7)
+                {
+                    //update placing_white.
+                    packet >> placing_white;
+                    turnpacket();
+                }
             }
         }
 
@@ -2842,6 +2912,16 @@ void Server::executionThread()
                     //concede match.
                     frames[player_turn]=(framesbestof+1)/2;
                     gameover=true;
+                    turnpacket();
+                }
+                else if (packetId==6)
+                {
+                    //name of player.
+                    packet >> msg;
+                    pnames[!player_turn]=msg;
+                    broadcast("~","Welcome, "+pnames[!player_turn]+"!");
+                    sendNamePacket();
+                    sendBallPositions();
                     turnpacket();
                 }
             }

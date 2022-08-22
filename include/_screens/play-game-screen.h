@@ -11,7 +11,10 @@ class GameScreen : public GameState
         //gametype 1 - multiplayer but not host.
         //gametype 2 - singleplayer vs. AI.
         //gametype 3 - singleplayer lineup.
-        Server server=Server();
+
+        //this is local server for singleplayer lineup only!
+        Server localServer=Server();
+
         std::string targetip;
         unsigned short targetport;
         sf::TcpSocket socket;
@@ -146,6 +149,9 @@ class GameScreen : public GameState
                     std::cout << "Could not connect to self server" << std::endl;
                 }
                 socket.setBlocking(false);
+
+                //now send initial message with name of client.
+                sendPacket(6);
             }
             else
             {
@@ -837,23 +843,23 @@ class GameScreen : public GameState
 
             for (int i=0;i<22;i++)
             {
-                server.serverballs[i]._x=balls[i]._x;
-                server.serverballs[i]._y=balls[i]._y;
-                server.serverballs[i]._order=balls[i]._order;
+                localServer.serverballs[i]._x=balls[i]._x;
+                localServer.serverballs[i]._y=balls[i]._y;
+                localServer.serverballs[i]._order=balls[i]._order;
 
-                gxmin=int(floor((server.serverballs[i]._x-server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
-                gxmax=int(floor((server.serverballs[i]._x+server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
-                gymin=int(floor((server.serverballs[i]._y-server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
-                gymax=int(floor((server.serverballs[i]._y+server.serverballs[i]._r)/(2.*server.serverballs[i]._r)));
+                gxmin=int(floor((localServer.serverballs[i]._x-localServer.serverballs[i]._r)/(2.*localServer.serverballs[i]._r)));
+                gxmax=int(floor((localServer.serverballs[i]._x+localServer.serverballs[i]._r)/(2.*localServer.serverballs[i]._r)));
+                gymin=int(floor((localServer.serverballs[i]._y-localServer.serverballs[i]._r)/(2.*localServer.serverballs[i]._r)));
+                gymax=int(floor((localServer.serverballs[i]._y+localServer.serverballs[i]._r)/(2.*localServer.serverballs[i]._r)));
 
-                server.serverballs[i]._gpos[0][0]=gxmin;
-                server.serverballs[i]._gpos[0][1]=gymin;
-                server.serverballs[i]._gpos[1][0]=gxmax;
-                server.serverballs[i]._gpos[1][1]=gymin;
-                server.serverballs[i]._gpos[2][0]=gxmax;
-                server.serverballs[i]._gpos[2][1]=gymax;
-                server.serverballs[i]._gpos[3][0]=gxmin;
-                server.serverballs[i]._gpos[3][1]=gymax;
+                localServer.serverballs[i]._gpos[0][0]=gxmin;
+                localServer.serverballs[i]._gpos[0][1]=gymin;
+                localServer.serverballs[i]._gpos[1][0]=gxmax;
+                localServer.serverballs[i]._gpos[1][1]=gymin;
+                localServer.serverballs[i]._gpos[2][0]=gxmax;
+                localServer.serverballs[i]._gpos[2][1]=gymax;
+                localServer.serverballs[i]._gpos[3][0]=gxmin;
+                localServer.serverballs[i]._gpos[3][1]=gymax;
             }
 
             baulkline.setPrimitiveType(sf::PrimitiveType::LineStrip);
@@ -918,6 +924,9 @@ class GameScreen : public GameState
         }
         void update(double dt,sf::Vector2i mouse_pos);
         void scores_update();
+        void updateNames();
+        void listenForPackets();
+        void sendPacket(int id);
 };
 
 void GameScreen::scores_update()
@@ -1002,10 +1011,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             _buttons[2]._target="Concedeframe";
             if (gametype<2)
             {
-                packet.clear();
-                packetId=4;
-                packet << packetId;
-                socket.send(packet);
+                sendPacket(4);
             }
         }
         else if (_buttons[3]._target=="Concedematch1")
@@ -1013,10 +1019,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             _buttons[3]._target="Concedematch";
             if (gametype<2)
             {
-                packet.clear();
-                packetId=5;
-                packet << packetId;
-                socket.send(packet);
+                sendPacket(5);
             }
         }
 
@@ -1050,10 +1053,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                 if (_inputboxes[0]._input.length()>0)
                 {
                     //non-empty message. Send packet as string.
-                    packet.clear();
-                    packetId=3;
-                    packet << packetId << _inputboxes[0]._input;
-                    socket.send(packet);
+                    sendPacket(3);
 
                     _inputboxes[0]._input="";
                     _inputboxes[0]._t=0.;
@@ -1070,99 +1070,10 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
         }
 
         change=false;
-        //listen for packets.
         if (gametype<2)
         {
-            packet.clear();
-            if (socket.receive(packet)==sf::Socket::Done)
-            {
-                packet >> packetId;
-
-                if (packetId==0)
-                {
-                    //display cue trajectory prediction.
-                    packet >> power >> cue._angle >> cue._offset >> cue._theta >> cue._alpha >> balls[0]._x >> balls[0]._y;
-                    change=true;
-                }
-                else if (packetId==1)
-                {
-                    packet >> resultsize;
-                    result.clear();
-                    for (int i=0;i<resultsize;i++)
-                    {
-                        for (int j=0;j<66;j++)
-                        {
-                            packet >> temp[j];
-                        }
-                        result.push_back(temp);
-                    }
-                    t=0;
-                    done=false;
-                }
-                else if (packetId==2)
-                {
-                    //whose turn it is.
-                    packet >> isyourturn >> isfoul >> ismiss >> placing_white >> isredon >> isfreeball >> gameover;
-                    packet >> p1score >> p2score >> p1frames >> p2frames >> p1_highbreak >> p2_highbreak >> p1_centuries >> p2_centuries;
-                    if (done) {scores_update();}
-                    if (gameover) {scores_update();}
-                }
-                else if (packetId==3)
-                {
-                    //received log msg from server.
-                    std::string msgname;
-                    std::string msg;
-                    packet >> msgname >> msg;
-
-                    std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
-
-                    for (int i=0;i<numlines;i++)
-                    {
-                        logtext[i].setString(logstrings[i]);
-                    }
-
-                    sf::FloatRect bounds;
-                    float x=_inputboxes[0]._shape.getSize().x;
-                    std::string total=msgname+": "+msg;
-                    int c=0;
-                    while (total.length()!=0)
-                    {
-                        c+=1;
-                        logtext[numlines-1].setString(total.substr(0,c));
-                        logstrings[numlines-1]=total.substr(0,c);
-                        bounds=logtext[numlines-1].getLocalBounds();
-                        if (bounds.width>x)
-                        {
-                            if ((total.substr(c-2,1)).compare(" "))
-                            {
-                                //hyphen.
-                                logtext[numlines-1].setString(total.substr(0,c-2)+"-");
-                                logstrings[numlines-1]=total.substr(0,c-2)+"-";
-                                total.erase(0,c-2);
-                                c=0;
-                            }
-                            else
-                            {
-                                logtext[numlines-1].setString(total.substr(0,c-1));
-                                logstrings[numlines-1]=total.substr(0,c-1);
-                                total.erase(0,c-1);
-                                c=0;
-                            }
-                            //recycle the line.
-                            std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
-
-                            for (int i=0;i<numlines;i++)
-                            {
-                                logtext[i].setString(logstrings[i]);
-                            }
-                        }
-                        if (c==total.length())
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
+            //multiplayer only.
+            listenForPackets();
         }
 
         if (int(floor(t*100./framerate))<result.size())
@@ -1213,31 +1124,31 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     change=true;
                     //solo lineup.
                     //check if correct ball hit.
-                    if (server.ball_hit_order.size()==0) {gameover=true; return;}
-                    if (server.ball_potted_order.size()==0) {gameover=true; return;}
+                    if (localServer.ball_hit_order.size()==0) {gameover=true; return;}
+                    if (localServer.ball_potted_order.size()==0) {gameover=true; return;}
 
                     if (isredon)
                     {
-                        for (int i=0;i<server.ball_hit_order.size();i++)
+                        for (int i=0;i<localServer.ball_hit_order.size();i++)
                         {
-                            if (server.ball_hit_order[i]<8) {gameover=true; return;}
+                            if (localServer.ball_hit_order[i]<8) {gameover=true; return;}
                         }
                         //check pots.
-                        for (int i=0;i<server.ball_potted_order.size();i++)
+                        for (int i=0;i<localServer.ball_potted_order.size();i++)
                         {
-                            if (server.ball_potted_order[i]<8) {gameover=true; return;}
+                            if (localServer.ball_potted_order[i]<8) {gameover=true; return;}
                         }
                         //add scores.
-                        p1score+=server.ball_potted_order.size();
+                        p1score+=localServer.ball_potted_order.size();
                         p1_highbreak=p1score;
                     }
                     else
                     {
-                        if (server.ball_hit_order.size()>1) {gameover=true; return;}
-                        if (server.ball_hit_order[0]!=nom_colour_order) {gameover=true; return;}
-                        if (server.ball_potted_order.size()>1) {gameover=true; return;}
-                        if (server.ball_potted_order[0]!=nom_colour_order) {gameover=true; return;}
-                        p1score+=server.ball_potted_order[0];
+                        if (localServer.ball_hit_order.size()>1) {gameover=true; return;}
+                        if (localServer.ball_hit_order[0]!=nom_colour_order) {gameover=true; return;}
+                        if (localServer.ball_potted_order.size()>1) {gameover=true; return;}
+                        if (localServer.ball_potted_order[0]!=nom_colour_order) {gameover=true; return;}
+                        p1score+=localServer.ball_potted_order[0];
                         p1_highbreak=p1score;
                     }
                     isredon=!isredon;
@@ -1255,11 +1166,11 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                         bounds=stats_text[i].getLocalBounds();
                         stats_text[i].setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
                     }
-                    server.respot();
+                    localServer.respot();
                     for (int i=1;i<7;i++)
                     {
-                        balls[i]._x=server.serverballs[i]._x;
-                        balls[i]._y=server.serverballs[i]._y;
+                        balls[i]._x=localServer.serverballs[i]._x;
+                        balls[i]._y=localServer.serverballs[i]._y;
                         balls[i]._z=ball_radius;
                     }
 
@@ -1391,7 +1302,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     change=true;
                     if (gametype!=3)
                     {
-                        if (sqrt(pow(balls[0]._x+0.1*(dt/0.01)-brown_x,2.)+pow(balls[0]._y-brown_y,2.))<11.687)
+                        if (sqrt(pow(balls[0]._x+0.1*(dt/0.01)-brown_x,2.)+pow(balls[0]._y-brown_y,2.))<(yellow_y-brown_y))
                         {
                             balls[0]._x+=0.1*(dt/0.01);
                         }
@@ -1408,11 +1319,15 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     if (!touching)
                     {
                         placing_white=false;
+                        if (gametype<2)
+                        {
+                            sendPacket(7);
+                        }
                     }
                     if (gametype==3)
                     {
-                        server.serverballs[0]._x=balls[0]._x;
-                        server.serverballs[0]._y=balls[0]._y;
+                        localServer.serverballs[0]._x=balls[0]._x;
+                        localServer.serverballs[0]._y=balls[0]._y;
                     }
                 }
             }
@@ -1525,10 +1440,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     if (gametype<2)
                     {
                         result.clear();
-                        packet.clear();
-                        packetId=2;
-                        packet << packetId << balls[0]._vx << balls[0]._vy << balls[0]._xspin << balls[0]._yspin << balls[0]._rspin;
-                        socket.send(packet);
+                        sendPacket(2);
                         done=false;
                         return;
                     }
@@ -1536,14 +1448,14 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                     if (gametype==3)
                     {
                         //solo lineup.
-                        server.serverballs[0]._vx=balls[0]._vx;
-                        server.serverballs[0]._vy=balls[0]._vy;
-                        server.serverballs[0]._xspin=balls[0]._xspin;
-                        server.serverballs[0]._yspin=balls[0]._yspin;
-                        server.serverballs[0]._rspin=balls[0]._rspin;
+                        localServer.serverballs[0]._vx=balls[0]._vx;
+                        localServer.serverballs[0]._vy=balls[0]._vy;
+                        localServer.serverballs[0]._xspin=balls[0]._xspin;
+                        localServer.serverballs[0]._yspin=balls[0]._yspin;
+                        localServer.serverballs[0]._rspin=balls[0]._rspin;
 
-                        server.result=server.simulate(server.serverballs,server.servercushions);
-                        result=server.result;
+                        localServer.result=localServer.simulate(localServer.serverballs,localServer.servercushions);
+                        result=localServer.result;
                         t=0;
                         done=false;
                         return;
@@ -1712,14 +1624,10 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                 }
             }
 
-            if (gametype==0 || gametype==1)
+            if (gametype<2)
             {
                 //send the info packet.
-                packetId=1;
-                packet.clear();
-
-                packet << packetId << power << cue._angle << cue._offset << cue._theta << cue._alpha << balls[0]._x << balls[0]._y;
-                socket.send(packet);
+                sendPacket(1);
             }
         }
         if (placing_white || !done)
@@ -1735,6 +1643,12 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             cuetraj.clear();
             cuetraj2.clear();
             obtraj.clear();
+
+            //send packet to server.
+            if (gametype<2)
+            {
+                sendPacket(1);
+            }
         }
     }
     else
@@ -1774,5 +1688,195 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
     }
 }
 
+void GameScreen::updateNames()
+{
+    //truncate names if too long.
+    const int charLim=20;
+
+    if (p1name.length()>charLim)
+    {
+        p1name=p1name.substr(0,charLim)+"...";
+    }
+    if (p2name.length()>charLim)
+    {
+        p2name=p2name.substr(0,charLim)+"...";
+    }
+
+    sf::FloatRect textrect;
+
+    //names on score bar.
+    textp1name.setString(p1name);
+    textrect=textp1name.getLocalBounds();
+    textp1name.setOrigin(sf::Vector2f(int(0.),int(textrect.top+textrect.height/2.)));
+
+    textp2name.setString(p2name);
+    textrect=textp2name.getLocalBounds();
+    textp2name.setOrigin(sf::Vector2f(int(textrect.left+textrect.width),int(textrect.top+textrect.height/2.)));
+
+    //names shown on game over screen.
+    double starth=0.35*_sfac*raw_height;
+    double soffset=0.15*_sfac*raw_width;
+
+    for (int i=1;i<3;i++)
+    {
+        if (i==1) {stats_text[i].setString(p1name);}
+        else if (i==2) {stats_text[i].setString(p2name);}
+
+        textrect=stats_text[i].getLocalBounds();
+        stats_text[i].setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+    }
+}
+
+void GameScreen::listenForPackets()
+{
+    //listen for packets.
+    packet.clear();
+    if (socket.receive(packet)==sf::Socket::Done)
+    {
+        packet >> packetId;
+
+        if (packetId==0)
+        {
+            //display cue trajectory prediction.
+            packet >> power >> cue._angle >> cue._offset >> cue._theta >> cue._alpha >> balls[0]._x >> balls[0]._y;
+            change=true;
+        }
+        else if (packetId==1)
+        {
+            packet >> resultsize;
+            result.clear();
+            for (int i=0;i<resultsize;i++)
+            {
+                for (int j=0;j<66;j++)
+                {
+                    packet >> temp[j];
+                }
+                result.push_back(temp);
+            }
+            t=0;
+            done=false;
+        }
+        else if (packetId==2)
+        {
+            //whose turn it is.
+            packet >> isyourturn >> isfoul >> ismiss >> placing_white >> isredon >> isfreeball >> gameover;
+            packet >> p1score >> p2score >> p1frames >> p2frames >> p1_highbreak >> p2_highbreak >> p1_centuries >> p2_centuries;
+            if (done) {scores_update();}
+            if (gameover) {scores_update();}
+
+            change=true;
+        }
+        else if (packetId==3)
+        {
+            //received log msg from server.
+            std::string msgname;
+            std::string msg;
+            packet >> msgname >> msg;
+
+            std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
+
+            for (int i=0;i<numlines;i++)
+            {
+                logtext[i].setString(logstrings[i]);
+            }
+
+            sf::FloatRect bounds;
+            float x=_inputboxes[0]._shape.getSize().x;
+            std::string total=msgname+": "+msg;
+            int c=0;
+            while (total.length()!=0)
+            {
+                c+=1;
+                logtext[numlines-1].setString(total.substr(0,c));
+                logstrings[numlines-1]=total.substr(0,c);
+                bounds=logtext[numlines-1].getLocalBounds();
+                if (bounds.width>x)
+                {
+                    if ((total.substr(c-2,1)).compare(" "))
+                    {
+                        //hyphen.
+                        logtext[numlines-1].setString(total.substr(0,c-2)+"-");
+                        logstrings[numlines-1]=total.substr(0,c-2)+"-";
+                        total.erase(0,c-2);
+                        c=0;
+                    }
+                    else
+                    {
+                        logtext[numlines-1].setString(total.substr(0,c-1));
+                        logstrings[numlines-1]=total.substr(0,c-1);
+                        total.erase(0,c-1);
+                        c=0;
+                    }
+                    //recycle the line.
+                    std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
+
+                    for (int i=0;i<numlines;i++)
+                    {
+                        logtext[i].setString(logstrings[i]);
+                    }
+                }
+                if (c==total.length())
+                {
+                    break;
+                }
+            }
+        }
+        else if (packetId==4)
+        {
+            //received names of players to update client.
+            packet >> p1name >> p2name;
+
+            //update the text on screen.
+            updateNames();
+        }
+    }
+}
+
+void GameScreen::sendPacket(int id)
+{
+    packet.clear();
+    packetId=id;
+    packet << packetId;
+
+    if (packetId==0)
+    {
+        //user disconnect.
+    }
+    else if (packetId==1)
+    {
+        //send trajectory.
+        packet << power << cue._angle << cue._offset << cue._theta << cue._alpha << balls[0]._x << balls[0]._y;
+    }
+    else if (packetId==2)
+    {
+        //send shot.
+        packet << balls[0]._vx << balls[0]._vy << balls[0]._xspin << balls[0]._yspin << balls[0]._rspin;
+    }
+    else if (packetId==3)
+    {
+        //send text message.
+        packet << _inputboxes[0]._input;
+    }
+    else if (packetId==4)
+    {
+        //concede frame.
+    }
+    else if (packetId==5)
+    {
+        //concede match.
+    }
+    else if (packetId==6)
+    {
+        //send name of player.
+        packet << p1name;
+    }
+    else if (packetId==7)
+    {
+        //send status of placing_white.
+        packet << placing_white;
+    }
+
+    socket.send(packet);
+}
 
 #endif // PLAY-GAME-SCREEN_H_INCLUDED
