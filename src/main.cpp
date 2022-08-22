@@ -3,40 +3,6 @@
 #include <thread>
 #include "objects.h"
 
-void resetBalls(Server &server)
-{
-    for (int i=0;i<server.players.size();i++)
-    {
-        server.players[i].disconnect();
-    }
-    for (int i=0;i<server.spectators.size();i++)
-    {
-        server.spectators[i].disconnect();
-    }
-    server.player_turn=0;
-    server.pnames[0]="PLAYER 1";
-    server.pnames[1]="PLAYER 2";
-    server.scores[0]=0;
-    server.scores[1]=0;
-    server.frames[0]=0;
-    server.frames[1]=0;
-    server.framesbestof=35;
-    server.placing_white=true;
-    server.touching=false;
-    server.isfoul=false;
-    server.isredon=true;
-    server.nom_colour_order=0; //1 yellow,2 green, etc.
-    server.isfreeball=false;
-
-    server.gameover=false;
-    server.highbreak[0]=0;
-    server.highbreak[1]=0;
-    server.centuries[0]=0;
-    server.centuries[0]=0;
-
-    server.rackballs();
-}
-
 int main()
 {
     std::cout.precision(std::numeric_limits<double>::max_digits10);
@@ -180,7 +146,7 @@ int main()
                                 else if (target=="Multiplayer") {states.push_back(new MultiplayerScreen(dfactor,localip,std::to_string(localport)));}
                                 else if (target=="MultiplayerHost")
                                 {
-                                    resetBalls(server);
+                                    server.resetServer();
                                     try
                                     {
                                         states.push_back(new GameScreen(dfactor,0,localip,localport,std::string(states.back()->_inputboxes[2]._text.getString())));
