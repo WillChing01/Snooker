@@ -2473,9 +2473,9 @@ void Server::executionThread()
                 else if (packetId==1)
                 {
                     //trajectory display to other clients.
-                    packet >> a >> b >> c >> d >> e >> f >> g;
+                    packet >> a >> b >> c >> d >> e >> f >> g >> nom_colour_order;
                     packet.clear();
-                    packet << sf::Uint16(0) << a << b << c << d << e << f << g;
+                    packet << sf::Uint16(0) << a << b << c << d << e << f << g << nom_colour_order;
 
                     serverballs[0]._x=f;
                     serverballs[0]._y=g;

@@ -1738,7 +1738,7 @@ void GameScreen::listenForPackets()
         if (packetId==0)
         {
             //display cue trajectory prediction.
-            packet >> power >> cue._angle >> cue._offset >> cue._theta >> cue._alpha >> balls[0]._x >> balls[0]._y;
+            packet >> power >> cue._angle >> cue._offset >> cue._theta >> cue._alpha >> balls[0]._x >> balls[0]._y >> nom_colour_order;
             change=true;
         }
         else if (packetId==1)
@@ -1845,7 +1845,7 @@ void GameScreen::sendPacket(int id)
     else if (packetId==1)
     {
         //send trajectory.
-        packet << power << cue._angle << cue._offset << cue._theta << cue._alpha << balls[0]._x << balls[0]._y;
+        packet << power << cue._angle << cue._offset << cue._theta << cue._alpha << balls[0]._x << balls[0]._y << nom_colour_order;
     }
     else if (packetId==2)
     {
