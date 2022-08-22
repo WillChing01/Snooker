@@ -2,7 +2,8 @@ name: "Create release"
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - "master"
 
 jobs:
   create-release:
