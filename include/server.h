@@ -2473,9 +2473,9 @@ void Server::executionThread()
                 else if (packetId==1)
                 {
                     //trajectory display to other clients.
-                    packet >> a >> b >> c >> d >> e >> f >> g;
+                    packet >> a >> b >> c >> d >> e >> f >> g >> nom_colour_order;
                     packet.clear();
-                    packet << sf::Uint16(0) << a << b << c << d << e << f << g;
+                    packet << sf::Uint16(0) << a << b << c << d << e << f << g << nom_colour_order;
 
                     serverballs[0]._x=f;
                     serverballs[0]._y=g;
@@ -2541,20 +2541,30 @@ void Server::executionThread()
                     }
 
                     //determine whether or not the shot was legal.
-                    if (ball_hit_order.size()==0) {isfoul=true; ismiss=true; foulscore=std::max(foulscore,4);}
 
                     bool isredon2=false;
                     bool isfreeball2=false;
 
-                    if (isredon)
+                    //was anything hit?
+                    if (ball_hit_order.size()==0)
                     {
-                        bool redhit=false;
-                        for (int i=0;i<ball_hit_order.size();i++)
+                        isfoul=true; ismiss=true; foulscore=4;
+                        if (!isredon)
                         {
-                            if (ball_hit_order[i]<8) {isfoul=true; foulscore=std::max(foulscore,std::max(ball_hit_order[i],4));}
-                            if (ball_hit_order[i]>7) {redhit=true;}
+                            foulscore=std::max(nom_colour_order,4);
                         }
-                        if (!redhit) {isfoul=true; ismiss=true; foulscore=std::max(foulscore,4);}
+                        isredon2=true;
+                        current_break=0;
+                        scores[!player_turn]+=foulscore;
+                        player_turn=!player_turn;
+                    }
+
+                    if (isredon && ball_hit_order.size()!=0)
+                    {
+                        //check that first ball hit is a red.
+                        if (ball_hit_order[0]<8) {isfoul=true; foulscore=std::max(foulscore,std::max(ball_hit_order[0],4));}
+
+                        //check which balls were potted.
                         for (int i=0;i<ball_potted_order.size();i++)
                         {
                             if (ball_potted_order[i]<8) {isfoul=true; foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));}
@@ -2591,35 +2601,28 @@ void Server::executionThread()
                             else {isredon2=true;}
                         }
                     }
-                    else if (!isredon && !isfreeball)
+                    else if (!isredon && !isfreeball && ball_hit_order.size()!=0)
                     {
-                        bool colhit=false;
-                        for (int i=0;i<ball_hit_order.size();i++)
+                        //check that first ball hit is the correct colour.
+                        if (ball_hit_order[0]!=nom_colour_order)
                         {
-                            if (ball_hit_order[i]>7) {isfoul=true; foulscore=std::max(foulscore,4);}
-                            if (ball_hit_order[i]<8)
-                            {
-                                if (ball_hit_order[i]!=nom_colour_order)
-                                {
-                                    isfoul=true;
-                                    foulscore=std::max(foulscore,std::max(ball_hit_order[i],4));
-                                }
-                                else {colhit=true;}
-                            }
+                            isfoul=true;
+                            //ismiss???
+                            foulscore=std::max(foulscore,std::max(ball_hit_order[0],4));
                         }
-                        if (!colhit) {isfoul=true; ismiss=true; foulscore=std::max(foulscore,4);}
+
+                        //check which balls were potted.
                         bool colpot=false;
                         for (int i=0;i<ball_potted_order.size();i++)
                         {
-                            if (ball_potted_order[i]>7) {isfoul=true; foulscore=std::max(foulscore,4);}
-                            if (ball_potted_order[i]<8)
+                            if (ball_potted_order[i]!=nom_colour_order)
                             {
-                                if (ball_potted_order[i]!=nom_colour_order)
-                                {
-                                    isfoul=true;
-                                    foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));
-                                }
-                                else {colpot=true;}
+                                isfoul=true;
+                                foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));
+                            }
+                            else
+                            {
+                                colpot=true;
                             }
                         }
                         if (!isfoul)
@@ -2652,7 +2655,7 @@ void Server::executionThread()
                             else {isredon2=true;}
                         }
                     }
-                    else if (!isredon && isfreeball)
+                    else if (!isredon && isfreeball && ball_hit_order.size()!=0)
                     {
                         bool colhit=false;
                         for (int i=0;i<ball_hit_order.size();i++)
