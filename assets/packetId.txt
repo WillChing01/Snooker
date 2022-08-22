@@ -17,6 +17,6 @@ Client to server
 	3: user message
 	4: concede frame
 	5: concede match
-	6: name of newly connected player 
+	6: name of newly connected player
 	7: state of placing_white
 		- placing_white
