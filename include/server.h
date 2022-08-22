@@ -74,6 +74,7 @@ class Server
         void broadcast(std::string name, std::string message);
         void sendBallPositions();
         void sendShotSimulation();
+        void resetServer();
 };
 
 Server::Server()
@@ -2947,6 +2948,40 @@ void Server::executionThread()
 
         sf::sleep(sf::milliseconds(5));
     }
+}
+
+void Server::resetServer()
+{
+    for (int i=0;i<players.size();i++)
+    {
+        players[i].disconnect();
+    }
+    for (int i=0;i<spectators.size();i++)
+    {
+        spectators[i].disconnect();
+    }
+    player_turn=0;
+    pnames[0]="PLAYER 1";
+    pnames[1]="PLAYER 2";
+    scores[0]=0;
+    scores[1]=0;
+    frames[0]=0;
+    frames[1]=0;
+    framesbestof=35;
+    placing_white=true;
+    touching=false;
+    isfoul=false;
+    isredon=true;
+    nom_colour_order=0; //1 yellow,2 green, etc.
+    isfreeball=false;
+
+    gameover=false;
+    highbreak[0]=0;
+    highbreak[1]=0;
+    centuries[0]=0;
+    centuries[1]=0;
+
+    rackballs();
 }
 
 #endif // SERVER_H_INCLUDED
