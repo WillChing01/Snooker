@@ -1206,7 +1206,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             pausetext.setPosition(sf::Vector2f(int(pos.x),fmax(-0.85*_sfac*raw_height,pos.y+ds)));
         }
 
-        if (placing_white)
+        if (done && placing_white)
         {
             touching=false;
             for (int i=1;i<22;i++)
@@ -1485,7 +1485,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
         {
             balls[i]._shape.setPosition(sf::Vector2f(_sfac*balls[i]._x,_sfac*raw_height/(1.+panel_ratio)-_sfac*balls[i]._y));
         }
-        if (change && !placing_white)
+        if (done && change && !placing_white)
         {
             sf::Color c;
             for (int i=0;i<100;i++)
@@ -1647,7 +1647,10 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             //send packet to server.
             if (gametype<2)
             {
-                sendPacket(1);
+                if (done && change==true)
+                {
+                    sendPacket(1);
+                }
             }
         }
     }
