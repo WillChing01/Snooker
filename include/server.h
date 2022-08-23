@@ -21,6 +21,11 @@ class Server
         int nom_colour_order=0; //1 yellow,2 green, etc.
         bool isfreeball=false;
 
+        std::array<double,66> posbefore;
+        std::array<bool,22> potbefore;
+        bool wasredon=false;
+        bool wasfreeball=false;
+
         bool gameover=false;
         int highbreak[2]={0,0};
         int centuries[2]={0,0};
@@ -71,6 +76,8 @@ class Server
         void sendNamePacket();
         void resetframe();
         bool is_snookered();
+        void applyRulesAndScore();
+        void handleFoulMissResponse(std::string msg);
         void broadcast(std::string name, std::string message);
         void sendBallPositions();
         void sendShotSimulation();
@@ -131,9 +138,16 @@ void Server::sendBallPositions()
     packet << sf::Uint16(1) << sf::Uint32(1);
     for (int i=0;i<22;i++)
     {
-        packet << serverballs[i]._x;
-        packet << serverballs[i]._y;
-        packet << serverballs[i]._z;
+        if (serverballs[i]._potted)
+        {
+            packet << -100. << -100. << -100.;
+        }
+        else
+        {
+            packet << serverballs[i]._x;
+            packet << serverballs[i]._y;
+            packet << serverballs[i]._z;
+        }
     }
     for (int i=0;i<2;i++)
     {
@@ -244,6 +258,287 @@ bool Server::is_snookered()
     }
 
     return snookered;
+}
+
+void Server::applyRulesAndScore()
+{
+    isfoul=false;
+    ismiss=false;
+    ispush=false;
+    foulscore=0;
+    placing_white=false;
+    //check if white potted.
+    if (serverballs[0]._potted)
+    {
+        placing_white=true;
+        isfoul=true;
+        foulscore=std::max(foulscore,4);
+        serverballs[0]._potted=false;
+        serverballs[0]._x=cueball_break_x;
+        serverballs[0]._y=cueball_break_y;
+        serverballs[0]._z=ball_radius;
+        serverballs[0]._vx=0.;
+        serverballs[0]._vy=0.;
+        serverballs[0]._vz=0.;
+        serverballs[0]._xspin=0.;
+        serverballs[0]._yspin=0.;
+        serverballs[0]._rspin=0.;
+    }
+
+    //determine whether or not the shot was legal.
+
+    bool isredon2=false;
+    bool isfreeball2=false;
+
+    //was anything hit?
+    if (ball_hit_order.size()==0)
+    {
+        isfoul=true; ismiss=true; foulscore=4;
+        if (!isredon)
+        {
+            foulscore=std::max(nom_colour_order,4);
+        }
+        isredon2=true;
+        current_break=0;
+        scores[!player_turn]+=foulscore;
+        player_turn=!player_turn;
+    }
+
+    if (isredon && ball_hit_order.size()!=0)
+    {
+        //check that first ball hit is a red.
+        if (ball_hit_order[0]<8) {isfoul=true; foulscore=std::max(foulscore,std::max(ball_hit_order[0],4));}
+
+        //check which balls were potted.
+        for (int i=0;i<ball_potted_order.size();i++)
+        {
+            if (ball_potted_order[i]<8) {isfoul=true; foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));}
+        }
+        if (!isfoul)
+        {
+            //add points.
+            scores[player_turn]+=ball_potted_order.size();
+            current_break+=ball_potted_order.size();
+            if (current_break>highbreak[player_turn]) {highbreak[player_turn]=current_break;}
+
+            if (ball_potted_order.size()==0)
+            {
+                //no balls potted.
+                current_break=0;
+                player_turn=!player_turn;
+                isredon2=true;
+                isfreeball2=false;
+            }
+            else
+            {
+                isredon2=false;
+                isfreeball2=false;
+            }
+        }
+        else
+        {
+            scores[!player_turn]+=foulscore;
+            current_break=0;
+            player_turn=!player_turn;
+
+            isfreeball2=is_snookered();
+            if (isfreeball2) {isredon2=false;}
+            else {isredon2=true;}
+        }
+    }
+    else if (!isredon && !isfreeball && ball_hit_order.size()!=0)
+    {
+        //check that first ball hit is the correct colour.
+        if (ball_hit_order[0]!=nom_colour_order)
+        {
+            isfoul=true;
+            //ismiss???
+            foulscore=std::max(foulscore,std::max(ball_hit_order[0],4));
+        }
+
+        //check which balls were potted.
+        bool colpot=false;
+        for (int i=0;i<ball_potted_order.size();i++)
+        {
+            if (ball_potted_order[i]!=nom_colour_order)
+            {
+                isfoul=true;
+                foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));
+            }
+            else
+            {
+                colpot=true;
+            }
+        }
+        if (!isfoul)
+        {
+            //add points.
+            if (colpot)
+            {
+                scores[player_turn]+=nom_colour_order;
+                current_break+=nom_colour_order;
+                if (current_break>highbreak[player_turn]) {highbreak[player_turn]=current_break;}
+                isredon2=true;
+                isfreeball2=false;
+            }
+            else
+            {
+                current_break=0;
+                player_turn=!player_turn;
+                isredon2=true;
+                isfreeball2=false;
+            }
+        }
+        else
+        {
+            scores[!player_turn]+=foulscore;
+            current_break=0;
+            player_turn=!player_turn;
+
+            isfreeball2=is_snookered();
+            if (isfreeball2) {isredon2=false;}
+            else {isredon2=true;}
+        }
+    }
+    else if (!isredon && isfreeball && ball_hit_order.size()!=0)
+    {
+        bool colhit=false;
+        for (int i=0;i<ball_hit_order.size();i++)
+        {
+            if (ball_hit_order[i]<8)
+            {
+                if (ball_hit_order[i]!=nom_colour_order)
+                {
+                    isfoul=true;
+                    foulscore=std::max(foulscore,std::max(ball_hit_order[i],4));
+                }
+                else {colhit=true;}
+            }
+        }
+        if (!colhit) {isfoul=true; ismiss=true; foulscore=std::max(foulscore,4);}
+        bool colpot=false;
+        for (int i=0;i<ball_potted_order.size();i++)
+        {
+            if (ball_potted_order[i]>7) {colpot=true;}
+            if (ball_potted_order[i]<8)
+            {
+                if (ball_potted_order[i]!=nom_colour_order)
+                {
+                    isfoul=true;
+                    foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));
+                }
+                else {colpot=true;}
+            }
+        }
+        if (!isfoul)
+        {
+            //add points.
+            if (colpot)
+            {
+                scores[player_turn]+=ball_potted_order.size();
+                current_break+=ball_potted_order.size();
+                if (current_break>highbreak[player_turn]) {highbreak[player_turn]=current_break;}
+                isredon2=false;
+                isfreeball2=false;
+            }
+            else
+            {
+                current_break=0;
+                player_turn=!player_turn;
+                isredon2=true;
+                isfreeball2=false;
+
+                //check if reds snookered by free ball.
+                bool before=is_snookered();
+                serverballs[nom_colour_order-1]._potted=true;
+                bool after=is_snookered();
+                serverballs[nom_colour_order-1]._potted=false;
+
+                if (before && !after)
+                {
+                    //snookered by the free ball.
+                }
+            }
+        }
+        else
+        {
+            scores[!player_turn]+=foulscore;
+            current_break=0;
+            player_turn=!player_turn;
+
+            isfreeball2=is_snookered();
+            if (isfreeball2) {isredon2=false;}
+            else {isredon=true;}
+        }
+    }
+
+    isredon=isredon2;
+    isfreeball=isfreeball2;
+}
+
+void Server::handleFoulMissResponse(std::string msg)
+{
+    //replace balls etc.
+    if (ismiss)
+    {
+        if (!msg.compare("/1"))
+        {
+            //play from here.
+            isfoul=false;
+            ismiss=false;
+            turnpacket();
+        }
+        else if (!msg.compare("/2"))
+        {
+            //opponent play from here.
+            isfoul=false;
+            ismiss=false;
+            isfreeball=false;
+            player_turn=!player_turn;
+            turnpacket();
+        }
+        else if (!msg.compare("/3"))
+        {
+            //replace balls for opponent.
+            isfoul=false;
+            ismiss=false;
+            isfreeball=false;
+            player_turn=!player_turn;
+
+            for (int i=0;i<22;i++)
+            {
+                serverballs[i]._potted=potbefore[i];
+                serverballs[i]._x=posbefore[3*i];
+                serverballs[i]._y=posbefore[3*i+1];
+                serverballs[i]._z=posbefore[3*i+2];
+            }
+            isredon=wasredon;
+            isfreeball=wasfreeball;
+
+            sendBallPositions();
+
+            turnpacket();
+        }
+    }
+    else
+    {
+        //we know its a foul already.
+        if (!msg.compare("/1"))
+        {
+            //play from here.
+            isfoul=false;
+            ismiss=false;
+            turnpacket();
+        }
+        else if (!msg.compare("/2"))
+        {
+            //opponent play from here.
+            isfoul=false;
+            ismiss=false;
+            player_turn=!player_turn;
+            turnpacket();
+        }
+    }
 }
 
 void Server::turnpacket()
@@ -2446,12 +2741,6 @@ void Server::executionThread()
     double f=0.;
     double g=0.;
     std::string msg;
-    std::vector<double> flatresult;
-
-    std::array<double,66> posbefore;
-    std::array<bool,22> potbefore;
-    bool wasredon=false;
-    bool wasfreeball=false;
 
     while (running)
     {
@@ -2517,222 +2806,7 @@ void Server::executionThread()
 
                     respot();
 
-                    placing_white=false;
-                    isfoul=false;
-                    ismiss=false;
-                    ispush=false;
-                    foulscore=0;
-                    //check if white potted.
-                    if (serverballs[0]._potted)
-                    {
-                        placing_white=true;
-                        isfoul=true;
-                        foulscore=std::max(foulscore,4);
-                        serverballs[0]._potted=false;
-                        serverballs[0]._x=cueball_break_x;
-                        serverballs[0]._y=cueball_break_y;
-                        serverballs[0]._z=ball_radius;
-                        serverballs[0]._vx=0.;
-                        serverballs[0]._vy=0.;
-                        serverballs[0]._vz=0.;
-                        serverballs[0]._xspin=0.;
-                        serverballs[0]._yspin=0.;
-                        serverballs[0]._rspin=0.;
-                    }
-
-                    //determine whether or not the shot was legal.
-
-                    bool isredon2=false;
-                    bool isfreeball2=false;
-
-                    //was anything hit?
-                    if (ball_hit_order.size()==0)
-                    {
-                        isfoul=true; ismiss=true; foulscore=4;
-                        if (!isredon)
-                        {
-                            foulscore=std::max(nom_colour_order,4);
-                        }
-                        isredon2=true;
-                        current_break=0;
-                        scores[!player_turn]+=foulscore;
-                        player_turn=!player_turn;
-                    }
-
-                    if (isredon && ball_hit_order.size()!=0)
-                    {
-                        //check that first ball hit is a red.
-                        if (ball_hit_order[0]<8) {isfoul=true; foulscore=std::max(foulscore,std::max(ball_hit_order[0],4));}
-
-                        //check which balls were potted.
-                        for (int i=0;i<ball_potted_order.size();i++)
-                        {
-                            if (ball_potted_order[i]<8) {isfoul=true; foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));}
-                        }
-                        if (!isfoul)
-                        {
-                            //add points.
-                            scores[player_turn]+=ball_potted_order.size();
-                            current_break+=ball_potted_order.size();
-                            if (current_break>highbreak[player_turn]) {highbreak[player_turn]=current_break;}
-
-                            if (ball_potted_order.size()==0)
-                            {
-                                //no balls potted.
-                                current_break=0;
-                                player_turn=!player_turn;
-                                isredon2=true;
-                                isfreeball2=false;
-                            }
-                            else
-                            {
-                                isredon2=false;
-                                isfreeball2=false;
-                            }
-                        }
-                        else
-                        {
-                            scores[!player_turn]+=foulscore;
-                            current_break=0;
-                            player_turn=!player_turn;
-
-                            isfreeball2=is_snookered();
-                            if (isfreeball2) {isredon2=false;}
-                            else {isredon2=true;}
-                        }
-                    }
-                    else if (!isredon && !isfreeball && ball_hit_order.size()!=0)
-                    {
-                        //check that first ball hit is the correct colour.
-                        if (ball_hit_order[0]!=nom_colour_order)
-                        {
-                            isfoul=true;
-                            //ismiss???
-                            foulscore=std::max(foulscore,std::max(ball_hit_order[0],4));
-                        }
-
-                        //check which balls were potted.
-                        bool colpot=false;
-                        for (int i=0;i<ball_potted_order.size();i++)
-                        {
-                            if (ball_potted_order[i]!=nom_colour_order)
-                            {
-                                isfoul=true;
-                                foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));
-                            }
-                            else
-                            {
-                                colpot=true;
-                            }
-                        }
-                        if (!isfoul)
-                        {
-                            //add points.
-                            if (colpot)
-                            {
-                                scores[player_turn]+=nom_colour_order;
-                                current_break+=nom_colour_order;
-                                if (current_break>highbreak[player_turn]) {highbreak[player_turn]=current_break;}
-                                isredon2=true;
-                                isfreeball2=false;
-                            }
-                            else
-                            {
-                                current_break=0;
-                                player_turn=!player_turn;
-                                isredon2=true;
-                                isfreeball2=false;
-                            }
-                        }
-                        else
-                        {
-                            scores[!player_turn]+=foulscore;
-                            current_break=0;
-                            player_turn=!player_turn;
-
-                            isfreeball2=is_snookered();
-                            if (isfreeball2) {isredon2=false;}
-                            else {isredon2=true;}
-                        }
-                    }
-                    else if (!isredon && isfreeball && ball_hit_order.size()!=0)
-                    {
-                        bool colhit=false;
-                        for (int i=0;i<ball_hit_order.size();i++)
-                        {
-                            if (ball_hit_order[i]<8)
-                            {
-                                if (ball_hit_order[i]!=nom_colour_order)
-                                {
-                                    isfoul=true;
-                                    foulscore=std::max(foulscore,std::max(ball_hit_order[i],4));
-                                }
-                                else {colhit=true;}
-                            }
-                        }
-                        if (!colhit) {isfoul=true; ismiss=true; foulscore=std::max(foulscore,4);}
-                        bool colpot=false;
-                        for (int i=0;i<ball_potted_order.size();i++)
-                        {
-                            if (ball_potted_order[i]>7) {colpot=true;}
-                            if (ball_potted_order[i]<8)
-                            {
-                                if (ball_potted_order[i]!=nom_colour_order)
-                                {
-                                    isfoul=true;
-                                    foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));
-                                }
-                                else {colpot=true;}
-                            }
-                        }
-                        if (!isfoul)
-                        {
-                            //add points.
-                            if (colpot)
-                            {
-                                scores[player_turn]+=ball_potted_order.size();
-                                current_break+=ball_potted_order.size();
-                                if (current_break>highbreak[player_turn]) {highbreak[player_turn]=current_break;}
-                                isredon2=false;
-                                isfreeball2=false;
-                            }
-                            else
-                            {
-                                current_break=0;
-                                player_turn=!player_turn;
-                                isredon2=true;
-                                isfreeball2=false;
-
-                                //check if reds snookered by free ball.
-                                bool before=is_snookered();
-                                serverballs[nom_colour_order-1]._potted=true;
-                                bool after=is_snookered();
-                                serverballs[nom_colour_order-1]._potted=false;
-
-                                if (before && !after)
-                                {
-                                    //snookered by the free ball.
-                                }
-                            }
-                        }
-                        else
-                        {
-                            scores[!player_turn]+=foulscore;
-                            current_break=0;
-                            player_turn=!player_turn;
-
-                            isfreeball2=is_snookered();
-                            if (isfreeball2) {isredon2=false;}
-                            else {isredon=true;}
-                        }
-                    }
-
-                    isredon=isredon2;
-                    isfreeball=isfreeball2;
-
-                    sendShotSimulation();
-
-                    turnpacket();
+                    applyRulesAndScore();
 
                     //send the log message if foul or miss.
                     if (isfoul)
@@ -2748,6 +2822,10 @@ void Server::executionThread()
                             broadcast("~",msg);
                         }
                     }
+
+                    sendShotSimulation();
+
+                    turnpacket();
                 }
                 else if (packetId==3)
                 {
@@ -2758,101 +2836,7 @@ void Server::executionThread()
 
                     if (isfoul)
                     {
-                        //replace balls etc.
-                        if (ismiss)
-                        {
-                            if (!msg.compare("/1"))
-                            {
-                                //play from here.
-                                isfoul=false;
-                                ismiss=false;
-                                turnpacket();
-                            }
-                            else if (!msg.compare("/2"))
-                            {
-                                //opponent play from here.
-                                isfoul=false;
-                                ismiss=false;
-                                isfreeball=false;
-                                player_turn=!player_turn;
-                                turnpacket();
-                            }
-                            else if (!msg.compare("/3"))
-                            {
-                                //replace balls for opponent.
-                                isfoul=false;
-                                ismiss=false;
-                                isfreeball=false;
-                                player_turn=!player_turn;
-
-                                for (int i=0;i<22;i++)
-                                {
-                                    serverballs[i]._potted=potbefore[i];
-                                    serverballs[i]._x=posbefore[3*i];
-                                    serverballs[i]._y=posbefore[3*i+1];
-                                    serverballs[i]._z=posbefore[3*i+2];
-                                }
-                                isredon=wasredon;
-                                isfreeball=wasfreeball;
-
-                                packet.clear();
-                                flatresult.clear();
-
-                                for (int i=0;i<22;i++)
-                                {
-                                    if (!serverballs[i]._potted)
-                                    {
-                                        flatresult.push_back(serverballs[i]._x);
-                                        flatresult.push_back(serverballs[i]._y);
-                                        flatresult.push_back(serverballs[i]._z);
-                                    }
-                                    else
-                                    {
-                                        flatresult.push_back(-100.);
-                                        flatresult.push_back(-100.);
-                                        flatresult.push_back(-100.);
-                                    }
-                                }
-                                packet << sf::Uint16(1) << sf::Uint32(1);
-                                for (int i=0;i<flatresult.size();i++)
-                                {
-                                    packet << flatresult[i];
-                                }
-                                for (int i=0;i<2;i++)
-                                {
-                                    if (players[i].getRemoteAddress()!=sf::IpAddress::None)
-                                    {
-                                        players[i].send(packet);
-                                    }
-                                }
-                                for (int i=0;i<4;i++)
-                                {
-                                    if (spectators[i].getRemoteAddress()!=sf::IpAddress::None)
-                                    {
-                                        spectators[i].send(packet);
-                                    }
-                                }
-                                turnpacket();
-                            }
-                        }
-                        else
-                        {
-                            if (!msg.compare("/1"))
-                            {
-                                //play from here.
-                                isfoul=false;
-                                ismiss=false;
-                                turnpacket();
-                            }
-                            else if (!msg.compare("/2"))
-                            {
-                                //opponent play from here.
-                                isfoul=false;
-                                ismiss=false;
-                                player_turn=!player_turn;
-                                turnpacket();
-                            }
-                        }
+                        handleFoulMissResponse(msg);
                     }
                 }
                 else if (packetId==4)
