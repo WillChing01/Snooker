@@ -909,18 +909,23 @@ class GameScreen : public GameState
 
             _shapes.push_back(&redarrow._head);
             _shapes.push_back(&redarrow._tail);
-            _shapes.push_back(&cue._sprite);
 
-            _shapes.push_back(&pauserect);
-            _shapes.push_back(&pausetext);
+            _importantShapes.push_back(&cue._sprite);
 
-            _shapes.push_back(&gameoverrect);
-            _shapes.push_back(&gameovertext);
-            _shapes.push_back(&stats_title);
+            _importantShapes.push_back(&pauserect);
+            _importantShapes.push_back(&pausetext);
+            _importantShapes.push_back(&_buttons[0]._shape);
+            _importantShapes.push_back(&_buttons[0]._text);
+
+            _importantShapes.push_back(&gameoverrect);
+            _importantShapes.push_back(&gameovertext);
+            _importantShapes.push_back(&stats_title);
             for (int i=0;i<stats_text.size();i++)
             {
-                _shapes.push_back(&stats_text[i]);
+                _importantShapes.push_back(&stats_text[i]);
             }
+            _importantShapes.push_back(&_buttons[1]._shape);
+            _importantShapes.push_back(&_buttons[1]._text);
         }
         void update(double dt,sf::Vector2i mouse_pos);
         void scores_update();
