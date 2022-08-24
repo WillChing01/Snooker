@@ -9,6 +9,7 @@ class GameState
         std::vector<RectButton> _buttons;
         std::vector<InputBox> _inputboxes;
         std::vector<sf::Drawable*> _shapes;
+        std::vector<sf::Drawable*> _importantShapes;
 
         sf::Color _background;
 

@@ -417,6 +417,10 @@ int main()
             window.draw(states.back()->_inputboxes[i]._text);
             window.draw(states.back()->_inputboxes[i]._cursor);
         }
+        for (int i=0;i<states.back()->_importantShapes.size();i++)
+        {
+            window.draw(*states.back()->_importantShapes[i]);
+        }
         window.display();
 
         elapsed=clock.restart();
