@@ -42,6 +42,12 @@ class Server
         std::array<sf::TcpSocket,2> players;
         std::array<sf::TcpSocket,4> spectators;
 
+        std::array<sf::TcpSocket,2> playersAudioRecorder;
+        std::array<sf::TcpSocket,4> spectatorsAudioRecorder;
+
+        std::array<sf::TcpSocket,2> playersAudioReceiver;
+        std::array<sf::TcpSocket,4> spectatorsAudioReceiver;
+
         std::array<std::string,2> pnames={"PLAYER 1","PLAYER 2"};
         std::array<std::string,4> snames;
 
