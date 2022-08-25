@@ -53,6 +53,7 @@ int main()
     window.setView(view);
 
     //prepare matrix.
+    //KEEP THIS HERE!!! ESSENTIAL FOR TRAJECTORY PREDICTION!!!
     for (int i=0;i<44;i++)
     {
         M_(i,i)=1/ball_mass;
@@ -89,17 +90,6 @@ int main()
     unsigned short localport;
 
     Server server;
-    try {server.serverIp=sf::IpAddress::getLocalAddress();}
-    catch (...) {}
-    server.listener.setBlocking(false);
-    if (server.listener.listen(sf::Socket::AnyPort)!=sf::Socket::Done)
-    {
-        //error.
-        std::cout << "Tcp listener could not bind to port." << std::endl;
-    }
-    try{server.port=server.listener.getLocalPort();}
-    catch (...) {}
-
     localip=server.serverIp.toString();
     localport=server.port;
 
