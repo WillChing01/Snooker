@@ -12,6 +12,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Network.hpp>
+#include <SFML/Audio.hpp>
 #include <boost/numeric/odeint.hpp>
 #include <boost/random/random_device.hpp>
 #include <boost/random/normal_distribution.hpp>
@@ -29,6 +30,8 @@
 #include "cue.h"
 #include "server.h"
 #include "ball-trajectory.h"
+
+#include "custom-recorder.h"
 
 #include "user-controls.h"
 #include "rect-button.h"

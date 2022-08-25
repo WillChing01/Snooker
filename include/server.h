@@ -64,7 +64,7 @@ class Server
 
         std::vector<std::array<double,66> > result;
 
-        Server();
+        Server(bool isOnline=true);
         std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6]);
         Eigen::Matrix<double,46,1> collisions(Ball b[22], Cushion cush[6]);
         void handleIncomingConnections();
@@ -84,8 +84,22 @@ class Server
         void resetServer();
 };
 
-Server::Server()
+Server::Server(bool isOnline)
 {
+    if (isOnline)
+    {
+        try {serverIp=sf::IpAddress::getLocalAddress();}
+        catch (...) {}
+        listener.setBlocking(false);
+        if (listener.listen(sf::Socket::AnyPort)!=sf::Socket::Done)
+        {
+            //error.
+            std::cout << "Tcp listener could not bind to port." << std::endl;
+        }
+        try{port=listener.getLocalPort();}
+        catch (...) {}
+    }
+
     for (int i=0;i<2;i++)
     {
         players[i].setBlocking(false);

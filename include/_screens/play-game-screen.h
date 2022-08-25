@@ -13,7 +13,7 @@ class GameScreen : public GameState
         //gametype 3 - singleplayer lineup.
 
         //this is local server for singleplayer lineup only!
-        Server localServer=Server();
+        Server localServer=Server(false);
 
         std::string targetip;
         unsigned short targetport;
