@@ -32,6 +32,8 @@
 #include "ball-trajectory.h"
 
 #include "custom-recorder.h"
+#include "custom-receiver.h"
+#include "audio-server.h"
 
 #include "user-controls.h"
 #include "rect-button.h"
