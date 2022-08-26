@@ -125,6 +125,7 @@ class GameScreen : public GameState
         std::array<std::string,numlines> logstrings={};
         std::array<sf::Text,numlines> logtext;
         sf::RectangleShape logback;
+        std::vector<std::string> logStringsHistory;
 
         double ds=0.;
         sf::Vector2f pos;
@@ -930,6 +931,7 @@ class GameScreen : public GameState
         void update(double dt,sf::Vector2i mouse_pos);
         void scores_update();
         void updateNames();
+        void appendToTextLog(std::string textMessage);
         void listenForPackets();
         void sendPacket(int id);
 };
@@ -1735,6 +1737,58 @@ void GameScreen::updateNames()
     }
 }
 
+void GameScreen::appendToTextLog(std::string textMessage)
+{
+    std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
+
+    for (int i=0;i<numlines;i++)
+    {
+        logtext[i].setString(logstrings[i]);
+    }
+
+    sf::FloatRect bounds;
+    float x=_inputboxes[0]._shape.getSize().x;
+    int c=0;
+    while (textMessage.length()!=0)
+    {
+        c+=1;
+        logtext[numlines-1].setString(textMessage.substr(0,c));
+        logstrings[numlines-1]=textMessage.substr(0,c);
+        bounds=logtext[numlines-1].getLocalBounds();
+        if (bounds.width>x)
+        {
+            if ((textMessage.substr(c-2,1)).compare(" "))
+            {
+                //hyphen.
+                logtext[numlines-1].setString(textMessage.substr(0,c-2)+"-");
+                logstrings[numlines-1]=textMessage.substr(0,c-2)+"-";
+                textMessage.erase(0,c-2);
+                c=0;
+            }
+            else
+            {
+                logtext[numlines-1].setString(textMessage.substr(0,c-1));
+                logstrings[numlines-1]=textMessage.substr(0,c-1);
+                textMessage.erase(0,c-1);
+                c=0;
+            }
+            //recycle the line.
+            logStringsHistory.push_back(logstrings.back());
+            std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
+
+            for (int i=0;i<numlines;i++)
+            {
+                logtext[i].setString(logstrings[i]);
+            }
+        }
+        if (c==textMessage.length())
+        {
+            logStringsHistory.push_back(logstrings.back());
+            break;
+        }
+    }
+}
+
 void GameScreen::listenForPackets()
 {
     //listen for packets.
@@ -1781,53 +1835,7 @@ void GameScreen::listenForPackets()
             std::string msg;
             packet >> msgname >> msg;
 
-            std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
-
-            for (int i=0;i<numlines;i++)
-            {
-                logtext[i].setString(logstrings[i]);
-            }
-
-            sf::FloatRect bounds;
-            float x=_inputboxes[0]._shape.getSize().x;
-            std::string total=msgname+": "+msg;
-            int c=0;
-            while (total.length()!=0)
-            {
-                c+=1;
-                logtext[numlines-1].setString(total.substr(0,c));
-                logstrings[numlines-1]=total.substr(0,c);
-                bounds=logtext[numlines-1].getLocalBounds();
-                if (bounds.width>x)
-                {
-                    if ((total.substr(c-2,1)).compare(" "))
-                    {
-                        //hyphen.
-                        logtext[numlines-1].setString(total.substr(0,c-2)+"-");
-                        logstrings[numlines-1]=total.substr(0,c-2)+"-";
-                        total.erase(0,c-2);
-                        c=0;
-                    }
-                    else
-                    {
-                        logtext[numlines-1].setString(total.substr(0,c-1));
-                        logstrings[numlines-1]=total.substr(0,c-1);
-                        total.erase(0,c-1);
-                        c=0;
-                    }
-                    //recycle the line.
-                    std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
-
-                    for (int i=0;i<numlines;i++)
-                    {
-                        logtext[i].setString(logstrings[i]);
-                    }
-                }
-                if (c==total.length())
-                {
-                    break;
-                }
-            }
+            appendToTextLog(msgname+": "+msg);
         }
         else if (packetId==4)
         {

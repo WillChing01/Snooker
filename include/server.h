@@ -31,6 +31,8 @@ class Server
         int centuries[2]={0,0};
         int current_break=0;
 
+        std::vector<std::pair<std::string,std::string> > messageLog;
+
         //info for each shot.
         std::vector<int> ball_hit_order;
         std::vector<int> ball_potted_order;
@@ -144,6 +146,8 @@ void Server::broadcast(std::string name, std::string message)
             spectators[i].send(packet);
         }
     }
+
+    messageLog.push_back({name,message});
 }
 
 void Server::sendBallPositions()
