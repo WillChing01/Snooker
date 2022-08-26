@@ -1,8 +1,6 @@
 #ifndef RIMODE_H_INCLUDED
 #define RIMODE_H_INCLUDED
 
-using namespace boost::numeric::odeint;
-
 class Rimode
 {
     private:
@@ -21,6 +19,6 @@ class Rimode
 
 Rimode rimodem(mpocket_r);
 Rimode rimodec(cpocket_r);
-runge_kutta4<state_type> stepper;
+boost::numeric::odeint::runge_kutta4<state_type> stepper;
 
 #endif // RIMODE_H_INCLUDED
