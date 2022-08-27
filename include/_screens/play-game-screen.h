@@ -122,10 +122,11 @@ class GameScreen : public GameState
         sf::Text nomtext;
 
         static const int numlines=4;
-        std::array<std::string,numlines> logstrings={};
         std::array<sf::Text,numlines> logtext;
         sf::RectangleShape logback;
-        std::vector<std::string> logStringsHistory;
+        std::vector<std::string> logStringsHistory={""};
+        int logStringsPos=0;
+        bool scrollOnNewMessage=true;
 
         double ds=0.;
         sf::Vector2f pos;
@@ -277,6 +278,9 @@ class GameScreen : public GameState
             _buttons.push_back(RectButton());
             _buttons.push_back(RectButton());
             _buttons.push_back(RectButton());
+            _buttons.push_back(RectButton());
+            _buttons.push_back(RectButton());
+            _buttons.push_back(RectButton());
 
             double buttonwidth=_sfac*raw_width*0.15;
 
@@ -364,6 +368,81 @@ class GameScreen : public GameState
                 else
                 {
                     _buttons[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width+0.5*sbwidth-0.5*buttonwidth),int(0.92*_sfac*raw_height+1.2*(i-2)*sbheight)));
+                }
+
+                _buttons[i]._shape.setFillColor(_buttons[i]._colour1);
+                _buttons[i]._shape.setOutlineColor(_buttons[i]._outlinecolour1);
+                _buttons[i]._text.setFillColor(_buttons[i]._textcolour1);
+            }
+
+            double scrollheight=((_sfac*raw_height*panel_ratio/(1.+panel_ratio))*0.6*0.75)/(numlines*1.2);
+
+            for (int i=4;i<7;i++)
+            {
+                _buttons[i]._shape.setSize(sf::Vector2f(scrollheight,scrollheight));
+                _buttons[i]._shape.setOrigin(sf::Vector2f(0.5*scrollheight,0.5*scrollheight));
+                _buttons[i]._shape.setOutlineThickness(_buttons[i]._absoutlinethickness);
+                if (gametype==3)
+                {
+                    _buttons[i]._shape.setPosition(sf::Vector2f(-1000.,-1000.));
+                }
+                else
+                {
+                    if (i==4)
+                    {
+                        _buttons[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width+0.25*sbwidth+0.8*scrollheight,0.89*_sfac*raw_height+0.5*scrollheight));
+                    }
+                    else if (i==5)
+                    {
+                        _buttons[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width+0.25*sbwidth+0.8*scrollheight,0.89*_sfac*raw_height+1.8*scrollheight));
+                    }
+                    else if (i==6)
+                    {
+                        _buttons[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width+0.25*sbwidth+0.8*scrollheight,0.89*_sfac*raw_height+3.1*scrollheight));
+                    }
+                }
+
+                if (!_buttons[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
+                _buttons[i]._text.setFont(_buttons[i]._font);
+                _buttons[i]._textfactor=1.1;
+                _buttons[i]._text.setCharacterSize(int(_buttons[i]._textfactor*scrollheight));
+                if (i==4)
+                {
+                    _buttons[i]._text.setString("^");
+                    _buttons[i]._target="ScrollUp";
+                }
+                else if (i==5)
+                {
+                    _buttons[i]._text.setString("^");
+                    _buttons[i]._target="ScrollDown";
+                }
+                else if (i==6)
+                {
+                    _buttons[i]._text.setString("||");
+                    _buttons[i]._target="ToggleAutoScroll";
+                }
+                textrect=_buttons[i]._text.getLocalBounds();
+                _buttons[i]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
+
+                if (gametype==3)
+                {
+                    _buttons[i]._text.setPosition(sf::Vector2f(-1000.,-1000.));
+                }
+                else
+                {
+                    if (i==4)
+                    {
+                        _buttons[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width+0.25*sbwidth+0.8*scrollheight),int(0.89*_sfac*raw_height+0.5*scrollheight)));
+                    }
+                    else if (i==5)
+                    {
+                        _buttons[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width+0.25*sbwidth+0.8*scrollheight),int(0.89*_sfac*raw_height+1.8*scrollheight)));
+                        _buttons[i]._text.rotate(180.);
+                    }
+                    else if (i==6)
+                    {
+                        _buttons[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width+0.25*sbwidth+0.8*scrollheight),int(0.89*_sfac*raw_height+3.1*scrollheight)));
+                    }
                 }
 
                 _buttons[i]._shape.setFillColor(_buttons[i]._colour1);
@@ -636,10 +715,9 @@ class GameScreen : public GameState
             double cheight=logheight/(numlines*1.2);
             for (int i=0;i<numlines;i++)
             {
-                logstrings[i]="";
                 logtext[i].setFont(_thinfont);
                 logtext[i].setCharacterSize(int(cheight));
-                logtext[i].setString(logstrings[i]);
+                logtext[i].setString("");
                 textrect=logtext[i].getLocalBounds();
                 logtext[i].setOrigin(sf::Vector2f(int(textrect.left),int(textrect.top)));
                 logtext[i].setPosition(sf::Vector2f(int(0.5*_sfac*raw_width-0.25*sbwidth+0.1*cheight),int(0.89*_sfac*raw_height+0.1*cheight+1.2*i*cheight)));
@@ -932,6 +1010,7 @@ class GameScreen : public GameState
         void scores_update();
         void updateNames();
         void appendToTextLog(std::string textMessage);
+        void scrollText(int offset);
         void listenForPackets();
         void sendPacket(int id);
 };
@@ -1002,32 +1081,70 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
         _inputboxes[0]._isactive=false;
         _buttons[2]._isactive=false;
         _buttons[3]._isactive=false;
+        _buttons[4]._isactive=false;
+        _buttons[5]._isactive=false;
+        _buttons[6]._isactive=false;
     }
     else
     {
         _inputboxes[0]._isactive=true;
         _buttons[2]._isactive=true;
         _buttons[3]._isactive=true;
+        _buttons[4]._isactive=true;
+        _buttons[5]._isactive=true;
+        _buttons[6]._isactive=true;
     }
 
     if (!gameover)
     {
         //concession packets.
-        if (_buttons[2]._target=="Concedeframe1")
+        if (_buttons[2]._wasClicked==true)
         {
-            _buttons[2]._target="Concedeframe";
+            _buttons[2]._wasClicked=false;
             if (gametype<2)
             {
                 sendPacket(4);
             }
         }
-        else if (_buttons[3]._target=="Concedematch1")
+        else if (_buttons[3]._wasClicked==true)
         {
-            _buttons[3]._target="Concedematch";
+            _buttons[3]._wasClicked=false;
             if (gametype<2)
             {
                 sendPacket(5);
             }
+        }
+        else if (_buttons[4]._wasClicked==true)
+        {
+            _buttons[4]._wasClicked=false;
+            //scroll up.
+            scrollText(-1);
+        }
+        else if (_buttons[5]._wasClicked==true)
+        {
+            _buttons[5]._wasClicked=false;
+            //scroll down.
+            scrollText(1);
+        }
+        else if (_buttons[6]._wasClicked==true)
+        {
+            _buttons[6]._wasClicked=false;
+            //toggle autoscroll.
+
+            if(scrollOnNewMessage==true)
+            {
+                _buttons[6]._text.setString(">");
+            }
+            else
+            {
+                _buttons[6]._text.setString("||");
+                scrollText(logStringsHistory.size());
+            }
+            scrollOnNewMessage=!scrollOnNewMessage;
+
+            //center new text.
+            sf::FloatRect textrect=_buttons[6]._text.getLocalBounds();
+            _buttons[6]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
         }
 
         typing=false;
@@ -1701,15 +1818,15 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
 void GameScreen::updateNames()
 {
     //truncate names if too long.
-    const int charLim=20;
+    const int charLim=15;
 
     if (p1name.length()>charLim)
     {
-        p1name=p1name.substr(0,charLim)+"...";
+        p1name=p1name.substr(0,charLim)+"-";
     }
     if (p2name.length()>charLim)
     {
-        p2name=p2name.substr(0,charLim)+"...";
+        p2name=p2name.substr(0,charLim)+"-";
     }
 
     sf::FloatRect textrect;
@@ -1739,13 +1856,7 @@ void GameScreen::updateNames()
 
 void GameScreen::appendToTextLog(std::string textMessage)
 {
-    std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
-
-    for (int i=0;i<numlines;i++)
-    {
-        logtext[i].setString(logstrings[i]);
-    }
-
+    sf::Text old=logtext.back();
     sf::FloatRect bounds;
     float x=_inputboxes[0]._shape.getSize().x;
     int c=0;
@@ -1753,7 +1864,6 @@ void GameScreen::appendToTextLog(std::string textMessage)
     {
         c+=1;
         logtext[numlines-1].setString(textMessage.substr(0,c));
-        logstrings[numlines-1]=textMessage.substr(0,c);
         bounds=logtext[numlines-1].getLocalBounds();
         if (bounds.width>x)
         {
@@ -1761,31 +1871,59 @@ void GameScreen::appendToTextLog(std::string textMessage)
             {
                 //hyphen.
                 logtext[numlines-1].setString(textMessage.substr(0,c-2)+"-");
-                logstrings[numlines-1]=textMessage.substr(0,c-2)+"-";
                 textMessage.erase(0,c-2);
                 c=0;
             }
             else
             {
                 logtext[numlines-1].setString(textMessage.substr(0,c-1));
-                logstrings[numlines-1]=textMessage.substr(0,c-1);
                 textMessage.erase(0,c-1);
                 c=0;
             }
             //recycle the line.
-            logStringsHistory.push_back(logstrings.back());
-            std::rotate(logstrings.begin(),logstrings.begin()+1,logstrings.end());
-
-            for (int i=0;i<numlines;i++)
-            {
-                logtext[i].setString(logstrings[i]);
-            }
+            logStringsHistory.push_back(std::string(logtext.back().getString()));
         }
         if (c==textMessage.length())
         {
-            logStringsHistory.push_back(logstrings.back());
+            logStringsHistory.push_back(std::string(logtext.back().getString()));
             break;
         }
+    }
+    //reset the displayed text.
+    logtext.back()=old;
+
+    if (scrollOnNewMessage)
+    {
+        scrollText(logStringsHistory.size());
+    }
+}
+
+void GameScreen::scrollText(int offset)
+{
+    //add offset and limit to within real history.
+    logStringsPos+=offset;
+    if (logStringsPos<0)
+    {
+        logStringsPos=0;
+    }
+    else if (logStringsPos>=logStringsHistory.size())
+    {
+        logStringsPos=logStringsHistory.size()-1;
+    }
+
+    //how many lines of white space we need.
+    int padding=std::max(0,numlines-1-logStringsPos);
+
+    int c=numlines-1;
+    for (int i=logStringsPos;i>=std::max(0,logStringsPos-(numlines-1));i--)
+    {
+        logtext[c].setString(logStringsHistory[i]);
+        c--;
+    }
+    for (int i=0;i<padding;i++)
+    {
+        logtext[c].setString("");
+        c--;
     }
 }
 

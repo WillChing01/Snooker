@@ -11,6 +11,12 @@ const sf::Color buttonColour1=sf::Color(100,100,100,150);
 const sf::Color buttonColour2=sf::Color(100,100,100,150);
 const sf::Color buttonColour3=sf::Color(169,169,169,200);
 
+//colour 1: default, no action.
+//colour 2: when hover with mouse.
+//colour 3: when left-clicked with mouse.
+
+//at the moment, buttonColour3 must be unique from buttonColour1 and buttonColour2 !!!.
+
 class RectButton
 {
     public:
@@ -19,8 +25,9 @@ class RectButton
         double _textfactor=0.75;
         double _absoutlinethickness=absOutlineThickness;
 
-        bool _controlchange=false;
+        bool _controlchange=false; //for changing controls in options.
         bool _isactive=true;
+        bool _wasClicked=false;
 
         std::string _target;
 

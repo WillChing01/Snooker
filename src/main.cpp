@@ -175,8 +175,11 @@ int main()
 
                                     states.back()->_shouldUpdate=true;
                                 }
-                                else if (target=="Concedeframe") {states.back()->_buttons[i]._target="Concedeframe1";}
-                                else if (target=="Concedematch") {states.back()->_buttons[i]._target="Concedematch1";}
+                                else if (target=="Concedeframe") {states.back()->_buttons[i]._wasClicked=true;}
+                                else if (target=="Concedematch") {states.back()->_buttons[i]._wasClicked=true;}
+                                else if (target=="ScrollUp") {states.back()->_buttons[i]._wasClicked=true;}
+                                else if (target=="ScrollDown") {states.back()->_buttons[i]._wasClicked=true;}
+                                else if (target=="ToggleAutoScroll") {states.back()->_buttons[i]._wasClicked=true;}
                                 else if (target.substr(0,6)=="Select")
                                 {
                                     cuetexturefile=_cueFilePrefix+"cue"+target.substr(target.size()-1,1)+".png";
