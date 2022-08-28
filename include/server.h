@@ -313,6 +313,7 @@ void Server::handleRedOn()
         }
         else
         {
+            //potted a red.
             newIsRedOn=false;
             newIsFreeBall=false;
         }
@@ -326,6 +327,23 @@ void Server::handleRedOn()
         newIsFreeBall=is_snookered();
         if (newIsFreeBall) {newIsRedOn=false;}
         else {newIsRedOn=true;}
+    }
+
+    //check if any reds left.
+    if (redsLeft)
+    {
+        bool allPotted=true;
+        for (int i=7;i<22;i++)
+        {
+            if (!serverballs[i]._potted) {allPotted=false; break;}
+        }
+        if (allPotted) {redsLeft=false;}
+
+        if (!redsLeft)
+        {
+            newIsRedOn=false;
+            newIsFreeBall=false;
+        }
     }
 }
 
@@ -362,14 +380,23 @@ void Server::handleColourOn()
             scores[player_turn]+=nom_colour_order;
             current_break+=nom_colour_order;
             if (current_break>highbreak[player_turn]) {highbreak[player_turn]=current_break;}
-            newIsRedOn=true;
-            newIsFreeBall=false;
+
+            if (!redsLeft) {colourClearOrder++;}
         }
         else
         {
             current_break=0;
             player_turn=!player_turn;
+        }
+
+        if (redsLeft)
+        {
             newIsRedOn=true;
+            newIsFreeBall=false;
+        }
+        else
+        {
+            newIsRedOn=false;
             newIsFreeBall=false;
         }
     }
@@ -379,9 +406,17 @@ void Server::handleColourOn()
         current_break=0;
         player_turn=!player_turn;
 
-        newIsFreeBall=is_snookered();
-        if (newIsFreeBall) {newIsRedOn=false;}
-        else {newIsRedOn=true;}
+        if (redsLeft)
+        {
+            newIsFreeBall=is_snookered();
+            if (newIsFreeBall) {newIsRedOn=false;}
+            else {newIsRedOn=true;}
+        }
+        else
+        {
+            newIsRedOn=false;
+            newIsFreeBall=false;
+        }
     }
 }
 
@@ -506,7 +541,7 @@ void Server::applyRulesAndScore()
         {
             handleRedOn();
         }
-        else if (!isfreeball)
+        else if (!isfreeball || !redsLeft)
         {
             handleColourOn();
         }
@@ -761,6 +796,8 @@ void Server::respot()
     for (int i=6;i>0;i--)
     {
         if (!serverballs[i]._potted) {continue;}
+        //do not respot if clearing the colours.
+        if (!redsLeft && serverballs[i]._order==colourClearOrder) {continue;}
         if (!covered[i-1])
         {
             serverballs[i]._x=colourpos[i-1][0];
