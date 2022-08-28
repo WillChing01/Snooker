@@ -1711,15 +1711,13 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                 if (contacted<=7)
                 {
                     //hits a colour.
-                    if(redsLeft==true)
-                    {
-                        nom_colour_order=contacted;
-                    }
-                    else
-                    {
-                        nom_colour_order=colourClearOrder;
-                    }
+                    nom_colour_order=contacted;
                 }
+            }
+
+            if (!redsLeft)
+            {
+                nom_colour_order=colourClearOrder;
             }
 
             if (isredon)
@@ -1746,6 +1744,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                 if (nom_colour_order>=2 && nom_colour_order<=7)
                 {
                     nomballs[nom_colour_order-2]._shape.setOutlineThickness(nomballs[nom_colour_order-2]._abslinethickness);
+                    nomballs[nom_colour_order-2]._shape.setOutlineColor(sf::Color(255,255,255));
                 }
                 if (isfreeball)
                 {
