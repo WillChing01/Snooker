@@ -38,7 +38,9 @@ class GameScreen : public GameState
         bool isfoul=false;
         bool ismiss=false;
         bool isredon=true;
-        int nom_colour_order=0; //1 yellow,2 green, etc.
+        bool redsLeft=true;
+        int colourClearOrder=2; //next colour when no reds left.
+        int nom_colour_order=0; //2 yellow,3 green, etc.
         bool isfreeball=false;
 
         sf::Text ballontitle;
@@ -1709,7 +1711,14 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                 if (contacted<=7)
                 {
                     //hits a colour.
-                    nom_colour_order=contacted;
+                    if(redsLeft==true)
+                    {
+                        nom_colour_order=contacted;
+                    }
+                    else
+                    {
+                        nom_colour_order=colourClearOrder;
+                    }
                 }
             }
 
@@ -1961,6 +1970,7 @@ void GameScreen::listenForPackets()
             //whose turn it is.
             packet >> isyourturn >> isfoul >> ismiss >> placing_white >> isredon >> isfreeball >> gameover;
             packet >> p1score >> p2score >> p1frames >> p2frames >> p1_highbreak >> p2_highbreak >> p1_centuries >> p2_centuries;
+            packet >> redsLeft >> colourClearOrder;
             if (done) {scores_update();}
             if (gameover) {scores_update();}
 
