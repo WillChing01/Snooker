@@ -155,7 +155,11 @@ int main()
                                 }
                                 else if (target=="SingleplayerAI") {states.push_back(new GameScreen(dfactor,2,"",50000,name));}
                                 else if (target=="SingleplayerLineup") {states.push_back(new GameScreen(dfactor,3,"",50000,name));}
-                                else if (target=="Controls") {states.push_back(new ControlScreen());}
+                                else if (target=="Controls")
+                                {
+                                    states.push_back(new ControlScreen());
+                                    states.back()->_shouldUpdate=true;
+                                }
                                 else if (target=="Changecue") {states.push_back(new ChangeCueScreen());}
                                 else if (target=="Default")
                                 {
