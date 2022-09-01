@@ -29848,7 +29848,7 @@
 	<SFML/Network.hpp>
 	"objects.h"
 
-1661199615 source:c:\users\willi\onedrive\desktop\coding\snooker\src\main.cpp
+1661619432 source:c:\users\willi\onedrive\desktop\coding\snooker\src\main.cpp
 	<iostream>
 	<fstream>
 	<thread>
@@ -30338,7 +30338,7 @@
 	<SFML/Network/IpAddress.hpp>
 	<vector>
 
-1661198534 c:\users\willi\onedrive\desktop\coding\snooker\include\objects.h
+1661619432 c:\users\willi\onedrive\desktop\coding\snooker\include\objects.h
 	<math.h>
 	<set>
 	<algorithm>
@@ -30349,6 +30349,7 @@
 	<SFML/Graphics.hpp>
 	<SFML/Window.hpp>
 	<SFML/Network.hpp>
+	<SFML/Audio.hpp>
 	<boost/numeric/odeint.hpp>
 	<boost/random/random_device.hpp>
 	<boost/random/normal_distribution.hpp>
@@ -30364,6 +30365,9 @@
 	"cue.h"
 	"server.h"
 	"ball-trajectory.h"
+	"custom-recorder.h"
+	"custom-receiver.h"
+	"audio-server.h"
 	"user-controls.h"
 	"rect-button.h"
 	"input-box.h"
@@ -44525,23 +44529,23 @@
 
 1660412896 c:\users\willi\onedrive\desktop\coding\snooker\include\common.h
 
-1660408344 c:\users\willi\onedrive\desktop\coding\snooker\include\rimode.h
+1661619432 c:\users\willi\onedrive\desktop\coding\snooker\include\rimode.h
 
 1660411906 c:\users\willi\onedrive\desktop\coding\snooker\include\ball.h
 
 1660514655 c:\users\willi\onedrive\desktop\coding\snooker\include\cue.h
 
-1661287528 c:\users\willi\onedrive\desktop\coding\snooker\include\server.h
+1661719504 c:\users\willi\onedrive\desktop\coding\snooker\include\server.h
 
 1660853659 c:\users\willi\onedrive\desktop\coding\snooker\include\user-controls.h
 
-1661007907 c:\users\willi\onedrive\desktop\coding\snooker\include\rect-button.h
+1661619432 c:\users\willi\onedrive\desktop\coding\snooker\include\rect-button.h
 
 1660994805 c:\users\willi\onedrive\desktop\coding\snooker\include\input-box.h
 
 1660413493 c:\users\willi\onedrive\desktop\coding\snooker\include\nominate-ball.h
 
-1660764875 c:\users\willi\onedrive\desktop\coding\snooker\include\game-state.h
+1661374206 c:\users\willi\onedrive\desktop\coding\snooker\include\game-state.h
 
 1660413633 c:\users\willi\onedrive\desktop\coding\snooker\include\title-screen.h
 
@@ -44575,7 +44579,117 @@
 
 1660433624 c:\users\willi\onedrive\desktop\coding\snooker\include\play-game-screen.h
 
-1661277115 c:\users\willi\onedrive\desktop\coding\snooker\include\_screens\play-game-screen.h
+1661704331 c:\users\willi\onedrive\desktop\coding\snooker\include\_screens\play-game-screen.h
 
 1660751617 c:\users\willi\onedrive\desktop\coding\snooker\include\file-locations.h
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio.hpp
+	<SFML/System.hpp>
+	<SFML/Audio/InputSoundFile.hpp>
+	<SFML/Audio/Listener.hpp>
+	<SFML/Audio/Music.hpp>
+	<SFML/Audio/OutputSoundFile.hpp>
+	<SFML/Audio/Sound.hpp>
+	<SFML/Audio/SoundBuffer.hpp>
+	<SFML/Audio/SoundBufferRecorder.hpp>
+	<SFML/Audio/SoundFileFactory.hpp>
+	<SFML/Audio/SoundFileReader.hpp>
+	<SFML/Audio/SoundFileWriter.hpp>
+	<SFML/Audio/SoundRecorder.hpp>
+	<SFML/Audio/SoundSource.hpp>
+	<SFML/Audio/SoundStream.hpp>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\inputsoundfile.hpp
+	<SFML/Audio/Export.hpp>
+	<SFML/System/NonCopyable.hpp>
+	<SFML/System/Time.hpp>
+	<string>
+	<algorithm>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\export.hpp
+	<SFML/Config.hpp>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\listener.hpp
+	<SFML/Audio/Export.hpp>
+	<SFML/System/Vector3.hpp>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\music.hpp
+	<SFML/Audio/Export.hpp>
+	<SFML/Audio/SoundStream.hpp>
+	<SFML/Audio/InputSoundFile.hpp>
+	<SFML/System/Mutex.hpp>
+	<SFML/System/Time.hpp>
+	<string>
+	<vector>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\soundstream.hpp
+	<SFML/Audio/Export.hpp>
+	<SFML/Audio/SoundSource.hpp>
+	<SFML/System/Thread.hpp>
+	<SFML/System/Time.hpp>
+	<SFML/System/Mutex.hpp>
+	<cstdlib>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\soundsource.hpp
+	<SFML/Audio/Export.hpp>
+	<SFML/Audio/AlResource.hpp>
+	<SFML/System/Vector3.hpp>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\alresource.hpp
+	<SFML/Audio/Export.hpp>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\outputsoundfile.hpp
+	<SFML/Audio/Export.hpp>
+	<SFML/System/NonCopyable.hpp>
+	<string>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\sound.hpp
+	<SFML/Audio/Export.hpp>
+	<SFML/Audio/SoundSource.hpp>
+	<SFML/System/Time.hpp>
+	<cstdlib>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\soundbuffer.hpp
+	<SFML/Audio/Export.hpp>
+	<SFML/Audio/AlResource.hpp>
+	<SFML/System/Time.hpp>
+	<string>
+	<vector>
+	<set>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\soundbufferrecorder.hpp
+	<SFML/Audio/Export.hpp>
+	<SFML/Audio/SoundBuffer.hpp>
+	<SFML/Audio/SoundRecorder.hpp>
+	<vector>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\soundrecorder.hpp
+	<SFML/Audio/Export.hpp>
+	<SFML/Audio/AlResource.hpp>
+	<SFML/System/Thread.hpp>
+	<SFML/System/Time.hpp>
+	<vector>
+	<string>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\soundfilefactory.hpp
+	<SFML/Audio/Export.hpp>
+	<string>
+	<vector>
+	<SFML/Audio/SoundFileFactory.inl>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\soundfilefactory.inl
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\soundfilereader.hpp
+	<SFML/Audio/Export.hpp>
+	<string>
+
+1631386869 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio\soundfilewriter.hpp
+	<SFML/Audio/Export.hpp>
+	<string>
+
+1661460469 c:\users\willi\onedrive\desktop\coding\snooker\include\custom-recorder.h
+
+1661619432 c:\users\willi\onedrive\desktop\coding\snooker\include\custom-receiver.h
+
+1661461565 c:\users\willi\onedrive\desktop\coding\snooker\include\audio-server.h
 

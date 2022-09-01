@@ -8,10 +8,17 @@ class ChangeCueScreen : public GameState
         sf::Font _boldfont;
 
         sf::Text title;
-        sf::Sprite cuepng[3];
-        sf::Texture cuetexture[3];
+        sf::Text pageNumber;
+        const int totalCues=9;
+        const int numPerPage=5;
+        int _page=0;
+
+        std::vector<sf::Sprite> cuepng;
+        std::vector<sf::Texture> cuetexture;
 
         sf::RectangleShape selectionBorder;
+
+        const double buttonwidth=_sfac*raw_width*0.15;
 
     public:
         ChangeCueScreen(double sfac=dfactor) : GameState(sfac)
@@ -49,22 +56,32 @@ class ChangeCueScreen : public GameState
             _shapes.push_back(&title);
 
             sf::FloatRect bounds;
-            double buttonwidth=_sfac*raw_width*0.15;
 
-            for (int i=0;i<4;i++)
+            _buttons.push_back(RectButton());
+
+            for (int i=0;i<numPerPage;i++)
             {
+                cuepng.push_back(sf::Sprite());
                 _buttons.push_back(RectButton());
             }
 
-            for (int i=0;i<3;i++)
+            _buttons.push_back(RectButton());
+            _buttons.push_back(RectButton());
+
+            for (int i=0;i<totalCues;i++)
             {
+                cuetexture.push_back(sf::Texture());
                 cuetexture[i].loadFromFile(_cueFilePrefix+"cue"+std::to_string(i)+".png");
                 cuetexture[i].setSmooth(true);
+            }
+
+            for (int i=0;i<numPerPage;i++)
+            {
                 cuepng[i].setTexture(cuetexture[i]);
                 cuepng[i].scale(65.*dfactor/5213.,65.*dfactor/5213.);
                 bounds=cuepng[i].getLocalBounds();
                 cuepng[i].setOrigin(bounds.left,bounds.top+bounds.height*0.5);
-                cuepng[i].setPosition(sf::Vector2f(0.20*_sfac*raw_width,0.30*_sfac*raw_height+((i+1)*1.2)*buttonwidth/_buttons[0]._ratio));
+                cuepng[i].setPosition(sf::Vector2f(0.20*_sfac*raw_width,0.30*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[0]._ratio));
                 _shapes.push_back(&cuepng[i]);
             }
 
@@ -77,8 +94,16 @@ class ChangeCueScreen : public GameState
 
             bounds=selectionBorder.getLocalBounds();
             selectionBorder.setOrigin(bounds.left+bounds.width*(1.-1./factor)*0.5,bounds.top+bounds.height*0.5);
-            sf::Vector2f pos=cuepng[selectedCueIndex].getPosition();
-            selectionBorder.setPosition(pos);
+
+            if (selectedCueIndex<numPerPage)
+            {
+                sf::Vector2f pos=cuepng[selectedCueIndex].getPosition();
+                selectionBorder.setPosition(pos);
+            }
+            else
+            {
+                selectionBorder.setPosition(sf::Vector2f(-1000.,-1000.));
+            }
 
             selectionBorder.setOutlineColor(buttonOutlineColour2);
             selectionBorder.setFillColor(sf::Color(0,0,0,0));
@@ -86,7 +111,7 @@ class ChangeCueScreen : public GameState
 
             _shapes.push_back(&selectionBorder);
 
-            for (int i=0;i<4;i++)
+            for (int i=0;i<numPerPage+3;i++)
             {
                 _buttons[i]._shape.setSize(sf::Vector2f(buttonwidth,buttonwidth/_buttons[i]._ratio));
                 _buttons[i]._shape.setOrigin(0.5*buttonwidth,0.5*buttonwidth/_buttons[i]._ratio);
@@ -96,9 +121,23 @@ class ChangeCueScreen : public GameState
                 {
                     _buttons[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.50*_sfac*raw_height+(4*1.2)*buttonwidth/_buttons[i]._ratio));
                 }
+                else if (i==numPerPage+1 || i==numPerPage+2)
+                {
+                    _buttons[i]._shape.setSize(sf::Vector2f(buttonwidth/_buttons[i]._ratio,buttonwidth/_buttons[i]._ratio));
+                    _buttons[i]._shape.setOrigin(0.5*buttonwidth/_buttons[i]._ratio,0.5*buttonwidth/_buttons[i]._ratio);
+
+                    if (i==numPerPage+1)
+                    {
+                        _buttons[i]._shape.setPosition(sf::Vector2f(0.45*_sfac*raw_width,0.31*_sfac*raw_height+(numPerPage*1.2)*buttonwidth/_buttons[i]._ratio));
+                    }
+                    else
+                    {
+                        _buttons[i]._shape.setPosition(sf::Vector2f(0.55*_sfac*raw_width,0.31*_sfac*raw_height+(numPerPage*1.2)*buttonwidth/_buttons[i]._ratio));
+                    }
+                }
                 else
                 {
-                    _buttons[i]._shape.setPosition(sf::Vector2f(0.75*_sfac*raw_width,0.30*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio));
+                    _buttons[i]._shape.setPosition(sf::Vector2f(0.75*_sfac*raw_width,0.30*_sfac*raw_height+((i-1)*1.2)*buttonwidth/_buttons[i]._ratio));
                 }
 
                 if (!_buttons[i]._font.loadFromFile(_thinFontFile)) {std::cout << "Error loading font." << std::endl;}
@@ -108,6 +147,19 @@ class ChangeCueScreen : public GameState
                 {
                     _buttons[i]._text.setString("Back");
                     _buttons[i]._target="Quit";
+                }
+                else if (i==numPerPage+1 || i==numPerPage+2)
+                {
+                    if (i==numPerPage+1)
+                    {
+                        _buttons[i]._text.setString("<");
+                        _buttons[i]._target="ScrollLeft";
+                    }
+                    else
+                    {
+                        _buttons[i]._text.setString(">");
+                        _buttons[i]._target="ScrollRight";
+                    }
                 }
                 else
                 {
@@ -121,23 +173,94 @@ class ChangeCueScreen : public GameState
                 {
                     _buttons[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width),int(0.50*_sfac*raw_height+(4*1.2)*buttonwidth/_buttons[i]._ratio)));
                 }
+                else if (i==numPerPage+1 || i==numPerPage+2)
+                {
+                    if (i==numPerPage+1)
+                    {
+                        _buttons[i]._text.setPosition(sf::Vector2f(0.45*_sfac*raw_width,0.31*_sfac*raw_height+(numPerPage*1.2)*buttonwidth/_buttons[i]._ratio));
+                    }
+                    else
+                    {
+                        _buttons[i]._text.setPosition(sf::Vector2f(0.55*_sfac*raw_width,0.31*_sfac*raw_height+(numPerPage*1.2)*buttonwidth/_buttons[i]._ratio));
+                    }
+                }
                 else
                 {
-                    _buttons[i]._text.setPosition(sf::Vector2f(int(0.75*_sfac*raw_width),int(0.30*_sfac*raw_height+(i*1.2)*buttonwidth/_buttons[i]._ratio)));
+                    _buttons[i]._text.setPosition(sf::Vector2f(int(0.75*_sfac*raw_width),int(0.30*_sfac*raw_height+((i-1)*1.2)*buttonwidth/_buttons[i]._ratio)));
                 }
 
                 _buttons[i]._shape.setFillColor(_buttons[i]._colour1);
                 _buttons[i]._shape.setOutlineColor(_buttons[i]._outlinecolour1);
                 _buttons[i]._text.setFillColor(_buttons[i]._textcolour1);
             }
+
+            pageNumber.setFont(_thinfont);
+            pageNumber.setCharacterSize(int(buttonwidth*_buttons[0]._textfactor/_buttons[0]._ratio));
+            pageNumber.setString("1");
+            textrect=pageNumber.getLocalBounds();
+            pageNumber.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+            pageNumber.setPosition(sf::Vector2f(0.50*_sfac*raw_width,0.31*_sfac*raw_height+(numPerPage*1.2)*buttonwidth/_buttons[0]._ratio));
+            pageNumber.setFillColor(sf::Color(255,255,255));
+            _shapes.push_back(&pageNumber);
         }
 
         void update(double dt,sf::Vector2i mouse_pos)
         {
+            _shouldUpdate=false;
+
+            //check if scroll buttons were clicked.
+            if (_buttons[numPerPage+1]._wasClicked==true)
+            {
+                //scroll back.
+                _buttons[numPerPage+1]._wasClicked=false;
+                _page=std::max(_page-1,0);
+            }
+            else if (_buttons[numPerPage+2]._wasClicked==true)
+            {
+                //scroll forward.
+                _buttons[numPerPage+2]._wasClicked=false;
+                _page=std::min(_page+1,(totalCues-1)/numPerPage);
+            }
+
+            pageNumber.setString(std::to_string(_page+1));
+            sf::FloatRect textrect=pageNumber.getLocalBounds();
+            pageNumber.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+
+            for (int i=_page*numPerPage;i<_page*numPerPage+numPerPage;i++)
+            {
+                if (i>=totalCues)
+                {
+                    // not enough cues to fill the page, must move away the texture/button.
+                    cuepng[i%numPerPage].setPosition(sf::Vector2f(-1000.,-1000.));
+                    _buttons[i%numPerPage+1]._shape.setPosition(sf::Vector2f(-1000.,-1000.));
+                    _buttons[i%numPerPage+1]._text.setPosition(sf::Vector2f(-1000.,-1000.));
+                }
+                else
+                {
+                    //update cue image.
+                    cuepng[i%numPerPage].setTexture(cuetexture[i]);
+                    sf::FloatRect bounds=cuepng[i%numPerPage].getLocalBounds();
+                    cuepng[i%numPerPage].setOrigin(bounds.left,bounds.top+bounds.height*0.5);
+                    cuepng[i%numPerPage].setPosition(sf::Vector2f(0.20*_sfac*raw_width,0.30*_sfac*raw_height+((i%numPerPage)*1.2)*buttonwidth/_buttons[i%numPerPage]._ratio));
+
+                    //update button.
+                    _buttons[i%numPerPage+1]._shape.setPosition(sf::Vector2f(0.75*_sfac*raw_width,0.30*_sfac*raw_height+((i%numPerPage)*1.2)*buttonwidth/_buttons[i%numPerPage]._ratio));
+                    _buttons[i%numPerPage+1]._text.setPosition(sf::Vector2f(int(0.75*_sfac*raw_width),int(0.30*_sfac*raw_height+((i%numPerPage)*1.2)*buttonwidth/_buttons[i%numPerPage]._ratio)));
+                    _buttons[i%numPerPage+1]._target="Select"+std::to_string(i);
+                }
+            }
+
             int selectedCueIndex=cuetexturefile[cuetexturefile.size()-5]-'0';
 
-            sf::Vector2f pos=cuepng[selectedCueIndex].getPosition();
-            selectionBorder.setPosition(pos);
+            if (selectedCueIndex>=_page*numPerPage && selectedCueIndex<_page*numPerPage+numPerPage)
+            {
+                sf::Vector2f pos=cuepng[selectedCueIndex%numPerPage].getPosition();
+                selectionBorder.setPosition(pos);
+            }
+            else
+            {
+                selectionBorder.setPosition(sf::Vector2f(-1000.,-1000.));
+            }
         };
 };
 

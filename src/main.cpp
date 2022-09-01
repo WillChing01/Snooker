@@ -130,6 +130,8 @@ int main()
 
                                 target=states.back()->_buttons[i]._target;
 
+                                states.back()->_buttons[i]._wasClicked=true;
+
                                 if (target=="Quit") {delete states.back(); states.pop_back();}
                                 else if (target=="Options") {states.push_back(new OptionsScreen());}
                                 else if (target=="Singleplayer") {states.push_back(new SingleplayerScreen());}
@@ -172,20 +174,16 @@ int main()
                                     std::ofstream file(_userConfigFile,std::ofstream::out | std::ofstream::trunc);
                                     for (auto thing:user_controls) {file << KeyToString(thing.second) << "\n";}
                                     file.close();
-
-                                    states.back()->_shouldUpdate=true;
                                 }
-                                else if (target=="Concedeframe") {states.back()->_buttons[i]._wasClicked=true;}
-                                else if (target=="Concedematch") {states.back()->_buttons[i]._wasClicked=true;}
-                                else if (target=="ScrollUp") {states.back()->_buttons[i]._wasClicked=true;}
-                                else if (target=="ScrollDown") {states.back()->_buttons[i]._wasClicked=true;}
-                                else if (target=="ToggleAutoScroll") {states.back()->_buttons[i]._wasClicked=true;}
                                 else if (target.substr(0,6)=="Select")
                                 {
                                     cuetexturefile=_cueFilePrefix+"cue"+target.substr(target.size()-1,1)+".png";
                                     std::ofstream cuefile(_userCueConfigFile,std::ofstream::out | std::ofstream::trunc);
                                     cuefile << cuetexturefile; cuefile.close();
                                 }
+
+                                if (states.size()) {states.back()->_shouldUpdate=true;}
+
                                 break;
                             }
                             else
