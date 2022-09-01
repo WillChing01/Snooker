@@ -2911,6 +2911,21 @@ void Server::executionThread()
                     sendShotSimulation();
 
                     turnpacket();
+
+                    //check if all balls have been potted, then reset the frame.
+                    if (!redsLeft)
+                    {
+                        bool allPotted=true;
+                        for (int i=1;i<22;i++)
+                        {
+                            if (serverballs[i]._potted==false) {allPotted=false; break;}
+                        }
+                        if (allPotted==true)
+                        {
+                            resetframe();
+                            turnpacket();
+                        }
+                    }
                 }
                 else if (packetId==3)
                 {
