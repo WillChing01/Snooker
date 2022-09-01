@@ -9,7 +9,7 @@ class ChangeCueScreen : public GameState
 
         sf::Text title;
         sf::Text pageNumber;
-        const int totalCues=7;
+        const int totalCues=9;
         const int numPerPage=5;
         int _page=0;
 
@@ -17,6 +17,8 @@ class ChangeCueScreen : public GameState
         std::vector<sf::Texture> cuetexture;
 
         sf::RectangleShape selectionBorder;
+
+        const double buttonwidth=_sfac*raw_width*0.15;
 
     public:
         ChangeCueScreen(double sfac=dfactor) : GameState(sfac)
@@ -54,24 +56,27 @@ class ChangeCueScreen : public GameState
             _shapes.push_back(&title);
 
             sf::FloatRect bounds;
-            double buttonwidth=_sfac*raw_width*0.15;
 
             _buttons.push_back(RectButton());
 
             for (int i=0;i<numPerPage;i++)
             {
                 cuepng.push_back(sf::Sprite());
-                cuetexture.push_back(sf::Texture());
                 _buttons.push_back(RectButton());
             }
 
             _buttons.push_back(RectButton());
             _buttons.push_back(RectButton());
 
-            for (int i=0;i<numPerPage;i++)
+            for (int i=0;i<totalCues;i++)
             {
+                cuetexture.push_back(sf::Texture());
                 cuetexture[i].loadFromFile(_cueFilePrefix+"cue"+std::to_string(i)+".png");
                 cuetexture[i].setSmooth(true);
+            }
+
+            for (int i=0;i<numPerPage;i++)
+            {
                 cuepng[i].setTexture(cuetexture[i]);
                 cuepng[i].scale(65.*dfactor/5213.,65.*dfactor/5213.);
                 bounds=cuepng[i].getLocalBounds();
@@ -89,8 +94,16 @@ class ChangeCueScreen : public GameState
 
             bounds=selectionBorder.getLocalBounds();
             selectionBorder.setOrigin(bounds.left+bounds.width*(1.-1./factor)*0.5,bounds.top+bounds.height*0.5);
-            sf::Vector2f pos=cuepng[selectedCueIndex].getPosition();
-            selectionBorder.setPosition(pos);
+
+            if (selectedCueIndex<numPerPage)
+            {
+                sf::Vector2f pos=cuepng[selectedCueIndex].getPosition();
+                selectionBorder.setPosition(pos);
+            }
+            else
+            {
+                selectionBorder.setPosition(sf::Vector2f(-1000.,-1000.));
+            }
 
             selectionBorder.setOutlineColor(buttonOutlineColour2);
             selectionBorder.setFillColor(sf::Color(0,0,0,0));
@@ -200,17 +213,54 @@ class ChangeCueScreen : public GameState
             {
                 //scroll back.
                 _buttons[numPerPage+1]._wasClicked=false;
+                _page=std::max(_page-1,0);
             }
             else if (_buttons[numPerPage+2]._wasClicked==true)
             {
                 //scroll forward.
                 _buttons[numPerPage+2]._wasClicked=false;
+                _page=std::min(_page+1,(totalCues-1)/numPerPage);
+            }
+
+            pageNumber.setString(std::to_string(_page+1));
+            sf::FloatRect textrect=pageNumber.getLocalBounds();
+            pageNumber.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+
+            for (int i=_page*numPerPage;i<_page*numPerPage+numPerPage;i++)
+            {
+                if (i>=totalCues)
+                {
+                    // not enough cues to fill the page, must move away the texture/button.
+                    cuepng[i%numPerPage].setPosition(sf::Vector2f(-1000.,-1000.));
+                    _buttons[i%numPerPage+1]._shape.setPosition(sf::Vector2f(-1000.,-1000.));
+                    _buttons[i%numPerPage+1]._text.setPosition(sf::Vector2f(-1000.,-1000.));
+                }
+                else
+                {
+                    //update cue image.
+                    cuepng[i%numPerPage].setTexture(cuetexture[i]);
+                    sf::FloatRect bounds=cuepng[i%numPerPage].getLocalBounds();
+                    cuepng[i%numPerPage].setOrigin(bounds.left,bounds.top+bounds.height*0.5);
+                    cuepng[i%numPerPage].setPosition(sf::Vector2f(0.20*_sfac*raw_width,0.30*_sfac*raw_height+((i%numPerPage)*1.2)*buttonwidth/_buttons[i%numPerPage]._ratio));
+
+                    //update button.
+                    _buttons[i%numPerPage+1]._shape.setPosition(sf::Vector2f(0.75*_sfac*raw_width,0.30*_sfac*raw_height+((i%numPerPage)*1.2)*buttonwidth/_buttons[i%numPerPage]._ratio));
+                    _buttons[i%numPerPage+1]._text.setPosition(sf::Vector2f(int(0.75*_sfac*raw_width),int(0.30*_sfac*raw_height+((i%numPerPage)*1.2)*buttonwidth/_buttons[i%numPerPage]._ratio)));
+                    _buttons[i%numPerPage+1]._target="Select"+std::to_string(i);
+                }
             }
 
             int selectedCueIndex=cuetexturefile[cuetexturefile.size()-5]-'0';
 
-            sf::Vector2f pos=cuepng[selectedCueIndex].getPosition();
-            selectionBorder.setPosition(pos);
+            if (selectedCueIndex>=_page*numPerPage && selectedCueIndex<_page*numPerPage+numPerPage)
+            {
+                sf::Vector2f pos=cuepng[selectedCueIndex%numPerPage].getPosition();
+                selectionBorder.setPosition(pos);
+            }
+            else
+            {
+                selectionBorder.setPosition(sf::Vector2f(-1000.,-1000.));
+            }
         };
 };
 
