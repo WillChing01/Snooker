@@ -328,23 +328,6 @@ void Server::handleRedOn()
         if (newIsFreeBall) {newIsRedOn=false;}
         else {newIsRedOn=true;}
     }
-
-    //check if any reds left.
-    if (redsLeft)
-    {
-        bool allPotted=true;
-        for (int i=7;i<22;i++)
-        {
-            if (!serverballs[i]._potted) {allPotted=false; break;}
-        }
-        if (allPotted) {redsLeft=false;}
-
-        if (!redsLeft)
-        {
-            newIsRedOn=false;
-            newIsFreeBall=false;
-        }
-    }
 }
 
 void Server::handleColourOn()
@@ -413,6 +396,23 @@ void Server::handleColourOn()
             else {newIsRedOn=true;}
         }
         else
+        {
+            newIsRedOn=false;
+            newIsFreeBall=false;
+        }
+    }
+
+    //check if any reds left.
+    if (redsLeft)
+    {
+        bool allPotted=true;
+        for (int i=7;i<22;i++)
+        {
+            if (!serverballs[i]._potted) {allPotted=false; break;}
+        }
+        if (allPotted) {redsLeft=false;}
+
+        if (!redsLeft)
         {
             newIsRedOn=false;
             newIsFreeBall=false;
