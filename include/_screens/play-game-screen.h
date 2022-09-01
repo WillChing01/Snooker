@@ -65,6 +65,8 @@ class GameScreen : public GameState
         sf::RectangleShape gameoverrect;
         sf::Text gameovertext;
 
+        sf::RectangleShape table_surface;
+
         //stats.
         sf::Text stats_title;
         std::vector<sf::Text> stats_text;
@@ -172,7 +174,12 @@ class GameScreen : public GameState
 
             //set up some stuff depending on the gametype here.
 
-            _background=sf::Color(baizecolour[0],baizecolour[1],baizecolour[2]);
+            _background=sf::Color(0,0,0);
+
+            table_surface.setSize(sf::Vector2f(_sfac*raw_width,_sfac*raw_height));
+            table_surface.setPosition(sf::Vector2f(0.,0.));
+            table_surface.setFillColor(sf::Color(baizecolour[0],baizecolour[1],baizecolour[2]));
+            _shapes.push_back(&table_surface);
 
             if (!_thinfont.loadFromFile(_thinFontFile))
             {

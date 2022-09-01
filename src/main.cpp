@@ -40,14 +40,6 @@ int main()
 
     double sdiff=sf::VideoMode::getDesktopMode().width-dfactor*raw_width;
 
-    sf::RectangleShape p1(sf::Vector2f(0.5*sdiff,raw_height*dfactor));
-    p1.setFillColor(sf::Color(0,0,0));
-    p1.setPosition(sf::Vector2f(-0.5*sdiff,0.));
-
-    sf::RectangleShape p2(sf::Vector2f(0.5*sdiff,raw_height*dfactor));
-    p2.setFillColor(sf::Color(0,0,0));
-    p2.setPosition(sf::Vector2f(dfactor*raw_width,0.));
-
     sf::View view;
     view.reset(sf::FloatRect(-0.5*sdiff,0.,float(sf::VideoMode::getDesktopMode().width),float(sf::VideoMode::getDesktopMode().height)));
     window.setView(view);
@@ -387,32 +379,7 @@ int main()
 
         if (!wait && states.back()->_shouldUpdate) {states.back()->update(1.0/framerate,mouse_pos);}
 
-        window.clear(states.back()->_background);
-
-        window.draw(p1);
-        window.draw(p2);
-
-        for (int i=0;i<states.back()->_shapes.size();i++)
-        {
-            window.draw(*states.back()->_shapes[i]);
-        }
-        for (int i=0;i<states.back()->_buttons.size();i++)
-        {
-            window.draw(states.back()->_buttons[i]._shape);
-            window.draw(states.back()->_buttons[i]._text);
-        }
-        for (int i=0;i<states.back()->_inputboxes.size();i++)
-        {
-            window.draw(states.back()->_inputboxes[i]._shape);
-            window.draw(states.back()->_inputboxes[i]._backtext);
-            window.draw(states.back()->_inputboxes[i]._text);
-            window.draw(states.back()->_inputboxes[i]._cursor);
-        }
-        for (int i=0;i<states.back()->_importantShapes.size();i++)
-        {
-            window.draw(*states.back()->_importantShapes[i]);
-        }
-        window.display();
+        states.back()->render(window);
 
         elapsed=clock.restart();
         diff=period-elapsed;
