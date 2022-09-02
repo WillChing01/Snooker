@@ -1107,37 +1107,37 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
     if (!gameover)
     {
         //concession packets.
-        if (_buttons[2]._wasClicked==true)
+        if (_buttons[2]._shouldExecute==true)
         {
-            _buttons[2]._wasClicked=false;
+            _buttons[2]._shouldExecute=false;
             if (gametype<2)
             {
                 sendPacket(4);
             }
         }
-        else if (_buttons[3]._wasClicked==true)
+        else if (_buttons[3]._shouldExecute==true)
         {
-            _buttons[3]._wasClicked=false;
+            _buttons[3]._shouldExecute=false;
             if (gametype<2)
             {
                 sendPacket(5);
             }
         }
-        else if (_buttons[4]._wasClicked==true)
+        else if (_buttons[4]._shouldExecute==true)
         {
-            _buttons[4]._wasClicked=false;
+            _buttons[4]._shouldExecute=false;
             //scroll up.
             scrollText(-1);
         }
-        else if (_buttons[5]._wasClicked==true)
+        else if (_buttons[5]._shouldExecute==true)
         {
-            _buttons[5]._wasClicked=false;
+            _buttons[5]._shouldExecute=false;
             //scroll down.
             scrollText(1);
         }
-        else if (_buttons[6]._wasClicked==true)
+        else if (_buttons[6]._shouldExecute==true)
         {
-            _buttons[6]._wasClicked=false;
+            _buttons[6]._shouldExecute=false;
             //toggle autoscroll.
 
             if(scrollOnNewMessage==true)

@@ -209,16 +209,16 @@ class ChangeCueScreen : public GameState
             _shouldUpdate=false;
 
             //check if scroll buttons were clicked.
-            if (_buttons[numPerPage+1]._wasClicked==true)
+            if (_buttons[numPerPage+1]._shouldExecute==true)
             {
                 //scroll back.
-                _buttons[numPerPage+1]._wasClicked=false;
+                _buttons[numPerPage+1]._shouldExecute=false;
                 _page=std::max(_page-1,0);
             }
-            else if (_buttons[numPerPage+2]._wasClicked==true)
+            else if (_buttons[numPerPage+2]._shouldExecute==true)
             {
                 //scroll forward.
-                _buttons[numPerPage+2]._wasClicked=false;
+                _buttons[numPerPage+2]._shouldExecute=false;
                 _page=std::min(_page+1,(totalCues-1)/numPerPage);
             }
 

@@ -29,6 +29,7 @@ class RectButton
         bool _isactive=true;
         bool _wasClicked=false;
         bool _isClicked=false;
+        bool _shouldExecute=false;
 
         std::string _target;
 
