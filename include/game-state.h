@@ -24,6 +24,8 @@ class GameState
         bool _shouldUpdate=true;
         bool _shouldChangeState=false;
         std::string _stateTarget="";
+        bool _isWaitingForInput=false;
+        int _controlindex=-1;
 
         std::vector<RectButton> _buttons;
         std::vector<InputBox> _inputboxes;

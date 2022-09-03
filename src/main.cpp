@@ -63,17 +63,13 @@ int main()
     sf::Vector2f rectsize;
     sf::Vector2f rectpos;
     sf::FloatRect bounds;
-    bool ispressed=false;
     sf::Event event;
     sf::Vector2i mouse_pos;
+    bool ispressed=false;
     bool typing=false;
     bool hastyped=false;
     int typingindex=0;
     double dist=0.;
-    std::string target;
-
-    int controlindex=-1;
-    bool wait=false;
 
     std::string name;
     std::string ip;
@@ -92,7 +88,7 @@ int main()
     {
         if (states.size()==0) {break;}
 
-        if (!wait)
+        if (!states.back()->_isWaitingForInput)
         {
             states.back()->handleButtonPress(window);
 
@@ -132,25 +128,6 @@ int main()
                 else if (states.back()->_stateTarget=="Quit") {delete states.back(); states.pop_back();}
 
                 continue;
-            }
-
-            //check for other targets (should be refactored!)
-            for (int i=0;i<states.back()->_buttons.size();i++)
-            {
-                if (!states.back()->_buttons[i]._isactive) {continue;}
-                if (!(states.back()->_buttons[i]._wasClicked && !states.back()->_buttons[i]._isClicked)) {continue;}
-
-                //button is active and has been clicked.
-
-                if (states.back()->_buttons[i]._controlchange==true)
-                {
-                    controlindex=i;
-                    states.back()->_buttons[controlindex]._text.setString("?");
-                    bounds=states.back()->_buttons[controlindex]._text.getLocalBounds();
-                    states.back()->_buttons[controlindex]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
-                    wait=true;
-                    break;
-                }
             }
 
             mouse_pos=sf::Mouse::getPosition(window);
@@ -238,14 +215,14 @@ int main()
                     window.close();
                     break;
                 case sf::Event::TextEntered:
-                    if (!wait && typing && (event.text.unicode<127 && event.text.unicode>31))
+                    if (!states.back()->_isWaitingForInput && typing && (event.text.unicode<127 && event.text.unicode>31))
                     {
                         hastyped=true;
                         states.back()->_inputboxes[typingindex]._input.insert(size_t(states.back()->_inputboxes[typingindex]._cursorpos),std::string(sf::String(event.text.unicode)));
                         states.back()->_inputboxes[typingindex]._cursorpos+=1;
                     }
                 case sf::Event::KeyPressed:
-                    if (!wait && typing && event.key.code==sf::Keyboard::Backspace)
+                    if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Backspace)
                     {
                         hastyped=true;
                         if (states.back()->_inputboxes[typingindex]._cursorpos!=0)
@@ -254,17 +231,17 @@ int main()
                             states.back()->_inputboxes[typingindex]._cursorpos-=1;
                         }
                     }
-                    else if (!wait && typing && event.key.code==sf::Keyboard::Left)
+                    else if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Left)
                     {
                         hastyped=true;
                         states.back()->_inputboxes[typingindex]._cursorpos=std::max(0,states.back()->_inputboxes[typingindex]._cursorpos-1);
                     }
-                    else if (!wait && typing && event.key.code==sf::Keyboard::Right)
+                    else if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Right)
                     {
                         hastyped=true;
                         states.back()->_inputboxes[typingindex]._cursorpos=std::min(int(states.back()->_inputboxes[typingindex]._input.length()),states.back()->_inputboxes[typingindex]._cursorpos+1);
                     }
-                    else if (!wait && typing && event.key.code==sf::Keyboard::Delete)
+                    else if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Delete)
                     {
                         hastyped=true;
                         if (states.back()->_inputboxes[typingindex]._cursorpos!=states.back()->_inputboxes[typingindex]._input.length())
@@ -272,11 +249,11 @@ int main()
                             states.back()->_inputboxes[typingindex]._input.erase(states.back()->_inputboxes[typingindex]._cursorpos,1);
                         }
                     }
-                    else if (wait && controlindex!=-1)
+                    else if (states.back()->_isWaitingForInput && states.back()->_controlindex!=-1)
                     {
-                        target=KeyToString(event.key.code);
+                        int controlindex=states.back()->_controlindex;
                         user_controls[states.back()->_buttons[controlindex]._target]=event.key.code;
-                        states.back()->_buttons[controlindex]._text.setString(target);
+                        states.back()->_buttons[controlindex]._text.setString(KeyToString(event.key.code));
                         bounds=states.back()->_buttons[controlindex]._text.getLocalBounds();
                         states.back()->_buttons[controlindex]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
 
@@ -292,14 +269,14 @@ int main()
 
                         states.back()->_shouldUpdate=true;
 
-                        wait=false;
-                        controlindex=-1;
+                        states.back()->_isWaitingForInput=false;
+                        states.back()->_controlindex=-1;
                         break;
                     }
             }
         }
 
-        if (!wait && hastyped)
+        if (!states.back()->_isWaitingForInput && hastyped)
         {
             states.back()->_inputboxes[typingindex]._t=0.;
             sf::Color c=states.back()->_inputboxes[typingindex]._cursor.getFillColor();
@@ -328,7 +305,7 @@ int main()
             }
         }
 
-        if (!wait && states.back()->_shouldUpdate) {states.back()->update(1.0/framerate,mouse_pos);}
+        if (!states.back()->_isWaitingForInput && states.back()->_shouldUpdate) {states.back()->update(1.0/framerate,mouse_pos);}
 
         states.back()->render(window);
 

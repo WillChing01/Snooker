@@ -267,6 +267,15 @@ class ControlScreen : public GameState
                     for (auto thing:user_controls) {file << KeyToString(thing.second) << "\n";}
                     file.close();
                 }
+                else if (_buttons[i]._controlchange==true)
+                {
+                    sf::FloatRect bounds;
+                    _controlindex=i;
+                    _buttons[i]._text.setString("?");
+                    bounds=_buttons[i]._text.getLocalBounds();
+                    _buttons[i]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
+                    _isWaitingForInput=true;
+                }
 
                 break;
             }
