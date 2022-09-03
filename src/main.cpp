@@ -141,29 +141,6 @@ int main()
                 if (!(states.back()->_buttons[i]._wasClicked && !states.back()->_buttons[i]._isClicked)) {continue;}
 
                 //button is active and has been clicked.
-                if (states.back()->_buttons[i]._target=="Default")
-                {
-                    user_controls=default_controls;
-                    sf::FloatRect bounds;
-                    for (int i=0;i<default_controls.size();i++)
-                    {
-                        states.back()->_buttons[i]._text.setString(KeyToString(user_controls[states.back()->_buttons[i]._target]));
-                        bounds=states.back()->_buttons[i]._text.getLocalBounds();
-                        states.back()->_buttons[i]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
-                    }
-
-                    //update the config file with new controls.
-                    std::ofstream file(_userConfigFile,std::ofstream::out | std::ofstream::trunc);
-                    for (auto thing:user_controls) {file << KeyToString(thing.second) << "\n";}
-                    file.close();
-                }
-                else if (states.back()->_buttons[i]._target.substr(0,6)=="Select")
-                {
-                    std::string target=states.back()->_buttons[i]._target;
-                    cuetexturefile=_cueFilePrefix+"cue"+target.substr(target.size()-1,1)+".png";
-                    std::ofstream cuefile(_userCueConfigFile,std::ofstream::out | std::ofstream::trunc);
-                    cuefile << cuetexturefile; cuefile.close();
-                }
 
                 if (states.back()->_buttons[i]._controlchange==true)
                 {

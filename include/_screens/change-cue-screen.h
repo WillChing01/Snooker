@@ -208,18 +208,30 @@ class ChangeCueScreen : public GameState
         {
             _shouldUpdate=false;
 
-            //check if scroll buttons were clicked.
-            if (_buttons[numPerPage+1]._shouldExecute==true)
+            for (int i=0;i<_buttons.size();i++)
             {
-                //scroll back.
-                _buttons[numPerPage+1]._shouldExecute=false;
-                _page=std::max(_page-1,0);
-            }
-            else if (_buttons[numPerPage+2]._shouldExecute==true)
-            {
-                //scroll forward.
-                _buttons[numPerPage+2]._shouldExecute=false;
-                _page=std::min(_page+1,(totalCues-1)/numPerPage);
+                if (!_buttons[i]._isactive) {continue;}
+                if (!_buttons[i]._shouldExecute) {continue;}
+
+                _buttons[i]._shouldExecute=false;
+
+                if (_buttons[i]._target=="ScrollLeft")
+                {
+                    _page=std::max(_page-1,0);
+                }
+                else if (_buttons[i]._target=="ScrollRight")
+                {
+                    _page=std::min(_page+1,(totalCues-1)/numPerPage);
+                }
+                else if (_buttons[i]._target.substr(0,6)=="Select")
+                {
+                    std::string target=_buttons[i]._target;
+                    cuetexturefile=_cueFilePrefix+"cue"+target.substr(6)+".png";
+                    std::ofstream cuefile(_userCueConfigFile,std::ofstream::out | std::ofstream::trunc);
+                    cuefile << cuetexturefile; cuefile.close();
+                }
+
+                break;
             }
 
             pageNumber.setString(std::to_string(_page+1));
