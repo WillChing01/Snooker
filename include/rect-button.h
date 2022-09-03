@@ -28,6 +28,8 @@ class RectButton
         bool _controlchange=false; //for changing controls in options.
         bool _isactive=true;
         bool _wasClicked=false;
+        bool _isClicked=false;
+        bool _shouldExecute=false;
 
         std::string _target;
 

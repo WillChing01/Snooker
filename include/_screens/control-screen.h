@@ -244,6 +244,42 @@ class ControlScreen : public GameState
         {
             _shouldUpdate=false;
 
+            for (int i=0;i<_buttons.size();i++)
+            {
+                if (!_buttons[i]._isactive) {continue;}
+                if (!_buttons[i]._shouldExecute) {continue;}
+
+                _buttons[i]._shouldExecute=false;
+
+                if (_buttons[i]._target=="Default")
+                {
+                    user_controls=default_controls;
+                    sf::FloatRect bounds;
+                    for (int j=0;j<default_controls.size();j++)
+                    {
+                        _buttons[j]._text.setString(KeyToString(user_controls[_buttons[j]._target]));
+                        bounds=_buttons[j]._text.getLocalBounds();
+                        _buttons[j]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
+                    }
+
+                    //update the config file with new controls.
+                    std::ofstream file(_userConfigFile,std::ofstream::out | std::ofstream::trunc);
+                    for (auto thing:user_controls) {file << KeyToString(thing.second) << "\n";}
+                    file.close();
+                }
+                else if (_buttons[i]._controlchange==true)
+                {
+                    sf::FloatRect bounds;
+                    _controlindex=i;
+                    _buttons[i]._text.setString("?");
+                    bounds=_buttons[i]._text.getLocalBounds();
+                    _buttons[i]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
+                    _isWaitingForInput=true;
+                }
+
+                break;
+            }
+
             //check for key conflicts.
             std::map<std::string,bool> result=getControlConflicts();
 

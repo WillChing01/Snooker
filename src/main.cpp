@@ -63,17 +63,13 @@ int main()
     sf::Vector2f rectsize;
     sf::Vector2f rectpos;
     sf::FloatRect bounds;
-    bool ispressed=false;
     sf::Event event;
     sf::Vector2i mouse_pos;
+    bool ispressed=false;
     bool typing=false;
     bool hastyped=false;
     int typingindex=0;
     double dist=0.;
-    std::string target;
-
-    int controlindex=-1;
-    bool wait=false;
 
     std::string name;
     std::string ip;
@@ -90,121 +86,53 @@ int main()
 
     while (window.isOpen())
     {
-        if (!wait)
+        if (states.size()==0) {break;}
+
+        if (!states.back()->_isWaitingForInput)
         {
+            states.back()->handleButtonPress(window);
+
+            //handle redirects.
+            if (states.back()->_shouldChangeState==true)
+            {
+                //reset for next time.
+                states.back()->_shouldChangeState=false;
+
+                if (states.back()->_stateTarget=="TitleScreen") {states.push_back(new TitleScreen());}
+                else if (states.back()->_stateTarget=="Singleplayer") {states.push_back(new SingleplayerScreen());}
+                else if (states.back()->_stateTarget=="SingleplayerAI") {states.push_back(new GameScreen(dfactor,2,"",50000,name));}
+                else if (states.back()->_stateTarget=="SingleplayerLineup") {states.push_back(new GameScreen(dfactor,3,"",50000,name));}
+                else if (states.back()->_stateTarget=="Multiplayer") {states.push_back(new MultiplayerScreen(dfactor,localip,std::to_string(localport)));}
+                else if (states.back()->_stateTarget=="MultiplayerHost")
+                {
+                    server.resetServer();
+                    try
+                    {
+                        states.push_back(new GameScreen(dfactor,0,localip,localport,std::string(states.back()->_inputboxes[2]._text.getString())));
+                    }
+                    catch (...) {}
+                }
+                else if (states.back()->_stateTarget=="MultiplayerJoin")
+                {
+                    try
+                    {
+                        ip=states.back()->_inputboxes[0]._text.getString();
+                        port=std::stoi(std::string(states.back()->_inputboxes[1]._text.getString()));
+                        states.push_back(new GameScreen(dfactor,1,ip,port,std::string(states.back()->_inputboxes[2]._text.getString())));
+                    }
+                    catch (...) {}
+                }
+                else if (states.back()->_stateTarget=="Options") {states.push_back(new OptionsScreen());}
+                else if (states.back()->_stateTarget=="Controls") {states.push_back(new ControlScreen());}
+                else if (states.back()->_stateTarget=="Changecue") {states.push_back(new ChangeCueScreen());}
+                else if (states.back()->_stateTarget=="Quit") {delete states.back(); states.pop_back();}
+
+                continue;
+            }
+
             mouse_pos=sf::Mouse::getPosition(window);
             mouse_pos.x=int(mouse_pos.x-0.5*sdiff);
             ispressed=sf::Mouse::isButtonPressed(sf::Mouse::Left);
-            if (mouse_pos.x>=0 && mouse_pos.x<=dfactor*raw_width && mouse_pos.y>=0 && mouse_pos.y<=dfactor*raw_height)
-            {
-                for (int i=0;i<states.back()->_buttons.size();i++)
-                {
-                    rectpos=states.back()->_buttons[i]._shape.getPosition();
-                    rectsize=states.back()->_buttons[i]._shape.getSize();
-                    if (mouse_pos.x>=rectpos.x-0.5*rectsize.x && mouse_pos.x<=rectpos.x+0.5*rectsize.x
-                        && mouse_pos.y>=rectpos.y-0.5*rectsize.y && mouse_pos.y<=rectpos.y+0.5*rectsize.y && states.back()->_buttons[i]._isactive)
-                    {
-                        //touching the button.
-                        if (ispressed)
-                        {
-                            states.back()->_buttons[i]._shape.setFillColor(states.back()->_buttons[i]._colour3);
-                            states.back()->_buttons[i]._shape.setOutlineColor(states.back()->_buttons[i]._outlinecolour3);
-                            states.back()->_buttons[i]._text.setFillColor(states.back()->_buttons[i]._textcolour3);
-                        }
-                        else if (states.back()->_buttons[i]._shape.getFillColor()==states.back()->_buttons[i]._colour3)
-                        {
-                            if (states.back()->_buttons[i]._controlchange==false)
-                            {
-                                //move onto the target state.
-                                states.back()->_buttons[i]._shape.setFillColor(states.back()->_buttons[i]._colour1);
-                                states.back()->_buttons[i]._shape.setOutlineColor(states.back()->_buttons[i]._outlinecolour1);
-                                states.back()->_buttons[i]._text.setFillColor(states.back()->_buttons[i]._textcolour1);
-
-                                target=states.back()->_buttons[i]._target;
-
-                                states.back()->_buttons[i]._wasClicked=true;
-
-                                if (target=="Quit") {delete states.back(); states.pop_back();}
-                                else if (target=="Options") {states.push_back(new OptionsScreen());}
-                                else if (target=="Singleplayer") {states.push_back(new SingleplayerScreen());}
-                                else if (target=="Multiplayer") {states.push_back(new MultiplayerScreen(dfactor,localip,std::to_string(localport)));}
-                                else if (target=="MultiplayerHost")
-                                {
-                                    server.resetServer();
-                                    try
-                                    {
-                                        states.push_back(new GameScreen(dfactor,0,localip,localport,std::string(states.back()->_inputboxes[2]._text.getString())));
-                                    }
-                                    catch (...) {}
-                                }
-                                else if (target=="MultiplayerJoin")
-                                {
-                                    try
-                                    {
-                                        ip=states.back()->_inputboxes[0]._text.getString();
-                                        port=std::stoi(std::string(states.back()->_inputboxes[1]._text.getString()));
-                                        states.push_back(new GameScreen(dfactor,1,ip,port,std::string(states.back()->_inputboxes[2]._text.getString())));
-                                    }
-                                    catch (...) {}
-                                }
-                                else if (target=="SingleplayerAI") {states.push_back(new GameScreen(dfactor,2,"",50000,name));}
-                                else if (target=="SingleplayerLineup") {states.push_back(new GameScreen(dfactor,3,"",50000,name));}
-                                else if (target=="Controls") {states.push_back(new ControlScreen());}
-                                else if (target=="Changecue") {states.push_back(new ChangeCueScreen());}
-                                else if (target=="Default")
-                                {
-                                    user_controls=default_controls;
-                                    sf::FloatRect bounds;
-                                    for (int i=0;i<default_controls.size();i++)
-                                    {
-                                        states.back()->_buttons[i]._text.setString(KeyToString(user_controls[states.back()->_buttons[i]._target]));
-                                        bounds=states.back()->_buttons[i]._text.getLocalBounds();
-                                        states.back()->_buttons[i]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
-                                    }
-
-                                    //update the config file with new controls.
-                                    std::ofstream file(_userConfigFile,std::ofstream::out | std::ofstream::trunc);
-                                    for (auto thing:user_controls) {file << KeyToString(thing.second) << "\n";}
-                                    file.close();
-                                }
-                                else if (target.substr(0,6)=="Select")
-                                {
-                                    cuetexturefile=_cueFilePrefix+"cue"+target.substr(target.size()-1,1)+".png";
-                                    std::ofstream cuefile(_userCueConfigFile,std::ofstream::out | std::ofstream::trunc);
-                                    cuefile << cuetexturefile; cuefile.close();
-                                }
-
-                                if (states.size()) {states.back()->_shouldUpdate=true;}
-
-                                break;
-                            }
-                            else
-                            {
-                                controlindex=i;
-                                states.back()->_buttons[controlindex]._text.setString("?");
-                                bounds=states.back()->_buttons[controlindex]._text.getLocalBounds();
-                                states.back()->_buttons[controlindex]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
-                                wait=true;
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            states.back()->_buttons[i]._shape.setFillColor(states.back()->_buttons[i]._colour2);
-                            states.back()->_buttons[i]._shape.setOutlineColor(states.back()->_buttons[i]._outlinecolour2);
-                            states.back()->_buttons[i]._text.setFillColor(states.back()->_buttons[i]._textcolour2);
-                        }
-                    }
-                    else
-                    {
-                        states.back()->_buttons[i]._shape.setFillColor(states.back()->_buttons[i]._colour1);
-                        states.back()->_buttons[i]._shape.setOutlineColor(states.back()->_buttons[i]._outlinecolour1);
-                        states.back()->_buttons[i]._text.setFillColor(states.back()->_buttons[i]._textcolour1);
-                    }
-                }
-            }
-
-            if (states.size()==0) {break;}
 
             if (mouse_pos.x>=0 && mouse_pos.x<=dfactor*raw_width && mouse_pos.y>=0 && mouse_pos.y<=dfactor*raw_height)
             {
@@ -287,14 +215,14 @@ int main()
                     window.close();
                     break;
                 case sf::Event::TextEntered:
-                    if (!wait && typing && (event.text.unicode<127 && event.text.unicode>31))
+                    if (!states.back()->_isWaitingForInput && typing && (event.text.unicode<127 && event.text.unicode>31))
                     {
                         hastyped=true;
                         states.back()->_inputboxes[typingindex]._input.insert(size_t(states.back()->_inputboxes[typingindex]._cursorpos),std::string(sf::String(event.text.unicode)));
                         states.back()->_inputboxes[typingindex]._cursorpos+=1;
                     }
                 case sf::Event::KeyPressed:
-                    if (!wait && typing && event.key.code==sf::Keyboard::Backspace)
+                    if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Backspace)
                     {
                         hastyped=true;
                         if (states.back()->_inputboxes[typingindex]._cursorpos!=0)
@@ -303,17 +231,17 @@ int main()
                             states.back()->_inputboxes[typingindex]._cursorpos-=1;
                         }
                     }
-                    else if (!wait && typing && event.key.code==sf::Keyboard::Left)
+                    else if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Left)
                     {
                         hastyped=true;
                         states.back()->_inputboxes[typingindex]._cursorpos=std::max(0,states.back()->_inputboxes[typingindex]._cursorpos-1);
                     }
-                    else if (!wait && typing && event.key.code==sf::Keyboard::Right)
+                    else if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Right)
                     {
                         hastyped=true;
                         states.back()->_inputboxes[typingindex]._cursorpos=std::min(int(states.back()->_inputboxes[typingindex]._input.length()),states.back()->_inputboxes[typingindex]._cursorpos+1);
                     }
-                    else if (!wait && typing && event.key.code==sf::Keyboard::Delete)
+                    else if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Delete)
                     {
                         hastyped=true;
                         if (states.back()->_inputboxes[typingindex]._cursorpos!=states.back()->_inputboxes[typingindex]._input.length())
@@ -321,11 +249,11 @@ int main()
                             states.back()->_inputboxes[typingindex]._input.erase(states.back()->_inputboxes[typingindex]._cursorpos,1);
                         }
                     }
-                    else if (wait && controlindex!=-1)
+                    else if (states.back()->_isWaitingForInput && states.back()->_controlindex!=-1)
                     {
-                        target=KeyToString(event.key.code);
+                        int controlindex=states.back()->_controlindex;
                         user_controls[states.back()->_buttons[controlindex]._target]=event.key.code;
-                        states.back()->_buttons[controlindex]._text.setString(target);
+                        states.back()->_buttons[controlindex]._text.setString(KeyToString(event.key.code));
                         bounds=states.back()->_buttons[controlindex]._text.getLocalBounds();
                         states.back()->_buttons[controlindex]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
 
@@ -341,14 +269,14 @@ int main()
 
                         states.back()->_shouldUpdate=true;
 
-                        wait=false;
-                        controlindex=-1;
+                        states.back()->_isWaitingForInput=false;
+                        states.back()->_controlindex=-1;
                         break;
                     }
             }
         }
 
-        if (!wait && hastyped)
+        if (!states.back()->_isWaitingForInput && hastyped)
         {
             states.back()->_inputboxes[typingindex]._t=0.;
             sf::Color c=states.back()->_inputboxes[typingindex]._cursor.getFillColor();
@@ -377,7 +305,7 @@ int main()
             }
         }
 
-        if (!wait && states.back()->_shouldUpdate) {states.back()->update(1.0/framerate,mouse_pos);}
+        if (!states.back()->_isWaitingForInput && states.back()->_shouldUpdate) {states.back()->update(1.0/framerate,mouse_pos);}
 
         states.back()->render(window);
 
