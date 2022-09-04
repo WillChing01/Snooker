@@ -65,11 +65,8 @@ int main()
     sf::FloatRect bounds;
     sf::Event event;
     sf::Vector2i mouse_pos;
-    bool ispressed=false;
-    bool typing=false;
     bool hastyped=false;
     int typingindex=0;
-    double dist=0.;
 
     std::string name;
     std::string ip;
@@ -130,79 +127,8 @@ int main()
                 continue;
             }
 
-            mouse_pos=sf::Mouse::getPosition(window);
-            mouse_pos.x=int(mouse_pos.x-0.5*sdiff);
-            ispressed=sf::Mouse::isButtonPressed(sf::Mouse::Left);
-
-            if (mouse_pos.x>=0 && mouse_pos.x<=dfactor*raw_width && mouse_pos.y>=0 && mouse_pos.y<=dfactor*raw_height)
-            {
-                for (int i=0;i<states.back()->_inputboxes.size();i++)
-                {
-                    rectpos=states.back()->_inputboxes[i]._shape.getPosition();
-                    rectsize=states.back()->_inputboxes[i]._shape.getSize();
-                    if (ispressed)
-                    {
-                        if (mouse_pos.x>=rectpos.x-0.5*rectsize.x && mouse_pos.x<=rectpos.x+0.5*rectsize.x
-                            && mouse_pos.y>=rectpos.y-0.5*rectsize.y && mouse_pos.y<=rectpos.y+0.5*rectsize.y && states.back()->_inputboxes[i]._isactive)
-                        {
-                            states.back()->_inputboxes[i]._shape.setOutlineColor(states.back()->_inputboxes[i]._outlinecolour2);
-                            sf::Color c=states.back()->_inputboxes[i]._backtext.getFillColor();
-                            states.back()->_inputboxes[i]._backtext.setFillColor(sf::Color(c.r,c.g,c.b,0));
-                            c=states.back()->_inputboxes[i]._cursor.getFillColor();
-                            states.back()->_inputboxes[i]._cursor.setFillColor(sf::Color(c.r,c.g,c.b,255));
-
-                            dist=999.;
-                            for (int j=0;j<states.back()->_inputboxes[i]._input.length()+1;j++)
-                            {
-                                states.back()->_inputboxes[i]._text.setString(states.back()->_inputboxes[i]._input.substr(0,j));
-                                bounds=states.back()->_inputboxes[i]._text.getGlobalBounds();
-                                if (fabs(mouse_pos.x-bounds.left-bounds.width)<dist)
-                                {
-                                    dist=fabs(mouse_pos.x-bounds.left-bounds.width);
-                                    states.back()->_inputboxes[i]._cursorpos=j;
-                                    rectpos=states.back()->_inputboxes[i]._cursor.getPosition();
-                                    states.back()->_inputboxes[i]._cursor.setPosition(sf::Vector2f(bounds.left+bounds.width+5.*states.back()->_inputboxes[typingindex]._abscursorthickness,rectpos.y));
-                                }
-                                states.back()->_inputboxes[i]._text.setString(states.back()->_inputboxes[i]._input);
-                            }
-                        }
-                        else
-                        {
-                            states.back()->_inputboxes[i]._shape.setOutlineColor(states.back()->_inputboxes[i]._outlinecolour1);
-                            sf::Color c=states.back()->_inputboxes[i]._backtext.getFillColor();
-                            if (states.back()->_inputboxes[i]._input.empty())
-                            {
-                                states.back()->_inputboxes[i]._backtext.setFillColor(sf::Color(c.r,c.g,c.b,150));
-                            }
-                            c=states.back()->_inputboxes[i]._cursor.getFillColor();
-                            states.back()->_inputboxes[i]._cursor.setFillColor(sf::Color(c.r,c.g,c.b,0));
-                        }
-                    }
-                    else if (!states.back()->_inputboxes[i]._isactive)
-                    {
-                        states.back()->_inputboxes[i]._shape.setOutlineColor(states.back()->_inputboxes[i]._outlinecolour1);
-                        sf::Color c=states.back()->_inputboxes[i]._backtext.getFillColor();
-                        if (states.back()->_inputboxes[i]._input.empty())
-                        {
-                            states.back()->_inputboxes[i]._backtext.setFillColor(sf::Color(c.r,c.g,c.b,150));
-                        }
-                        c=states.back()->_inputboxes[i]._cursor.getFillColor();
-                        states.back()->_inputboxes[i]._cursor.setFillColor(sf::Color(c.r,c.g,c.b,0));
-                    }
-                }
-            }
-
-            typing=false;
-            for (int i=0;i<states.back()->_inputboxes.size();i++)
-            {
-                if (states.back()->_inputboxes[i]._shape.getOutlineColor()==states.back()->_inputboxes[i]._outlinecolour2)
-                {
-                    //typing in box. All inputs except mouse are ignored.
-                    typing=true;
-                    typingindex=i;
-                    break;
-                }
-            }
+            states.back()->handleInputClick(window);
+            typingindex=states.back()->_typingIndex;
         }
 
         hastyped=false;
@@ -215,14 +141,14 @@ int main()
                     window.close();
                     break;
                 case sf::Event::TextEntered:
-                    if (!states.back()->_isWaitingForInput && typing && (event.text.unicode<127 && event.text.unicode>31))
+                    if (!states.back()->_isWaitingForInput && states.back()->_isTyping && (event.text.unicode<127 && event.text.unicode>31))
                     {
                         hastyped=true;
                         states.back()->_inputboxes[typingindex]._input.insert(size_t(states.back()->_inputboxes[typingindex]._cursorpos),std::string(sf::String(event.text.unicode)));
                         states.back()->_inputboxes[typingindex]._cursorpos+=1;
                     }
                 case sf::Event::KeyPressed:
-                    if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Backspace)
+                    if (!states.back()->_isWaitingForInput && states.back()->_isTyping && event.key.code==sf::Keyboard::Backspace)
                     {
                         hastyped=true;
                         if (states.back()->_inputboxes[typingindex]._cursorpos!=0)
@@ -231,17 +157,17 @@ int main()
                             states.back()->_inputboxes[typingindex]._cursorpos-=1;
                         }
                     }
-                    else if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Left)
+                    else if (!states.back()->_isWaitingForInput && states.back()->_isTyping && event.key.code==sf::Keyboard::Left)
                     {
                         hastyped=true;
                         states.back()->_inputboxes[typingindex]._cursorpos=std::max(0,states.back()->_inputboxes[typingindex]._cursorpos-1);
                     }
-                    else if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Right)
+                    else if (!states.back()->_isWaitingForInput && states.back()->_isTyping && event.key.code==sf::Keyboard::Right)
                     {
                         hastyped=true;
                         states.back()->_inputboxes[typingindex]._cursorpos=std::min(int(states.back()->_inputboxes[typingindex]._input.length()),states.back()->_inputboxes[typingindex]._cursorpos+1);
                     }
-                    else if (!states.back()->_isWaitingForInput && typing && event.key.code==sf::Keyboard::Delete)
+                    else if (!states.back()->_isWaitingForInput && states.back()->_isTyping && event.key.code==sf::Keyboard::Delete)
                     {
                         hastyped=true;
                         if (states.back()->_inputboxes[typingindex]._cursorpos!=states.back()->_inputboxes[typingindex]._input.length())
@@ -305,6 +231,8 @@ int main()
             }
         }
 
+        mouse_pos=sf::Mouse::getPosition(window);
+        mouse_pos.x=int(mouse_pos.x-0.5*sdiff);
         if (!states.back()->_isWaitingForInput && states.back()->_shouldUpdate) {states.back()->update(1.0/framerate,mouse_pos);}
 
         states.back()->render(window);

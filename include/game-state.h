@@ -18,14 +18,14 @@ const std::vector<std::string> _stateTargets=
 
 class GameState
 {
-    private:
-
     public:
         bool _shouldUpdate=true;
         bool _shouldChangeState=false;
         std::string _stateTarget="";
         bool _isWaitingForInput=false;
         int _controlindex=-1;
+        bool _isTyping=false;
+        int _typingIndex=0;
 
         std::vector<RectButton> _buttons;
         std::vector<InputBox> _inputboxes;
@@ -103,10 +103,80 @@ class GameState
                             break;
                         }
                     }
-                    break;
+                }
+            }
+        }
+
+        virtual void handleInputClick(sf::RenderWindow &window)
+        {
+            double sdiff=sf::VideoMode::getDesktopMode().width-dfactor*raw_width;
+
+            sf::Vector2i mouse_pos=sf::Mouse::getPosition(window);
+            mouse_pos.x=int(mouse_pos.x-0.5*sdiff);
+            bool isPressed=sf::Mouse::isButtonPressed(sf::Mouse::Left);
+
+            if (!(mouse_pos.x>=0 && mouse_pos.x<=dfactor*raw_width && mouse_pos.y>=0 && mouse_pos.y<=dfactor*raw_height))
+            {
+                //mouse is outside of bounds.
+                return;
+            }
+
+            sf::FloatRect bounds;
+            for (int i=0;i<_inputboxes.size();i++)
+            {
+                bounds=_inputboxes[i]._shape.getGlobalBounds();
+
+                if (!_inputboxes[i]._isactive || (isPressed && !bounds.contains(sf::Vector2f(mouse_pos))))
+                {
+                    //reset to default state.
+                    _inputboxes[i]._isTyping=false;
+                    _inputboxes[i]._shape.setOutlineColor(_inputboxes[i]._outlinecolour1);
+                    sf::Color c=_inputboxes[i]._backtext.getFillColor();
+                    if (_inputboxes[i]._input.empty())
+                    {
+                        _inputboxes[i]._backtext.setFillColor(sf::Color(c.r,c.g,c.b,150));
+                    }
+                    c=_inputboxes[i]._cursor.getFillColor();
+                    _inputboxes[i]._cursor.setFillColor(sf::Color(c.r,c.g,c.b,0));
+                    continue;
                 }
 
-                //if the button function is local it will be handled in update().
+                if (isPressed && bounds.contains(sf::Vector2f(mouse_pos)))
+                {
+                    //set to typing state.
+                    _inputboxes[i]._isTyping=true;
+                    _inputboxes[i]._shape.setOutlineColor(_inputboxes[i]._outlinecolour2);
+                    sf::Color c=_inputboxes[i]._backtext.getFillColor();
+                    _inputboxes[i]._backtext.setFillColor(sf::Color(c.r,c.g,c.b,0));
+                    c=_inputboxes[i]._cursor.getFillColor();
+                    _inputboxes[i]._cursor.setFillColor(sf::Color(c.r,c.g,c.b,255));
+
+                    double dist=999.;
+                    for (int j=0;j<_inputboxes[i]._input.length()+1;j++)
+                    {
+                        _inputboxes[i]._text.setString(_inputboxes[i]._input.substr(0,j));
+                        bounds=_inputboxes[i]._text.getGlobalBounds();
+                        if (fabs(mouse_pos.x-bounds.left-bounds.width)<dist)
+                        {
+                            dist=fabs(mouse_pos.x-bounds.left-bounds.width);
+                            _inputboxes[i]._cursorpos=j;
+                            sf::Vector2f rectpos=_inputboxes[i]._cursor.getPosition();
+                            _inputboxes[i]._cursor.setPosition(sf::Vector2f(bounds.left+bounds.width+5.*_inputboxes[i]._abscursorthickness,rectpos.y));
+                        }
+                        _inputboxes[i]._text.setString(_inputboxes[i]._input);
+                    }
+                }
+            }
+
+            _isTyping=false;
+            for (int i=0;i<_inputboxes.size();i++)
+            {
+                if (_inputboxes[i]._isTyping==true)
+                {
+                    _isTyping=true;
+                    _typingIndex=i;
+                    break;
+                }
             }
         }
 

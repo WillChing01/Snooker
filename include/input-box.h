@@ -17,6 +17,7 @@ class InputBox
         double _toff=0.8;
 
         bool _isactive=true;
+        bool _isTyping=false;
 
         int _cursorpos=0;
 
