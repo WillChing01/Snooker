@@ -1,8 +1,7 @@
 #ifndef CONTROL-SCREEN_H_INCLUDED
 #define CONTROL-SCREEN_H_INCLUDED
 
-class ControlScreen;
-
+//button callbacks
 void setDefaultControls(GameState* game_state,std::map<std::string,std::string>* payload);
 void setWaitingForControl(GameState* game_state,std::map<std::string,std::string>* payload);
 

@@ -6,12 +6,14 @@
 void scrollLeft(GameState* game_state, std::map<std::string,std::string>* payload)
 {
     ChangeCueScreen* state=dynamic_cast<ChangeCueScreen*>(game_state);
+
     state->_page=std::max(state->_page-1,0);
 }
 
 void scrollRight(GameState* game_state, std::map<std::string,std::string>* payload)
 {
     ChangeCueScreen* state=dynamic_cast<ChangeCueScreen*>(game_state);
+
     state->_page=std::min(state->_page+1,(state->totalCues-1)/state->numPerPage);
 }
 
@@ -57,6 +59,45 @@ void setWaitingForControl(GameState* game_state, std::map<std::string,std::strin
     bounds=state->_buttons[i]._text.getLocalBounds();
     state->_buttons[i]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
     state->_isWaitingForInput=true;
+}
+
+//play game screen.
+
+void sendPacketCallback(GameState* game_state, std::map<std::string,std::string>* payload)
+{
+    GameScreen* state=dynamic_cast<GameScreen*>(game_state);
+
+    if (state->gametype<2)
+    {
+        state->sendPacket(std::stoi((*payload)["id"]));
+    }
+}
+
+void scrollTextCallback(GameState* game_state, std::map<std::string,std::string>* payload)
+{
+    GameScreen* state=dynamic_cast<GameScreen*>(game_state);
+
+    state->scrollText(std::stoi((*payload)["offset"]));
+}
+
+void toggleAutoScroll(GameState* game_state, std::map<std::string,std::string>* payload)
+{
+    GameScreen* state=dynamic_cast<GameScreen*>(game_state);
+
+    if(state->scrollOnNewMessage==true)
+    {
+        state->_buttons[6]._text.setString(">");
+    }
+    else
+    {
+        state->_buttons[6]._text.setString("||");
+        state->scrollText(state->logStringsHistory.size());
+    }
+    state->scrollOnNewMessage=!state->scrollOnNewMessage;
+
+    //center new text.
+    sf::FloatRect textrect=state->_buttons[6]._text.getLocalBounds();
+    state->_buttons[6]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
 }
 
 #endif // BUTTON-CALLBACKS_H_INCLUDED

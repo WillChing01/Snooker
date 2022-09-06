@@ -1,9 +1,14 @@
 #ifndef PLAY-GAME-SCREEN_H_INCLUDED
 #define PLAY-GAME-SCREEN_H_INCLUDED
 
+//button callbacks
+void sendPacketCallback(GameState* game_state, std::map<std::string,std::string>* payload);
+void scrollTextCallback(GameState* game_state, std::map<std::string,std::string>* payload);
+void toggleAutoScroll(GameState* game_state, std::map<std::string,std::string>* payload);
+
 class GameScreen : public GameState
 {
-    private:
+    public:
         sf::Font _thinfont;
         sf::Font _boldfont;
         int gametype=0;
@@ -135,7 +140,6 @@ class GameScreen : public GameState
         double ds=0.;
         sf::Vector2f pos;
 
-    public:
         //set up the objects.
         GameScreen(double sfac=dfactor,int kind=0,std::string ip="", unsigned short port=50000,std::string name="PLAYER 1") : GameState(sfac)
         {
@@ -362,11 +366,15 @@ class GameScreen : public GameState
                 {
                     _buttons[i]._text.setString("Concede frame");
                     _buttons[i]._target="Concedeframe";
+                    _buttons[i]._payload["id"]="4";
+                    _buttons[i]._callback=std::bind(sendPacketCallback,std::placeholders::_1,std::placeholders::_2);
                 }
                 else if (i==3)
                 {
                     _buttons[i]._text.setString("Concede match");
                     _buttons[i]._target="Concedematch";
+                    _buttons[i]._payload["id"]="5";
+                    _buttons[i]._callback=std::bind(sendPacketCallback,std::placeholders::_1,std::placeholders::_2);
                 }
                 textrect=_buttons[i]._text.getLocalBounds();
                 _buttons[i]._text.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
@@ -419,16 +427,21 @@ class GameScreen : public GameState
                 {
                     _buttons[i]._text.setString("^");
                     _buttons[i]._target="ScrollUp";
+                    _buttons[i]._payload["offset"]="-1";
+                    _buttons[i]._callback=std::bind(scrollTextCallback,std::placeholders::_1,std::placeholders::_2);
                 }
                 else if (i==5)
                 {
                     _buttons[i]._text.setString("^");
                     _buttons[i]._target="ScrollDown";
+                    _buttons[i]._payload["offset"]="1";
+                    _buttons[i]._callback=std::bind(scrollTextCallback,std::placeholders::_1,std::placeholders::_2);
                 }
                 else if (i==6)
                 {
                     _buttons[i]._text.setString("||");
                     _buttons[i]._target="ToggleAutoScroll";
+                    _buttons[i]._callback=std::bind(toggleAutoScroll,std::placeholders::_1,std::placeholders::_2);
                 }
                 textrect=_buttons[i]._text.getLocalBounds();
                 _buttons[i]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
@@ -1106,56 +1119,6 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
 
     if (!gameover)
     {
-        //concession packets.
-        if (_buttons[2]._shouldExecute==true)
-        {
-            _buttons[2]._shouldExecute=false;
-            if (gametype<2)
-            {
-                sendPacket(4);
-            }
-        }
-        else if (_buttons[3]._shouldExecute==true)
-        {
-            _buttons[3]._shouldExecute=false;
-            if (gametype<2)
-            {
-                sendPacket(5);
-            }
-        }
-        else if (_buttons[4]._shouldExecute==true)
-        {
-            _buttons[4]._shouldExecute=false;
-            //scroll up.
-            scrollText(-1);
-        }
-        else if (_buttons[5]._shouldExecute==true)
-        {
-            _buttons[5]._shouldExecute=false;
-            //scroll down.
-            scrollText(1);
-        }
-        else if (_buttons[6]._shouldExecute==true)
-        {
-            _buttons[6]._shouldExecute=false;
-            //toggle autoscroll.
-
-            if(scrollOnNewMessage==true)
-            {
-                _buttons[6]._text.setString(">");
-            }
-            else
-            {
-                _buttons[6]._text.setString("||");
-                scrollText(logStringsHistory.size());
-            }
-            scrollOnNewMessage=!scrollOnNewMessage;
-
-            //center new text.
-            sf::FloatRect textrect=_buttons[6]._text.getLocalBounds();
-            _buttons[6]._text.setOrigin(sf::Vector2f(textrect.left+0.5*textrect.width,textrect.top+0.5*textrect.height));
-        }
-
         typing=false;
         for (int i=0;i<_inputboxes.size();i++)
         {

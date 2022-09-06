@@ -2,8 +2,6 @@
 #define CHANGE-CUE-SCREEN_H_INCLUDED
 
 //button callbacks
-class ChangeCueScreen;
-
 void scrollLeft(GameState* game_state, std::map<std::string,std::string>* payload);
 void scrollRight(GameState* game_state, std::map<std::string,std::string>* payload);
 void selectCue(GameState* game_state, std::map<std::string,std::string>* payload);
