@@ -1,6 +1,11 @@
 #ifndef CONTROL-SCREEN_H_INCLUDED
 #define CONTROL-SCREEN_H_INCLUDED
 
+class ControlScreen;
+
+void setDefaultControls(GameState* game_state,std::map<std::string,std::string>* payload);
+void setWaitingForControl(GameState* game_state,std::map<std::string,std::string>* payload);
+
 class ControlScreen : public GameState
 {
     private:
@@ -173,6 +178,8 @@ class ControlScreen : public GameState
 
                 t[i].setString(controlsOrder[i]);
                 _buttons[i]._target=controlsOrder[i];
+                _buttons[i]._payload["index"]=std::to_string(i);
+                _buttons[i]._callback=std::bind(setWaitingForControl,std::placeholders::_1,std::placeholders::_2);
                 _buttons[i]._text.setString(KeyToString(user_controls[controlsOrder[i]]));
 
                 textrect=t[i].getLocalBounds();
@@ -220,7 +227,7 @@ class ControlScreen : public GameState
                 else if (i==default_controls.size()+1)
                 {
                     _buttons[i]._text.setString("Default");
-                    _buttons[i]._target="Default";
+                    _buttons[i]._callback=std::bind(setDefaultControls,std::placeholders::_1,std::placeholders::_2);
                     _buttons[i]._shape.setPosition(sf::Vector2f(0.6*_sfac*raw_width,height+(11*1.24)*(_sfac*raw_width*0.083)/_buttons[i]._ratio));
                 }
                 textrect=_buttons[i]._text.getLocalBounds();
@@ -243,42 +250,6 @@ class ControlScreen : public GameState
         void update (double dt,sf::Vector2i mouse_pos)
         {
             _shouldUpdate=false;
-
-            for (int i=0;i<_buttons.size();i++)
-            {
-                if (!_buttons[i]._isactive) {continue;}
-                if (!_buttons[i]._shouldExecute) {continue;}
-
-                _buttons[i]._shouldExecute=false;
-
-                if (_buttons[i]._target=="Default")
-                {
-                    user_controls=default_controls;
-                    sf::FloatRect bounds;
-                    for (int j=0;j<default_controls.size();j++)
-                    {
-                        _buttons[j]._text.setString(KeyToString(user_controls[_buttons[j]._target]));
-                        bounds=_buttons[j]._text.getLocalBounds();
-                        _buttons[j]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
-                    }
-
-                    //update the config file with new controls.
-                    std::ofstream file(_userConfigFile,std::ofstream::out | std::ofstream::trunc);
-                    for (auto thing:user_controls) {file << KeyToString(thing.second) << "\n";}
-                    file.close();
-                }
-                else if (_buttons[i]._controlchange==true)
-                {
-                    sf::FloatRect bounds;
-                    _controlindex=i;
-                    _buttons[i]._text.setString("?");
-                    bounds=_buttons[i]._text.getLocalBounds();
-                    _buttons[i]._text.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
-                    _isWaitingForInput=true;
-                }
-
-                break;
-            }
 
             //check for key conflicts.
             std::map<std::string,bool> result=getControlConflicts();
