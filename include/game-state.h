@@ -39,6 +39,24 @@ class GameState
         GameState(double sfac) {_sfac=sfac;}
         virtual void update(double dt,sf::Vector2i mouse_pos)=0;
 
+        virtual void handleButtonCallbacks()
+        {
+            for (int i=0;i<_buttons.size();i++)
+            {
+                if (!_buttons[i]._isactive) {continue;}
+                if (!_buttons[i]._shouldExecute) {continue;}
+
+                _buttons[i]._shouldExecute=false;
+
+                if (_buttons[i]._callback)
+                {
+                    _buttons[i]._callback(static_cast<GameState*>(this),&_buttons[i]._payload);
+                }
+
+                break;
+            }
+        }
+
         virtual void handleButtonPress(sf::RenderWindow &window)
         {
             //check if any buttons are pressed.

@@ -124,6 +124,8 @@ int main()
                 else if (states.back()->_stateTarget=="Changecue") {states.push_back(new ChangeCueScreen());}
                 else if (states.back()->_stateTarget=="Quit") {delete states.back(); states.pop_back();}
 
+                if (states.size()>0) {states.back()->_shouldUpdate=true;}
+
                 continue;
             }
 
@@ -233,7 +235,11 @@ int main()
 
         mouse_pos=sf::Mouse::getPosition(window);
         mouse_pos.x=int(mouse_pos.x-0.5*sdiff);
-        if (!states.back()->_isWaitingForInput && states.back()->_shouldUpdate) {states.back()->update(1.0/framerate,mouse_pos);}
+        if (!states.back()->_isWaitingForInput && states.back()->_shouldUpdate)
+        {
+            states.back()->handleButtonCallbacks();
+            states.back()->update(1.0/framerate,mouse_pos);
+        }
 
         states.back()->render(window);
 

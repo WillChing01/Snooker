@@ -7,6 +7,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <functional>
 
 #include <Eigen/Dense>
 #include <SFML/Graphics.hpp>
@@ -47,5 +48,7 @@
 #include "singleplayer-screen.h"
 #include "multiplayer-screen.h"
 #include "play-game-screen.h"
+
+#include "button-callbacks.h"
 
 #endif // OBJECTS_H_INCLUDED

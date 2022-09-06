@@ -17,6 +17,8 @@ const sf::Color buttonColour3=sf::Color(169,169,169,200);
 
 //at the moment, buttonColour3 must be unique from buttonColour1 and buttonColour2 !!!.
 
+class GameState;
+
 class RectButton
 {
     public:
@@ -30,6 +32,9 @@ class RectButton
         bool _wasClicked=false;
         bool _isClicked=false;
         bool _shouldExecute=false;
+
+        std::function<void(GameState*,std::map<std::string,std::string>*)> _callback;
+        std::map<std::string,std::string> _payload;
 
         std::string _target;
 

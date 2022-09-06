@@ -1,6 +1,11 @@
 #ifndef CHANGE-CUE-SCREEN_H_INCLUDED
 #define CHANGE-CUE-SCREEN_H_INCLUDED
 
+//button callbacks
+void scrollLeft(GameState* game_state, std::map<std::string,std::string>* payload);
+void scrollRight(GameState* game_state, std::map<std::string,std::string>* payload);
+void selectCue(GameState* game_state, std::map<std::string,std::string>* payload);
+
 class ChangeCueScreen : public GameState
 {
     private:
@@ -9,9 +14,6 @@ class ChangeCueScreen : public GameState
 
         sf::Text title;
         sf::Text pageNumber;
-        const int totalCues=9;
-        const int numPerPage=5;
-        int _page=0;
 
         std::vector<sf::Sprite> cuepng;
         std::vector<sf::Texture> cuetexture;
@@ -21,6 +23,12 @@ class ChangeCueScreen : public GameState
         const double buttonwidth=_sfac*raw_width*0.15;
 
     public:
+        int _page=0;
+        const int totalCues=9;
+        const int numPerPage=5;
+
+        int selectedCueIndex=std::stoi(cuetexturefile.substr(_cueFilePrefix.length()+3).substr(0,cuetexturefile.length()-_cueFilePrefix.length()-3-4));
+
         ChangeCueScreen(double sfac=dfactor) : GameState(sfac)
         {
             _background=sf::Color(0,0,0);
@@ -90,8 +98,6 @@ class ChangeCueScreen : public GameState
             bounds=cuepng[0].getLocalBounds();
             selectionBorder.setSize(sf::Vector2f(factor*bounds.width*65.*dfactor/5213.,buttonwidth/_buttons[0]._ratio));
 
-            int selectedCueIndex=cuetexturefile[cuetexturefile.size()-5]-'0';
-
             bounds=selectionBorder.getLocalBounds();
             selectionBorder.setOrigin(bounds.left+bounds.width*(1.-1./factor)*0.5,bounds.top+bounds.height*0.5);
 
@@ -153,18 +159,20 @@ class ChangeCueScreen : public GameState
                     if (i==numPerPage+1)
                     {
                         _buttons[i]._text.setString("<");
-                        _buttons[i]._target="ScrollLeft";
+                        _buttons[i]._callback=std::bind(scrollLeft,std::placeholders::_1,std::placeholders::_2);
                     }
                     else
                     {
                         _buttons[i]._text.setString(">");
-                        _buttons[i]._target="ScrollRight";
+                        _buttons[i]._callback=std::bind(scrollRight,std::placeholders::_1,std::placeholders::_2);
                     }
                 }
                 else
                 {
                     _buttons[i]._text.setString("Select");
                     _buttons[i]._target="Select"+std::to_string(i-1);
+                    _buttons[i]._payload["Select"]=std::to_string(i-1);
+                    _buttons[i]._callback=std::bind(selectCue,std::placeholders::_1,std::placeholders::_2);
                 }
                 textrect=_buttons[i]._text.getLocalBounds();
                 _buttons[i]._text.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
@@ -208,32 +216,6 @@ class ChangeCueScreen : public GameState
         {
             _shouldUpdate=false;
 
-            for (int i=0;i<_buttons.size();i++)
-            {
-                if (!_buttons[i]._isactive) {continue;}
-                if (!_buttons[i]._shouldExecute) {continue;}
-
-                _buttons[i]._shouldExecute=false;
-
-                if (_buttons[i]._target=="ScrollLeft")
-                {
-                    _page=std::max(_page-1,0);
-                }
-                else if (_buttons[i]._target=="ScrollRight")
-                {
-                    _page=std::min(_page+1,(totalCues-1)/numPerPage);
-                }
-                else if (_buttons[i]._target.substr(0,6)=="Select")
-                {
-                    std::string target=_buttons[i]._target;
-                    cuetexturefile=_cueFilePrefix+"cue"+target.substr(6)+".png";
-                    std::ofstream cuefile(_userCueConfigFile,std::ofstream::out | std::ofstream::trunc);
-                    cuefile << cuetexturefile; cuefile.close();
-                }
-
-                break;
-            }
-
             pageNumber.setString(std::to_string(_page+1));
             sf::FloatRect textrect=pageNumber.getLocalBounds();
             pageNumber.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
@@ -259,10 +241,9 @@ class ChangeCueScreen : public GameState
                     _buttons[i%numPerPage+1]._shape.setPosition(sf::Vector2f(0.75*_sfac*raw_width,0.30*_sfac*raw_height+((i%numPerPage)*1.2)*buttonwidth/_buttons[i%numPerPage]._ratio));
                     _buttons[i%numPerPage+1]._text.setPosition(sf::Vector2f(int(0.75*_sfac*raw_width),int(0.30*_sfac*raw_height+((i%numPerPage)*1.2)*buttonwidth/_buttons[i%numPerPage]._ratio)));
                     _buttons[i%numPerPage+1]._target="Select"+std::to_string(i);
+                    _buttons[i%numPerPage+1]._payload["Select"]=std::to_string(i);
                 }
             }
-
-            int selectedCueIndex=cuetexturefile[cuetexturefile.size()-5]-'0';
 
             if (selectedCueIndex>=_page*numPerPage && selectedCueIndex<_page*numPerPage+numPerPage)
             {
