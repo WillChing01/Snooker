@@ -27,6 +27,9 @@ class GameState
         bool _isTyping=false;
         int _typingIndex=0;
 
+        sf::Text fpsCounter;
+        sf::Font fpsFont;
+
         std::vector<RectButton> _buttons;
         std::vector<InputBox> _inputboxes;
         std::vector<sf::Drawable*> _shapes;
@@ -36,7 +39,25 @@ class GameState
 
         double _sfac;
 
-        GameState(double sfac) {_sfac=sfac;}
+        GameState(double sfac)
+        {
+            _sfac=sfac;
+
+            if (!fpsFont.loadFromFile(_thinFontFile)) {}
+
+            fpsCounter.setFont(fpsFont);
+            fpsCounter.setCharacterSize(int(_sfac*raw_height*0.02));
+            fpsCounter.setString("fps: "+std::to_string(framerate));
+            fpsCounter.setPosition(sf::Vector2f(1.005*_sfac*raw_width,0.005*_sfac*raw_width));
+            fpsCounter.setFillColor(sf::Color(255,255,255));
+            _shapes.push_back(&fpsCounter);
+        }
+
+        void updateFpsCounter()
+        {
+            fpsCounter.setString("fps: "+std::to_string(framerate));
+        }
+
         virtual void update(double dt,sf::Vector2i mouse_pos)=0;
 
         virtual void handleButtonCallbacks()

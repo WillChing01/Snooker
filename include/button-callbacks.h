@@ -66,6 +66,7 @@ void setWaitingForControl(GameState* game_state, std::map<std::string,std::strin
 void sendPacketCallback(GameState* game_state, std::map<std::string,std::string>* payload)
 {
     GameScreen* state=dynamic_cast<GameScreen*>(game_state);
+    if (state->gameover) {return;}
 
     if (state->gametype<2)
     {
@@ -76,6 +77,7 @@ void sendPacketCallback(GameState* game_state, std::map<std::string,std::string>
 void scrollTextCallback(GameState* game_state, std::map<std::string,std::string>* payload)
 {
     GameScreen* state=dynamic_cast<GameScreen*>(game_state);
+    if (state->gameover) {return;}
 
     state->scrollText(std::stoi((*payload)["offset"]));
 }
@@ -83,6 +85,7 @@ void scrollTextCallback(GameState* game_state, std::map<std::string,std::string>
 void toggleAutoScroll(GameState* game_state, std::map<std::string,std::string>* payload)
 {
     GameScreen* state=dynamic_cast<GameScreen*>(game_state);
+    if (state->gameover) {return;}
 
     if(state->scrollOnNewMessage==true)
     {

@@ -3,7 +3,7 @@
 
 //lengths are in inches.
 
-const int framerate=100;
+int framerate=100;
 const double timestep=1./framerate;
 
 const double epsilon=pow(10.,-12.);
