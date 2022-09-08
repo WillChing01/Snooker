@@ -52,7 +52,7 @@ class GameScreen : public GameState
 
         bool change=true;
         bool done=true;
-        int t=0;
+        double t=0;
         double deltat=0.;
         bool typing=false;
 
@@ -1172,30 +1172,19 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
             listenForPackets();
         }
 
-        if (int(floor(t*100./framerate))<result.size())
-        {
-            deltat=t*100./framerate-int(floor(t*100./framerate));
-            for (int i=0;i<22;i++)
-            {
-                if (int(floor(t*100./framerate))==int(result.size()-1))
-                {
-                    //dont interpolate.
-                    balls[i]._x=result[result.size()-1][i*3];
-                    balls[i]._y=result[result.size()-1][i*3+1];
-                    balls[i]._z=result[result.size()-1][i*3+2];
-                }
-                else
-                {
-                    balls[i]._x=result[int(floor(t*100./framerate))][i*3]+deltat*(result[int(floor(t*100./framerate))+1][i*3]-result[int(floor(t*100./framerate))][i*3]);
-                    balls[i]._y=result[int(floor(t*100./framerate))][i*3+1]+deltat*(result[int(floor(t*100./framerate))+1][i*3+1]-result[int(floor(t*100./framerate))][i*3+1]);
-                    balls[i]._z=result[int(floor(t*100./framerate))][i*3+2]+deltat*(result[int(floor(t*100./framerate))+1][i*3+2]-result[int(floor(t*100./framerate))][i*3+2]);
-                }
-            }
-        }
         if (!done && result.size()>0)
         {
-            t=t+1;
-            if (int(floor(t*100./framerate))>=result.size())
+            t+=dt;
+            if (t*100.<double(result.size()-1))
+            {
+                for (int i=0;i<22;i++)
+                {
+                    balls[i]._x=result[int(floor(t*100.))][i*3]+(t*100.-floor(t*100.))*(result[int(ceil(t*100.))][i*3]-result[int(floor(t*100.))][i*3]);
+                    balls[i]._y=result[int(floor(t*100.))][i*3+1]+(t*100.-floor(t*100.))*(result[int(ceil(t*100.))][i*3+1]-result[int(floor(t*100.))][i*3+1]);
+                    balls[i]._z=result[int(floor(t*100.))][i*3+2]+(t*100.-floor(t*100.))*(result[int(ceil(t*100.))][i*3+2]-result[int(floor(t*100.))][i*3+2]);
+                }
+            }
+            else
             {
                 done=true;
                 for (int i=0;i<22;i++)

@@ -53,11 +53,6 @@ int main()
     M_(44,44)=0;
     M_(45,45)=0;
 
-    sf::Time elapsed;
-    sf::Time diff;
-    sf::Time period=sf::seconds(1.0/framerate);
-    sf::Clock clock;
-
     std::vector<GameState*> states;
     states.push_back(new TitleScreen());
     sf::Vector2f rectsize;
@@ -80,6 +75,15 @@ int main()
 
     std::thread server_thread(&Server::executionThread,std::ref(server));
     server_thread.detach();
+
+    const int bufferSize=25;
+    std::vector<double> timeBuffer(bufferSize,1.0/framerate);
+    int bufferHead=0;
+    double averageTime=1.0/framerate;
+
+    sf::Time elapsed;
+    sf::Clock waitingClock;
+    sf::Clock clock;
 
     while (window.isOpen())
     {
@@ -241,11 +245,18 @@ int main()
             states.back()->update(1.0/framerate,mouse_pos);
         }
 
+        states.back()->updateFpsCounter();
         states.back()->render(window);
 
         elapsed=clock.restart();
-        diff=period-elapsed;
-        if (diff.asSeconds()>0) {sf::sleep(diff);}
+        averageTime+=(elapsed.asSeconds()-timeBuffer[bufferHead])/bufferSize;
+        timeBuffer[bufferHead]=elapsed.asSeconds();
+        bufferHead=(bufferHead+1)%bufferSize;
+        framerate=std::min(int(1.0/averageTime),max_framerate);
+        framerate=std::max(framerate,min_framerate);
+
+        waitingClock.restart();
+        while (waitingClock.getElapsedTime().asSeconds()<1.0/max_framerate-elapsed.asSeconds()) {};
     }
 
     return 0;
