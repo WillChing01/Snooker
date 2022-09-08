@@ -82,7 +82,7 @@ int main()
     double averageTime=1.0/framerate;
 
     sf::Time elapsed;
-    sf::Time diff;
+    sf::Clock waitingClock;
     sf::Clock clock;
 
     while (window.isOpen())
@@ -254,6 +254,9 @@ int main()
         bufferHead=(bufferHead+1)%bufferSize;
         framerate=std::min(int(1.0/averageTime),max_framerate);
         framerate=std::max(framerate,min_framerate);
+
+        waitingClock.restart();
+        while (waitingClock.getElapsedTime().asSeconds()<1.0/max_framerate-elapsed.asSeconds()) {};
     }
 
     return 0;
