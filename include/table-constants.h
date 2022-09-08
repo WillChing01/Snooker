@@ -5,6 +5,7 @@
 
 int framerate=100;
 const int max_framerate=200;
+const int min_framerate=30;
 const double timestep=1./framerate;
 
 const double epsilon=pow(10.,-12.);

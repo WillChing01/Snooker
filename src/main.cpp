@@ -253,6 +253,7 @@ int main()
         timeBuffer[bufferHead]=elapsed.asSeconds();
         bufferHead=(bufferHead+1)%bufferSize;
         framerate=std::min(int(1.0/averageTime),max_framerate);
+        framerate=std::max(framerate,min_framerate);
     }
 
     return 0;
