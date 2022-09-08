@@ -76,6 +76,11 @@ int main()
     std::thread server_thread(&Server::executionThread,std::ref(server));
     server_thread.detach();
 
+    const int bufferSize=25;
+    std::vector<double> timeBuffer(bufferSize,1.0/framerate);
+    int bufferHead=0;
+    double averageTime=1.0/framerate;
+
     sf::Time elapsed;
     sf::Time diff;
     sf::Clock clock;
@@ -244,7 +249,10 @@ int main()
         states.back()->render(window);
 
         elapsed=clock.restart();
-        framerate=std::min(int(1.0/elapsed.asSeconds()),max_framerate);
+        averageTime+=(elapsed.asSeconds()-timeBuffer[bufferHead])/bufferSize;
+        timeBuffer[bufferHead]=elapsed.asSeconds();
+        bufferHead=(bufferHead+1)%bufferSize;
+        framerate=std::min(int(1.0/averageTime),max_framerate);
     }
 
     return 0;
