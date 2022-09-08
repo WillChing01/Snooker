@@ -4,6 +4,7 @@
 //lengths are in inches.
 
 int framerate=100;
+const int max_framerate=200;
 const double timestep=1./framerate;
 
 const double epsilon=pow(10.,-12.);
