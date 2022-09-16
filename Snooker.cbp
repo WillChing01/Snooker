@@ -22,6 +22,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-fexceptions" />
+					<Add option="-Wa,-mbig-obj" />
 					<Add option="-DSFML_STATIC" />
 				</Compiler>
 			</Target>
@@ -51,6 +52,8 @@
 			<Add directory="lib/SFML-2.5.1/lib" />
 			<Add directory="lib/eigen-3.3.7" />
 			<Add directory="lib/boost_1_73_0/stage/lib" />
+			<Add directory="include" />
+			<Add directory="include/_screens" />
 		</Linker>
 		<Unit filename="include/_screens/change-cue-screen.h" />
 		<Unit filename="include/_screens/control-screen.h" />
