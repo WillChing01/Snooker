@@ -1191,10 +1191,10 @@ void GameScreen::updateBallPositions(double dt)
                 textp1score.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
             }
         }
-        for (int i=0;i<22;i++)
-        {
-            balls[i]._shape.setPosition(sf::Vector2f(_sfac*balls[i]._x,_sfac*raw_height/(1.+panel_ratio)-_sfac*balls[i]._y));
-        }
+    }
+    for (int i=0;i<22;i++)
+    {
+        balls[i]._shape.setPosition(sf::Vector2f(_sfac*balls[i]._x,_sfac*raw_height/(1.+panel_ratio)-_sfac*balls[i]._y));
     }
 }
 
