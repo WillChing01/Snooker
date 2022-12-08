@@ -30,6 +30,7 @@ class Server
         std::array<bool,22> potbefore;
         bool wasredon=false;
         bool wasfreeball=false;
+        bool wasRedsLeft=false;
 
         bool gameover=false;
         int highbreak[2]={0,0};
@@ -82,7 +83,8 @@ class Server
         void turnpacket();
         void sendNamePacket();
         void resetframe();
-        bool is_snookered();
+        bool is_ball_blocking(double x1, double y1, double x2, double y2, double x3, double y3);
+        bool is_snookered(int ballOnOrder);
         void handleRedOn();
         void handleColourOn();
         void handleFreeBall();
@@ -258,29 +260,123 @@ void Server::resetframe()
     sendBallPositions();
 }
 
-bool Server::is_snookered()
+bool Server::is_ball_blocking(double x1, double y1, double x2, double y2, double x3, double y3)
 {
-    bool snookered=false;
+    //1 and 2 are start/final positions of cueball.
+    //3 is position of possible snookering ball.
 
-    bool reds=false;
-    for (int i=7;i<22;i++)
-    {
-        if (!serverballs[i]._potted) {reds=true; break;}
-    }
+    bool blocking=false;
 
-    if (reds)
+    double dx1=x2-x1; double dy1=y2-y1;
+    double dx2=x3-x1; double dy2=y3-y1;
+    double dx3=x3-x2; double dy3=y3-y2;
+
+    double a=std::acos((dx1*dx2+dy1*dy2)/(std::sqrt(dx1*dx1+dy1*dy1)*std::sqrt(dx2*dx2+dy2*dy2)));
+    double b=std::acos((-dx1*dx3-dy1*dy3)/(std::sqrt(dx1*dx1+dy1*dy1)*std::sqrt(dx3*dx3+dy3*dy3)));
+
+    if (a<=pi/2. && b<=pi/2.)
     {
-        //reds on table. check them.
+        //possible snooker. check closest approach.
+        double height=std::sqrt(dx2*dx2+dy2*dy2)*std::sin(a);
+        if (height<2.*ball_radius) {blocking=true;}
+        else {blocking=false;}
     }
     else
     {
-        //down to the colours.
-        int col_order=0;
-        for (int i=1;i<7;i++)
+        blocking=false;
+    }
+
+    return blocking;
+}
+
+bool Server::is_snookered(int ballOnOrder=8)
+{
+    bool snookered=false;
+    bool leftHit=false;
+    bool rightHit=false;
+    double dx,dy;
+    double px,py;
+    double d;
+    double x1,y1; double x2,y2;
+
+    //check if the cue ball can hit both edges of the ball on.
+
+    if (ballOnOrder>=8)
+    {
+        //red is on.
+        leftHit=false;
+        rightHit=false;
+        for (int i=7;i<22;i++)
         {
-            if (!serverballs[i]._potted) {col_order=serverballs[i]._order; break;}
+            if (serverballs[i]._potted) {continue;}
+            //check if snookered (reds cannot snooker each other).
+            bool leftHit2=true;
+            bool rightHit2=true;
+
+            dx=serverballs[i]._x-serverballs[0]._x;
+            dy=serverballs[i]._y-serverballs[0]._y;
+
+            d=sqrt(dx*dx+dy*dy);
+            px=-dy/d; py=dx/d;
+
+            x1=serverballs[0]._x+dx*(1.-std::pow(2.*ball_radius/d,2.))+px*2.*ball_radius*std::sqrt(1-std::pow(2.*ball_radius/d,2.));
+            y1=serverballs[0]._y+dy*(1.-std::pow(2.*ball_radius/d,2.))+py*2.*ball_radius*std::sqrt(1-std::pow(2.*ball_radius/d,2.));
+
+            x2=serverballs[0]._x+dx*(1.-std::pow(2.*ball_radius/d,2.))-px*2.*ball_radius*std::sqrt(1-std::pow(2.*ball_radius/d,2.));
+            y2=serverballs[0]._y+dy*(1.-std::pow(2.*ball_radius/d,2.))-py*2.*ball_radius*std::sqrt(1-std::pow(2.*ball_radius/d,2.));
+
+            for (int j=1;j<7;j++)
+            {
+                if (serverballs[j]._potted) {continue;}
+
+                //check if any side of red is accessible.
+                bool isBlocking=is_ball_blocking(serverballs[0]._x,serverballs[0]._y,x1,y1,serverballs[j]._x,serverballs[j]._y);
+                if (isBlocking) {leftHit2=false;}
+
+                isBlocking=is_ball_blocking(serverballs[0]._x,serverballs[0]._y,x2,y2,serverballs[j]._x,serverballs[j]._y);
+                if (isBlocking) {rightHit2=false;}
+            }
+
+            if (leftHit2) {leftHit=true;}
+            if (rightHit2) {rightHit=true;}
         }
 
+        if (leftHit && rightHit) {snookered=false;}
+        else {snookered=true;}
+    }
+    else
+    {
+        //colour is on.
+        dx=serverballs[ballOnOrder-1]._x-serverballs[0]._x;
+        dy=serverballs[ballOnOrder-1]._y-serverballs[0]._y;
+
+        d=sqrt(dx*dx+dy*dy);
+        px=-dy/d; py=dx/d;
+
+        x1=serverballs[0]._x+dx*(1.-std::pow(2.*ball_radius/d,2.))+px*2.*ball_radius*std::sqrt(1-std::pow(2.*ball_radius/d,2.));
+        y1=serverballs[0]._y+dy*(1.-std::pow(2.*ball_radius/d,2.))+py*2.*ball_radius*std::sqrt(1-std::pow(2.*ball_radius/d,2.));
+
+        x2=serverballs[0]._x+dx*(1.-std::pow(2.*ball_radius/d,2.))-px*2.*ball_radius*std::sqrt(1-std::pow(2.*ball_radius/d,2.));
+        y2=serverballs[0]._y+dy*(1.-std::pow(2.*ball_radius/d,2.))-py*2.*ball_radius*std::sqrt(1-std::pow(2.*ball_radius/d,2.));
+
+        leftHit=true;
+        rightHit=true;
+
+        for (int i=1;i<22;i++)
+        {
+            if (serverballs[i]._order==ballOnOrder) {continue;}
+            if (serverballs[i]._potted) {continue;}
+
+            //check for possible snooker.
+            bool isBlocking=is_ball_blocking(serverballs[0]._x,serverballs[0]._y,x1,y1,serverballs[i]._x,serverballs[i]._y);
+            if (isBlocking) {leftHit=false;}
+
+            isBlocking=is_ball_blocking(serverballs[0]._x,serverballs[0]._y,x2,y2,serverballs[i]._x,serverballs[i]._y);
+            if (isBlocking) {rightHit=false;}
+        }
+
+        if (leftHit && rightHit) {snookered=false;}
+        else {snookered=true;}
     }
 
     return snookered;
@@ -317,16 +413,6 @@ void Server::handleRedOn()
             newIsRedOn=false;
             newIsFreeBall=false;
         }
-    }
-    else
-    {
-        scores[!player_turn]+=foulscore;
-        current_break=0;
-        player_turn=!player_turn;
-
-        newIsFreeBall=is_snookered();
-        if (newIsFreeBall) {newIsRedOn=false;}
-        else {newIsRedOn=true;}
     }
 }
 
@@ -378,41 +464,6 @@ void Server::handleColourOn()
             newIsFreeBall=false;
         }
         else
-        {
-            newIsRedOn=false;
-            newIsFreeBall=false;
-        }
-    }
-    else
-    {
-        scores[!player_turn]+=foulscore;
-        current_break=0;
-        player_turn=!player_turn;
-
-        if (redsLeft)
-        {
-            newIsFreeBall=is_snookered();
-            if (newIsFreeBall) {newIsRedOn=false;}
-            else {newIsRedOn=true;}
-        }
-        else
-        {
-            newIsRedOn=false;
-            newIsFreeBall=false;
-        }
-    }
-
-    //check if any reds left.
-    if (redsLeft)
-    {
-        bool allPotted=true;
-        for (int i=7;i<22;i++)
-        {
-            if (!serverballs[i]._potted) {allPotted=false; break;}
-        }
-        if (allPotted) {redsLeft=false;}
-
-        if (!redsLeft)
         {
             newIsRedOn=false;
             newIsFreeBall=false;
@@ -530,14 +581,10 @@ void Server::applyRulesAndScore()
         {
             foulscore=std::max(nom_colour_order,4);
         }
-        newIsRedOn=true;
-        current_break=0;
-        scores[!player_turn]+=foulscore;
-        player_turn=!player_turn;
     }
     else
     {
-        if (isredon)
+        if (isredon && redsLeft)
         {
             handleRedOn();
         }
@@ -551,7 +598,44 @@ void Server::applyRulesAndScore()
         }
     }
 
-    //colours at end of frame???
+    //check if any reds left.
+    if (redsLeft)
+    {
+        bool allPotted=true;
+        for (int i=7;i<22;i++)
+        {
+            if (!serverballs[i]._potted) {allPotted=false; break;}
+        }
+        if (allPotted) {redsLeft=false;}
+
+        if (!redsLeft)
+        {
+            newIsRedOn=false;
+            newIsFreeBall=false;
+        }
+    }
+
+    if (isfoul)
+    {
+        ismiss=true;
+        respot(); // second time - if there was a foul on clearing the colours the colour is replaced.
+
+        scores[!player_turn]+=foulscore;
+        current_break=0;
+        player_turn=!player_turn;
+
+        if (redsLeft)
+        {
+            newIsFreeBall=is_snookered();
+            if (newIsFreeBall) {newIsRedOn=false;}
+            else {newIsRedOn=true;}
+        }
+        else
+        {
+            newIsFreeBall=is_snookered(nom_colour_order);
+            newIsRedOn=false;
+        }
+    }
 
     isredon=newIsRedOn;
     isfreeball=newIsFreeBall;
@@ -595,6 +679,7 @@ void Server::handleFoulMissResponse(std::string msg)
             }
             isredon=wasredon;
             isfreeball=wasfreeball;
+            redsLeft=wasRedsLeft;
 
             sendBallPositions();
 
@@ -796,8 +881,8 @@ void Server::respot()
     for (int i=6;i>0;i--)
     {
         if (!serverballs[i]._potted) {continue;}
-        //do not respot if clearing the colours.
-        if (!redsLeft && serverballs[i]._order==colourClearOrder) {continue;}
+        //do not respot if clearing the colours and not a foul.
+        if (!redsLeft && serverballs[i]._order==colourClearOrder && !isfoul) {continue;}
         if (!covered[i-1])
         {
             serverballs[i]._x=colourpos[i-1][0];
@@ -2879,6 +2964,7 @@ void Server::executionThread()
                     }
                     wasredon=isredon;
                     wasfreeball=isfreeball;
+                    wasRedsLeft=redsLeft;
                     //simulate and return the results to everybody.
                     packet >> a >> b >> c >> d >> e;
                     serverballs[0]._vx=a;
@@ -2905,6 +2991,11 @@ void Server::executionThread()
                         {
                             msg="FOUL - "+pnames[!player_turn]+", enter /1 to play from here or /2 for opponent to play from here.";
                             broadcast("~",msg);
+                        }
+
+                        if (isfreeball)
+                        {
+                            broadcast("~","Free ball (if play from here).");
                         }
                     }
 
