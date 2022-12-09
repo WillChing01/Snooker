@@ -10,26 +10,80 @@ class AudioServer
         unsigned short port;
         sf::TcpListener listener;
 
-        std::array<sf::TcpSocket,2> playersAudioRecorder;
-        std::array<sf::TcpSocket,4> spectatorsAudioRecorder;
+        sf::Packet packet;
+        sf::Uint16 packetId=0;
 
-        std::array<sf::TcpSocket,2> playersAudioReceiver;
-        std::array<sf::TcpSocket,4> spectatorsAudioReceiver;
+        std::array<sf::TcpSocket,6> clients;
 
-        AudioServer();
+        AudioServer(bool isOnline=true);
+        void broadcast(sf::Packet packet);
+        void handleIncomingConnections();
         void executionThread();
 };
 
-AudioServer::AudioServer()
+AudioServer::AudioServer(bool isOnline)
 {
-    //intialize audio server.
+    if (isOnline)
+    {
+        try {serverIp=sf::IpAddress::getLocalAddress();}
+        catch (...) {}
+        listener.setBlocking(false);
+        if (listener.listen(sf::Socket::AnyPort)!=sf::Socket::Done)
+        {
+            //error.
+            std::cout << "Tcp listener could not bind to port." << std::endl;
+        }
+        try{port=listener.getLocalPort();}
+        catch (...) {}
+    }
+
+    for (int i=0;i<clients.size();i++)
+    {
+        clients[i].setBlocking(false);
+    }
+}
+
+void AudioServer::broadcast(sf::Packet packet)
+{
+    for (int i=0;i<clients.size();i++)
+    {
+        clients[i].send(packet);
+    }
+}
+
+void AudioServer::handleIncomingConnections()
+{
+    for (int i=0;i<clients.size();i++)
+    {
+        if (clients[i].getRemoteAddress()==sf::IpAddress::None)
+        {
+            //fresh socket ready for connecting to.
+            if (listener.accept(clients[i])==sf::TcpListener::Done)
+            {
+                //connected to new socket.
+                break;
+            }
+        }
+    }
 }
 
 void AudioServer::executionThread()
 {
     while (running)
     {
-        //do stuff.
+        handleIncomingConnections();
+
+        for (int i=0;i<clients.size();i++)
+        {
+            if (clients[i].getRemoteAddress()==sf::IpAddress::None) {continue;}
+
+            //check for incoming packets.
+            if (clients[i].receive(packet)==sf::Socket::Done)
+            {
+                //received an audio packet.
+                broadcast(packet);
+            }
+        }
     }
 }
 

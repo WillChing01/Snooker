@@ -2,49 +2,14 @@
 <CodeBlocks_layout_file>
 	<FileVersion major="1" minor="0" />
 	<ActiveTarget name="Release" />
-	<File name="include\_screens\singleplayer-screen.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="3386" topLine="44" />
-		</Cursor>
-	</File>
-	<File name="include\objects.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="483" topLine="11" />
-		</Cursor>
-	</File>
-	<File name="include\user-controls.h" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="879" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="include\_screens\change-cue-screen.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="3204" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="include\input-box.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="881" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="include\table-constants.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2542" topLine="34" />
-		</Cursor>
-	</File>
-	<File name="include\polystuff.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="58" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="include\rimode.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="114" topLine="0" />
-		</Cursor>
-	</File>
 	<File name="include\rect-button.h" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="2401" topLine="33" />
+		</Cursor>
+	</File>
+	<File name="include\custom-recorder.h" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="225" topLine="0" />
 		</Cursor>
 	</File>
 	<File name="include\_screens\multiplayer-screen.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -52,9 +17,14 @@
 			<Cursor1 position="7466" topLine="124" />
 		</Cursor>
 	</File>
-	<File name="include\ball.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="include\objects.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="48" topLine="0" />
+			<Cursor1 position="483" topLine="11" />
+		</Cursor>
+	</File>
+	<File name="include\_screens\title-screen.h" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3905" topLine="0" />
 		</Cursor>
 	</File>
 	<File name="include\game-state.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -62,39 +32,53 @@
 			<Cursor1 position="111" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="include\_screens\control-screen.h" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="include\ball.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="13114" topLine="0" />
+			<Cursor1 position="48" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="include\cue.h" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="include\button-callbacks.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="1650" topLine="0" />
+			<Cursor1 position="2706" topLine="55" />
 		</Cursor>
 	</File>
-	<File name="src\main.cpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="include\_screens\change-cue-screen.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="3606" topLine="357" />
+			<Cursor1 position="3204" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="include\server.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="include\rimode.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="147604" topLine="7" />
+			<Cursor1 position="114" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="src\main.cpp" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="12555" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="include\server.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="140832" topLine="277" />
 		</Cursor>
 		<Folding>
-			<Collapse line="4" />
-			<Collapse line="77" />
-			<Collapse line="104" />
-			<Collapse line="125" />
-			<Collapse line="164" />
-			<Collapse line="192" />
-			<Collapse line="222" />
-			<Collapse line="261" />
-			<Collapse line="337" />
-			<Collapse line="432" />
-			<Collapse line="610" />
-			<Collapse line="2349" />
-			<Collapse line="2382" />
+			<Collapse line="196" />
+			<Collapse line="263" />
+			<Collapse line="419" />
+			<Collapse line="423" />
+			<Collapse line="494" />
+			<Collapse line="554" />
+			<Collapse line="605" />
+			<Collapse line="618" />
+			<Collapse line="656" />
+			<Collapse line="692" />
+			<Collapse line="772" />
+			<Collapse line="864" />
+			<Collapse line="1046" />
+			<Collapse line="2309" />
+			<Collapse line="2346" />
+			<Collapse line="2677" />
+			<Collapse line="3033" />
 		</Folding>
 	</File>
 	<File name="include\red-arrow.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -102,29 +86,73 @@
 			<Cursor1 position="188" topLine="0" />
 		</Cursor>
 	</File>
+	<File name="include\_screens\play-game-screen.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="59482" topLine="242" />
+		</Cursor>
+		<Folding>
+			<Collapse line="144" />
+			<Collapse line="928" />
+			<Collapse line="1041" />
+			<Collapse line="1791" />
+			<Collapse line="1830" />
+			<Collapse line="1874" />
+			<Collapse line="1963" />
+		</Folding>
+	</File>
 	<File name="include\_screens\options-screen.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="3085" topLine="17" />
 		</Cursor>
 	</File>
-	<File name="include\_screens\play-game-screen.h" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="include\polystuff.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="84833" topLine="1654" />
+			<Cursor1 position="58" topLine="0" />
 		</Cursor>
-		<Folding>
-			<Collapse line="932" />
-			<Collapse line="1691" />
-			<Collapse line="1730" />
-		</Folding>
 	</File>
-	<File name="include\_screens\title-screen.h" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="include\_screens\control-screen.h" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="3905" topLine="0" />
+			<Cursor1 position="13114" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="include\custom-receiver.h" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="824" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="include\_screens\singleplayer-screen.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3386" topLine="44" />
+		</Cursor>
+	</File>
+	<File name="include\input-box.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="881" topLine="0" />
 		</Cursor>
 	</File>
 	<File name="include\common.h" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="547" topLine="26" />
+		</Cursor>
+	</File>
+	<File name="include\audio-server.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="10" topLine="45" />
+		</Cursor>
+	</File>
+	<File name="include\user-controls.h" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="879" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="include\table-constants.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2542" topLine="34" />
+		</Cursor>
+	</File>
+	<File name="include\cue.h" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1650" topLine="0" />
 		</Cursor>
 	</File>
 </CodeBlocks_layout_file>
