@@ -36,7 +36,7 @@ class GameScreen : public GameState
         int p2score=0;
         int p1frames=0;
         int p2frames=0;
-        int framesbestof=35;
+        int framesbestof=3;
         bool placing_white=true;
         bool touching=false;
         bool isyourturn=true;
@@ -1825,6 +1825,11 @@ void GameScreen::updateNames()
         textrect=stats_text[i].getLocalBounds();
         stats_text[i].setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
     }
+
+    //update the frames best of.
+    textframesbestof.setString("("+std::to_string(framesbestof)+")");
+    textrect=textframesbestof.getLocalBounds();
+    textframesbestof.setOrigin(sf::Vector2f(int(textrect.left+textrect.width/2.),int(textrect.top+textrect.height/2.)));
 }
 
 void GameScreen::appendToTextLog(std::string textMessage)
@@ -1952,7 +1957,7 @@ void GameScreen::listenForPackets()
         else if (packetId==4)
         {
             //received names of players to update client.
-            packet >> p1name >> p2name;
+            packet >> p1name >> p2name >> framesbestof;
 
             //update the text on screen.
             updateNames();

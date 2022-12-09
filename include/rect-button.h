@@ -36,7 +36,7 @@ class RectButton
         std::function<void(GameState*,std::map<std::string,std::string>*)> _callback;
         std::map<std::string,std::string> _payload;
 
-        std::string _target;
+        std::string _target="";
 
         sf::RectangleShape _shape;
         sf::Font _font;

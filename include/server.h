@@ -10,7 +10,7 @@ class Server
 
         int scores[2]={0,0};
         int frames[2]={0,0};
-        int framesbestof=35;
+        int framesbestof=3;
         bool placing_white=true;
         bool touching=false;
         bool isfoul=false;
@@ -752,14 +752,14 @@ void Server::sendNamePacket()
                 //host.
                 packet.clear();
                 packetId=4;
-                packet << packetId << pnames[0] << pnames[1];
+                packet << packetId << pnames[0] << pnames[1] << framesbestof;
             }
             else
             {
                 //joined player.
                 packet.clear();
                 packetId=4;
-                packet << packetId << pnames[1] << pnames[0];
+                packet << packetId << pnames[1] << pnames[0] << framesbestof;
             }
             players[i].send(packet);
         }
@@ -767,7 +767,7 @@ void Server::sendNamePacket()
 
     packet.clear();
     packetId=4;
-    packet << packetId << pnames[0] << pnames[1];
+    packet << packetId << pnames[0] << pnames[1] << framesbestof;
 
     for (int i=0;i<4;i++)
     {
@@ -3083,6 +3083,10 @@ void Server::executionThread()
                 {
                     //concede frame.
                     frames[player_turn]+=1;
+                    if (frames[player_turn]==(framesbestof+1)/2)
+                    {
+                        gameover=true;
+                    }
                     resetframe();
                     turnpacket();
                 }
@@ -3145,7 +3149,7 @@ void Server::resetServer()
     scores[1]=0;
     frames[0]=0;
     frames[1]=0;
-    framesbestof=35;
+    framesbestof=3;
     placing_white=true;
     touching=false;
     isfoul=false;
