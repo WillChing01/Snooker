@@ -1,6 +1,8 @@
 #ifndef MULTIPLAYER-SCREEN_H_INCLUDED
 #define MULTIPLAYER-SCREEN_H_INCLUDED
 
+void setFramesBestOf(GameState* game_state, std::map<std::string,std::string>* payload);
+
 class MultiplayerScreen : public GameState
 {
     private:
@@ -11,7 +13,11 @@ class MultiplayerScreen : public GameState
         sf::Text ip;
         sf::Text port;
 
+        sf::RectangleShape selectionBorder;
+
     public:
+        int _framesBestOf=3;
+
         MultiplayerScreen(double sfac=dfactor,std::string ipad="N/A",std::string portnum="N/A") : GameState(sfac)
         {
             _background=sf::Color(0,0,0);
@@ -36,9 +42,10 @@ class MultiplayerScreen : public GameState
             title.setFillColor(sf::Color(255,255,255));
             _shapes.push_back(&title);
 
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
-            _buttons.push_back(RectButton());
+            for (int i=0;i<6;i++)
+            {
+                _buttons.push_back(RectButton());
+            }
 
             double buttonwidth=_sfac*raw_width*0.15;
 
@@ -60,7 +67,7 @@ class MultiplayerScreen : public GameState
             port.setFillColor(sf::Color(255,255,255));
             _shapes.push_back(&port);
 
-            for (int i=0;i<3;i++)
+            for (int i=0;i<6;i++)
             {
                 _buttons[i]._shape.setSize(sf::Vector2f(buttonwidth,buttonwidth/_buttons[i]._ratio));
                 _buttons[i]._shape.setOrigin(0.5*buttonwidth,0.5*buttonwidth/_buttons[i]._ratio);
@@ -96,11 +103,57 @@ class MultiplayerScreen : public GameState
                     _buttons[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.50*_sfac*raw_height+(4.*1.2)*buttonwidth/_buttons[i]._ratio));
                     _buttons[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width),int(0.50*_sfac*raw_height+(4.*1.2)*buttonwidth/_buttons[i]._ratio)));
                 }
+                else if (i==3)
+                {
+                    //best of 1.
+                    _buttons[i]._text.setString("Best of 1");
+                    textrect=_buttons[i]._text.getLocalBounds();
+                    _buttons[i]._text.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+                    _buttons[i]._shape.setPosition(sf::Vector2f(0.3*_sfac*raw_width,0.50*_sfac*raw_height-1.5*1.2*buttonwidth/_buttons[i]._ratio));
+                    _buttons[i]._text.setPosition(sf::Vector2f(int(0.3*_sfac*raw_width),int(0.50*_sfac*raw_height-1.5*1.2*buttonwidth/_buttons[i]._ratio)));
+
+                    _buttons[i]._payload["frames"]="1";
+                    _buttons[i]._callback=std::bind(setFramesBestOf,std::placeholders::_1,std::placeholders::_2);
+                }
+                else if (i==4)
+                {
+                    //best of 3.
+                    _buttons[i]._text.setString("Best of 3");
+                    textrect=_buttons[i]._text.getLocalBounds();
+                    _buttons[i]._text.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+                    _buttons[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width,0.50*_sfac*raw_height-1.5*1.2*buttonwidth/_buttons[i]._ratio));
+                    _buttons[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width),int(0.50*_sfac*raw_height-1.5*1.2*buttonwidth/_buttons[i]._ratio)));
+
+                    _buttons[i]._payload["frames"]="3";
+                    _buttons[i]._callback=std::bind(setFramesBestOf,std::placeholders::_1,std::placeholders::_2);
+                }
+                else if (i==5)
+                {
+                    //best of 5.
+                    _buttons[i]._text.setString("Best of 5");
+                    textrect=_buttons[i]._text.getLocalBounds();
+                    _buttons[i]._text.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+                    _buttons[i]._shape.setPosition(sf::Vector2f(0.7*_sfac*raw_width,0.50*_sfac*raw_height-1.5*1.2*buttonwidth/_buttons[i]._ratio));
+                    _buttons[i]._text.setPosition(sf::Vector2f(int(0.7*_sfac*raw_width),int(0.50*_sfac*raw_height-1.5*1.2*buttonwidth/_buttons[i]._ratio)));
+
+                    _buttons[i]._payload["frames"]="5";
+                    _buttons[i]._callback=std::bind(setFramesBestOf,std::placeholders::_1,std::placeholders::_2);
+                }
 
                 _buttons[i]._shape.setFillColor(_buttons[i]._colour1);
                 _buttons[i]._shape.setOutlineColor(_buttons[i]._outlinecolour1);
                 _buttons[i]._text.setFillColor(_buttons[i]._textcolour1);
             }
+
+            selectionBorder.setSize(sf::Vector2f(buttonwidth+6.*absOutlineThickness,6.*absOutlineThickness+buttonwidth/_buttons[0]._ratio));
+            selectionBorder.setOrigin(sf::Vector2f(3.*absOutlineThickness+buttonwidth*0.5,3.*absOutlineThickness+buttonwidth*0.5/_buttons[0]._ratio));
+            sf::Vector2f pos=_buttons[4]._shape.getPosition();
+            selectionBorder.setPosition(pos);
+            selectionBorder.setFillColor(sf::Color(0,0,0));
+            selectionBorder.setOutlineThickness(absOutlineThickness);
+            selectionBorder.setOutlineColor(sf::Color(255,255,255));
+
+            _shapes.push_back(&selectionBorder);
 
             _inputboxes.push_back(InputBox());
             _inputboxes.push_back(InputBox());
@@ -151,10 +204,10 @@ class MultiplayerScreen : public GameState
 
                 if (i==2)
                 {
-                    _inputboxes[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width,_sfac*raw_height*0.5-i*1.2*buttonwidth/_buttons[0]._ratio));
-                    _inputboxes[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width-0.5*boxwidth+2.*_inputboxes[i]._absoutlinethickness),int(_sfac*raw_height*0.5-i*1.2*buttonwidth/_buttons[0]._ratio-0.5*int(buttonwidth*_buttons[0]._textfactor/_buttons[0]._ratio))));
-                    _inputboxes[i]._backtext.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width-0.5*boxwidth+2.*_inputboxes[i]._absoutlinethickness),int(_sfac*raw_height*0.5-i*1.2*buttonwidth/_buttons[0]._ratio)));
-                    _inputboxes[i]._cursor.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.5*boxwidth+2.*_inputboxes[i]._absoutlinethickness,_sfac*raw_height*0.5-i*1.2*buttonwidth/_buttons[0]._ratio));
+                    _inputboxes[i]._shape.setPosition(sf::Vector2f(0.5*_sfac*raw_width,_sfac*raw_height*0.5-(i+1)*1.2*buttonwidth/_buttons[0]._ratio));
+                    _inputboxes[i]._text.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width-0.5*boxwidth+2.*_inputboxes[i]._absoutlinethickness),int(_sfac*raw_height*0.5-(i+1)*1.2*buttonwidth/_buttons[0]._ratio-0.5*int(buttonwidth*_buttons[0]._textfactor/_buttons[0]._ratio))));
+                    _inputboxes[i]._backtext.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width-0.5*boxwidth+2.*_inputboxes[i]._absoutlinethickness),int(_sfac*raw_height*0.5-(i+1)*1.2*buttonwidth/_buttons[0]._ratio)));
+                    _inputboxes[i]._cursor.setPosition(sf::Vector2f(0.5*_sfac*raw_width-0.5*boxwidth+2.*_inputboxes[i]._absoutlinethickness,_sfac*raw_height*0.5-(i+1)*1.2*buttonwidth/_buttons[0]._ratio));
                 }
             }
         }
@@ -179,6 +232,21 @@ class MultiplayerScreen : public GameState
                     }
                 }
             }
+
+            sf::Vector2f pos;
+            if (_framesBestOf==1)
+            {
+                pos=_buttons[3]._shape.getPosition();
+            }
+            else if (_framesBestOf==3)
+            {
+                pos=_buttons[4]._shape.getPosition();
+            }
+            else if (_framesBestOf==5)
+            {
+                pos=_buttons[5]._shape.getPosition();
+            }
+            selectionBorder.setPosition(pos);
         };
 };
 

@@ -107,6 +107,8 @@ int main()
                 else if (states.back()->_stateTarget=="MultiplayerHost")
                 {
                     server.resetServer();
+                    MultiplayerScreen* temp=dynamic_cast<MultiplayerScreen*>(static_cast<GameState*>(states.back()));
+                    server.framesbestof=temp->_framesBestOf;
                     try
                     {
                         states.push_back(new GameScreen(dfactor,0,localip,localport,std::string(states.back()->_inputboxes[2]._text.getString())));

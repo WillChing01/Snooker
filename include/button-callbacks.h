@@ -61,6 +61,14 @@ void setWaitingForControl(GameState* game_state, std::map<std::string,std::strin
     state->_isWaitingForInput=true;
 }
 
+//multiplayer screen.
+void setFramesBestOf(GameState* game_state, std::map<std::string,std::string>* payload)
+{
+    MultiplayerScreen* state=dynamic_cast<MultiplayerScreen*>(game_state);
+
+    state->_framesBestOf=std::stoi((*payload)["frames"]);
+}
+
 //play game screen.
 
 void sendPacketCallback(GameState* game_state, std::map<std::string,std::string>* payload)
