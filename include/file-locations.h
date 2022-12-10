@@ -5,7 +5,7 @@ const std::string _thinFontFile = "../../assets/Roboto-Thin.ttf";
 const std::string _boldFontFile = "../../assets/Roboto-Bold.ttf";
 
 const std::string _vertexShaderFile = "../../assets/vertex_shader.vert";
-const std::string _fragmentShaderFile = "../../assets/fragment_shader.vert";
+const std::string _fragmentShaderFile = "../../assets/fragment_shader.frag";
 const std::string _userConfigFile = "../../assets/config.txt";
 const std::string _userCueConfigFile = "../../assets/cueconfig.txt";
 

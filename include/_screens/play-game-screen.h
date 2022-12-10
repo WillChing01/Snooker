@@ -115,6 +115,9 @@ class GameScreen : public GameState
         sf::CircleShape spots[6];
         sf::VertexArray baulkline;
         sf::VertexArray baulkcircle;
+        sf::CircleShape pottingPoints[4];
+        sf::CircleShape pottingPoints2[4];
+        sf::CircleShape pottingPoints3[2];
 
         Eigen::MatrixXd test=Eigen::MatrixXd::Constant(46,1,0.0);
         std::vector<std::array<double,66> > result;
@@ -811,6 +814,30 @@ class GameScreen : public GameState
                 _shapes.push_back(&cushions[i]._railshape);
                 _shapes.push_back(&cushions[i]._p1shape);
                 _shapes.push_back(&cushions[i]._p2shape);
+            }
+
+            for (int i=0;i<4;i++)
+            {
+                pottingPoints[i].setRadius(spot_r*_sfac);
+                pottingPoints[i].setOrigin(spot_r*_sfac,spot_r*_sfac);
+                pottingPoints[i].setFillColor(sf::Color(255,0,0));
+                pottingPoints[i].setPosition(sf::Vector2f(_sfac*cPottingPoints[i][0],(_sfac*raw_height/(1.+panel_ratio))-_sfac*cPottingPoints[i][1]));
+                _shapes.push_back(&pottingPoints[i]);
+
+                pottingPoints2[i].setRadius(spot_r*_sfac);
+                pottingPoints2[i].setOrigin(spot_r*_sfac,spot_r*_sfac);
+                pottingPoints2[i].setFillColor(sf::Color(0,0,255));
+                pottingPoints2[i].setPosition(sf::Vector2f(_sfac*cPottingPoints2[i][0],(_sfac*raw_height/(1.+panel_ratio))-_sfac*cPottingPoints2[i][1]));
+                _shapes.push_back(&pottingPoints2[i]);
+            }
+
+            for (int i=0;i<2;i++)
+            {
+                pottingPoints3[i].setRadius(spot_r*_sfac);
+                pottingPoints3[i].setOrigin(spot_r*_sfac,spot_r*_sfac);
+                pottingPoints3[i].setFillColor(sf::Color(255,0,0));
+                pottingPoints3[i].setPosition(sf::Vector2f(_sfac*mPottingPoints[i][0],(_sfac*raw_height/(1.+panel_ratio))-_sfac*mPottingPoints[i][1]));
+                _shapes.push_back(&pottingPoints3[i]);
             }
 
             for (int i=0;i<6;i++)
