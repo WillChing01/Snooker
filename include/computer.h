@@ -139,7 +139,7 @@ void Computer::getPotsOn(int ballOrder=8)
                 d=std::sqrt(dx*dx+dy*dy);
                 dx/=d; dy/=d;
 
-                x1=x2-dx*2.*ball_radius; y1=x2-dy*2.*ball_radius;
+                x1=x2-dx*2.*ball_radius; y1=y2-dy*2.*ball_radius;
 
                 //check if overcut.
                 d=getAngle(x1-x0,y1-y0,x3-x2,y3-y2);
@@ -157,6 +157,8 @@ void Computer::getPotsOn(int ballOrder=8)
                 potsOn.back().distToObject=d;
                 d=std::sqrt((x3-x2)*(x3-x2)+(y3-y2)*(y3-y2));
                 potsOn.back().distToPocket=d;
+                d=getAngle(x1-x0,y1-y0,x3-x2,y3-y2);
+                potsOn.back().potAngle=d;
             }
 
             //middle pockets.
@@ -169,7 +171,7 @@ void Computer::getPotsOn(int ballOrder=8)
                 d=std::sqrt(dx*dx+dy*dy);
                 dx/=d; dy/=d;
 
-                x1=x2-dx*2.*ball_radius; y1=x2-dy*2.*ball_radius;
+                x1=x2-dx*2.*ball_radius; y1=y2-dy*2.*ball_radius;
 
                 //check if angle to pocket too extreme.
                 d=getAngle(blue_x-x3,blue_y-y3,x2-x3,y2-y3);
@@ -191,6 +193,8 @@ void Computer::getPotsOn(int ballOrder=8)
                 potsOn.back().distToObject=d;
                 d=std::sqrt((x3-x2)*(x3-x2)+(y3-y2)*(y3-y2));
                 potsOn.back().distToPocket=d;
+                d=getAngle(x1-x0,y1-y0,x3-x2,y3-y2);
+                potsOn.back().potAngle=d;
             }
         }
     }
@@ -217,7 +221,7 @@ void Computer::getPotsOn(int ballOrder=8)
             d=std::sqrt(dx*dx+dy*dy);
             dx/=d; dy/=d;
 
-            x1=x2-dx*2.*ball_radius; y1=x2-dy*2.*ball_radius;
+            x1=x2-dx*2.*ball_radius; y1=y2-dy*2.*ball_radius;
 
             //check if overcut.
             d=getAngle(x1-x0,y1-y0,x3-x2,y3-y2);
@@ -235,6 +239,8 @@ void Computer::getPotsOn(int ballOrder=8)
             potsOn.back().distToObject=d;
             d=std::sqrt((x3-x2)*(x3-x2)+(y3-y2)*(y3-y2));
             potsOn.back().distToPocket=d;
+            d=getAngle(x1-x0,y1-y0,x3-x2,y3-y2);
+            potsOn.back().potAngle=d;
         }
 
         //middle pockets.
@@ -247,7 +253,7 @@ void Computer::getPotsOn(int ballOrder=8)
             d=std::sqrt(dx*dx+dy*dy);
             dx/=d; dy/=d;
 
-            x1=x2-dx*2.*ball_radius; y1=x2-dy*2.*ball_radius;
+            x1=x2-dx*2.*ball_radius; y1=y2-dy*2.*ball_radius;
 
             //check if angle to pocket too extreme.
             d=getAngle(blue_x-x3,blue_y-y3,x2-x3,y2-y3);
@@ -269,6 +275,8 @@ void Computer::getPotsOn(int ballOrder=8)
             potsOn.back().distToObject=d;
             d=std::sqrt((x3-x2)*(x3-x2)+(y3-y2)*(y3-y2));
             potsOn.back().distToPocket=d;
+            d=getAngle(x1-x0,y1-y0,x3-x2,y3-y2);
+            potsOn.back().potAngle=d;
         }
     }
 
