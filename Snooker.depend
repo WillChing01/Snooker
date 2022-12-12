@@ -29848,7 +29848,7 @@
 	<SFML/Network.hpp>
 	"objects.h"
 
-1670616077 source:c:\users\willi\onedrive\desktop\coding\snooker\src\main.cpp
+1670621827 source:c:\users\willi\onedrive\desktop\coding\snooker\src\main.cpp
 	<iostream>
 	<fstream>
 	<thread>
@@ -30338,7 +30338,7 @@
 	<SFML/Network/IpAddress.hpp>
 	<vector>
 
-1670427624 c:\users\willi\onedrive\desktop\coding\snooker\include\objects.h
+1670684826 c:\users\willi\onedrive\desktop\coding\snooker\include\objects.h
 	<math.h>
 	<set>
 	<algorithm>
@@ -30366,6 +30366,7 @@
 	"cue.h"
 	"server.h"
 	"ball-trajectory.h"
+	"computer.h"
 	"custom-recorder.h"
 	"custom-receiver.h"
 	"audio-server.h"
@@ -44519,7 +44520,7 @@
 	<boost/random/detail/operators.hpp>
 	<boost/random/uniform_01.hpp>
 
-1670427624 c:\users\willi\onedrive\desktop\coding\snooker\include\table-constants.h
+1670709745 c:\users\willi\onedrive\desktop\coding\snooker\include\table-constants.h
 
 1660403818 c:\users\willi\onedrive\desktop\coding\snooker\include\red-arrow.h
 
@@ -44537,11 +44538,11 @@
 
 1660511055 c:\users\willi\onedrive\desktop\coding\snooker\include\cue.h
 
-1670621126 c:\users\willi\onedrive\desktop\coding\snooker\include\server.h
+1670864693 c:\users\willi\onedrive\desktop\coding\snooker\include\server.h
 
 1660850059 c:\users\willi\onedrive\desktop\coding\snooker\include\user-controls.h
 
-1670599466 c:\users\willi\onedrive\desktop\coding\snooker\include\rect-button.h
+1670621827 c:\users\willi\onedrive\desktop\coding\snooker\include\rect-button.h
 
 1670427624 c:\users\willi\onedrive\desktop\coding\snooker\include\input-box.h
 
@@ -44573,7 +44574,7 @@
 
 1660991205 c:\users\willi\onedrive\desktop\coding\snooker\include\_screens\singleplayer-screen.h
 
-1670621474 c:\users\willi\onedrive\desktop\coding\snooker\include\_screens\multiplayer-screen.h
+1670621827 c:\users\willi\onedrive\desktop\coding\snooker\include\_screens\multiplayer-screen.h
 
 1660433548 c:\users\willi\onedrive\desktop\coding\snooker\include\_screens\game-screen.h
 
@@ -44581,9 +44582,9 @@
 
 1660433624 c:\users\willi\onedrive\desktop\coding\snooker\include\play-game-screen.h
 
-1670617251 c:\users\willi\onedrive\desktop\coding\snooker\include\_screens\play-game-screen.h
+1670882097 c:\users\willi\onedrive\desktop\coding\snooker\include\_screens\play-game-screen.h
 
-1660748017 c:\users\willi\onedrive\desktop\coding\snooker\include\file-locations.h
+1670672880 c:\users\willi\onedrive\desktop\coding\snooker\include\file-locations.h
 
 1631383269 c:\users\willi\onedrive\desktop\coding\snooker\lib\sfml-2.5.1\include\sfml\audio.hpp
 	<SFML/System.hpp>
@@ -44695,5 +44696,7 @@
 
 1670594197 c:\users\willi\onedrive\desktop\coding\snooker\include\audio-server.h
 
-1670598446 c:\users\willi\onedrive\desktop\coding\snooker\include\button-callbacks.h
+1670621827 c:\users\willi\onedrive\desktop\coding\snooker\include\button-callbacks.h
+
+1670882635 c:\users\willi\onedrive\desktop\coding\snooker\include\computer.h
 

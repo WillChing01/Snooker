@@ -32,6 +32,8 @@
 #include "server.h"
 #include "ball-trajectory.h"
 
+#include "computer.h"
+
 #include "custom-recorder.h"
 #include "custom-receiver.h"
 #include "audio-server.h"

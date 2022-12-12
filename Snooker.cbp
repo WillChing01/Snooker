@@ -67,6 +67,7 @@
 		<Unit filename="include/ball.h" />
 		<Unit filename="include/button-callbacks.h" />
 		<Unit filename="include/common.h" />
+		<Unit filename="include/computer.h" />
 		<Unit filename="include/cue.h" />
 		<Unit filename="include/cushion.h" />
 		<Unit filename="include/custom-receiver.h" />

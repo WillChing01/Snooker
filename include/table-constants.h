@@ -44,6 +44,21 @@ const double cpockets[4][2]={{rail_thickness,rail_thickness},
                              {rail_thickness+2.*cush_thickness+table_length,rail_thickness},
                              {rail_thickness+2.*cush_thickness+table_length,rail_thickness+2.*cush_thickness+table_width}};
 
+const double cPottingPoints[4][2]={{rail_thickness+1.875+ball_radius,rail_thickness+1.875+ball_radius},
+                                   {rail_thickness+1.875+ball_radius,rail_thickness+2.*cush_thickness+table_width-(1.875+ball_radius)},
+                                   {rail_thickness+2.*cush_thickness+table_length-(1.875+ball_radius),rail_thickness+1.875+ball_radius},
+                                   {rail_thickness+2.*cush_thickness+table_length-(1.875+ball_radius),rail_thickness+2.*cush_thickness+table_width-(1.875+ball_radius)}};
+
+const double cPottingPoints2[4][2]={{rail_thickness+2.5/std::sqrt(2.),rail_thickness+2.5/std::sqrt(2.)},
+                                    {rail_thickness+2.5/std::sqrt(2.),rail_thickness+2.*cush_thickness+table_width-2.5/std::sqrt(2.)},
+                                    {rail_thickness+2.*cush_thickness+table_length-2.5/std::sqrt(2.),rail_thickness+2.5/std::sqrt(2.)},
+                                    {rail_thickness+2.*cush_thickness+table_length-2.5/std::sqrt(2.),rail_thickness+2.*cush_thickness+table_width-2.5/std::sqrt(2.)}};
+
+const double mPottingPoints[2][2]={{rail_thickness+cush_thickness+table_width,rail_thickness+2.*cush_thickness+table_width+0.156-1.2},
+                                   {rail_thickness+cush_thickness+table_width,rail_thickness-0.156+1.2}};
+
+const double mPocketMaxAngle=50.*pi/180.;
+
 const double spot_r=0.25;
 
 const double mpocket_r=2.094;
