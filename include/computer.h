@@ -224,6 +224,7 @@ void Computer::getPotsOn(int ballOrder=8, bool anyColour=true)
     {
         for (int i=7;i<22;i++)
         {
+            if (serverballs[i]._potted) {continue;}
             getPotOn(i+1);
         }
     }
@@ -233,10 +234,14 @@ void Computer::getPotsOn(int ballOrder=8, bool anyColour=true)
         {
             for (int i=1;i<7;i++)
             {
+                if (serverballs[i]._potted) {continue;}
                 getPotOn(i+1);
             }
         }
-        else {getPotOn(ballOrder);}
+        else
+        {
+            if (!serverballs[ballOrder-1]._potted) {getPotOn(ballOrder);}
+        }
     }
 
     updatePotFitness();

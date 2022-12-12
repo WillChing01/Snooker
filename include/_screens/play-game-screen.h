@@ -1251,67 +1251,6 @@ void GameScreen::updateBallPositions(double dt)
                     }
                 }
             }
-//            else if (gametype==3)
-//            {
-//                change=true;
-//                //solo lineup.
-//                //check if correct ball hit.
-//                if (localServer.ball_hit_order.size()==0) {gameover=true; return;}
-//                if (localServer.ball_potted_order.size()==0) {gameover=true; return;}
-//
-//                if (isredon)
-//                {
-//                    for (int i=0;i<localServer.ball_hit_order.size();i++)
-//                    {
-//                        if (localServer.ball_hit_order[i]<8) {gameover=true; return;}
-//                    }
-//                    //check pots.
-//                    for (int i=0;i<localServer.ball_potted_order.size();i++)
-//                    {
-//                        if (localServer.ball_potted_order[i]<8) {gameover=true; return;}
-//                    }
-//                    //add scores.
-//                    p1score+=localServer.ball_potted_order.size();
-//                    p1_highbreak=p1score;
-//                }
-//                else
-//                {
-//                    if (localServer.ball_hit_order.size()>1) {gameover=true; return;}
-//                    if (localServer.ball_hit_order[0]!=nom_colour_order) {gameover=true; return;}
-//                    if (localServer.ball_potted_order.size()>1) {gameover=true; return;}
-//                    if (localServer.ball_potted_order[0]!=nom_colour_order) {gameover=true; return;}
-//                    p1score+=localServer.ball_potted_order[0];
-//                    p1_highbreak=p1score;
-//                }
-//                isredon=!isredon;
-//
-//                stats_text[4].setString("N/A");
-//                stats_text[5].setString("N/A");
-//                stats_text[7].setString(std::to_string(p1_highbreak));
-//                stats_text[8].setString("N/A");
-//                if (p1_highbreak>=100) {stats_text[10].setString("1");}
-//                stats_text[11].setString("N/A");
-//
-//                sf::FloatRect bounds;
-//                for (int i=0;i<stats_text.size();i++)
-//                {
-//                    bounds=stats_text[i].getLocalBounds();
-//                    stats_text[i].setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
-//                }
-//                localServer.respot();
-//                for (int i=1;i<7;i++)
-//                {
-//                    balls[i]._x=localServer.serverballs[i]._x;
-//                    balls[i]._y=localServer.serverballs[i]._y;
-//                    balls[i]._z=ball_radius;
-//                }
-//
-//                //scoreboard stuff.
-//                textp1score.setString(std::to_string(p1score));
-//
-//                bounds=textp1score.getLocalBounds();
-//                textp1score.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
-//            }
         }
     }
     for (int i=0;i<22;i++)
