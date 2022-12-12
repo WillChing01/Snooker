@@ -170,6 +170,7 @@ class GameScreen : public GameState
                 if (gametype==2)
                 {
                     p2name="AI";
+                    framesbestof=1;
                 }
                 else
                 {
@@ -1127,76 +1128,196 @@ void GameScreen::updateBallPositions(double dt)
             {
                 scores_update();
             }
-            else if (gametype==2)
+            else if (gametype==2 || gametype==3)
             {
                 //singleplayer vs. AI.
-            }
-            else if (gametype==3)
-            {
                 change=true;
-                //solo lineup.
-                //check if correct ball hit.
-                if (localServer.ball_hit_order.size()==0) {gameover=true; return;}
-                if (localServer.ball_potted_order.size()==0) {gameover=true; return;}
-
-                if (isredon)
-                {
-                    for (int i=0;i<localServer.ball_hit_order.size();i++)
-                    {
-                        if (localServer.ball_hit_order[i]<8) {gameover=true; return;}
-                    }
-                    //check pots.
-                    for (int i=0;i<localServer.ball_potted_order.size();i++)
-                    {
-                        if (localServer.ball_potted_order[i]<8) {gameover=true; return;}
-                    }
-                    //add scores.
-                    p1score+=localServer.ball_potted_order.size();
-                    p1_highbreak=p1score;
-                }
-                else
-                {
-                    if (localServer.ball_hit_order.size()>1) {gameover=true; return;}
-                    if (localServer.ball_hit_order[0]!=nom_colour_order) {gameover=true; return;}
-                    if (localServer.ball_potted_order.size()>1) {gameover=true; return;}
-                    if (localServer.ball_potted_order[0]!=nom_colour_order) {gameover=true; return;}
-                    p1score+=localServer.ball_potted_order[0];
-                    p1_highbreak=p1score;
-                }
-                isredon=!isredon;
-
-                stats_text[4].setString("N/A");
-                stats_text[5].setString("N/A");
-                stats_text[7].setString(std::to_string(p1_highbreak));
-                stats_text[8].setString("N/A");
-                if (p1_highbreak>=100) {stats_text[10].setString("1");}
-                stats_text[11].setString("N/A");
-
-                sf::FloatRect bounds;
-                for (int i=0;i<stats_text.size();i++)
-                {
-                    bounds=stats_text[i].getLocalBounds();
-                    stats_text[i].setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
-                }
+                //apply the rules.
                 localServer.respot();
-                for (int i=1;i<7;i++)
+
+                localServer.applyRulesAndScore();
+
+                for (int i=0;i<22;i++)
                 {
                     balls[i]._x=localServer.serverballs[i]._x;
                     balls[i]._y=localServer.serverballs[i]._y;
-                    balls[i]._z=ball_radius;
+                    balls[i]._z=localServer.serverballs[i]._z;
+                    balls[i]._potted=localServer.serverballs[i]._potted;
                 }
 
-                //scoreboard stuff.
-                textp1score.setString(std::to_string(p1score));
+                //send message if foul or miss.
+                if (gametype==2 && localServer.isfoul)
+                {
+                    if (localServer.ismiss)
+                    {
+                        //foul and a miss.
+                        appendToTextLog("Foul and a miss");
+                    }
+                    else
+                    {
+                        //foul.
+                        appendToTextLog("Foul");
+                    }
 
-                bounds=textp1score.getLocalBounds();
-                textp1score.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
+                    if (localServer.isfreeball)
+                    {
+                        //message for free ball.
+                        appendToTextLog("Free ball");
+                    }
+                }
+
+                //check if all balls have been potted, then reset the frame.
+                if (!localServer.redsLeft)
+                {
+                    bool allPotted=true;
+                    for (int i=1;i<22;i++)
+                    {
+                        if (localServer.serverballs[i]._potted==false) {allPotted=false; break;}
+                    }
+                    if (allPotted==true)
+                    {
+                        localServer.gameover=true;
+                    }
+                }
+
+                //get turn info from server.
+                isyourturn=(localServer.player_turn==0);
+                isfoul=localServer.isfoul;
+                ismiss=localServer.ismiss;
+                placing_white=localServer.placing_white;
+                isredon=localServer.isredon;
+                isfreeball=localServer.isfreeball;
+                gameover=localServer.gameover;
+                p1score=localServer.scores[0];
+                p2score=localServer.scores[1];
+                p1frames=localServer.frames[0];
+                p2frames=localServer.frames[1];
+                p1_highbreak=localServer.highbreak[0];
+                p2_highbreak=localServer.highbreak[1];
+                p1_centuries=localServer.centuries[0];
+                p2_centuries=localServer.centuries[1];
+                redsLeft=localServer.redsLeft;
+                colourClearOrder=localServer.colourClearOrder;
+
+                //update the scoreboard.
+                scores_update();
+
+                //get shot from computer if relevant.
+                if (!isyourturn)
+                {
+                    if (gametype==3) {gameover=true;}
+
+                    else
+                    {
+                        //calculate shot.
+                        for (int i=0;i<22;i++)
+                        {
+                            computer.serverballs[i]._x=localServer.serverballs[i]._x;
+                            computer.serverballs[i]._y=localServer.serverballs[i]._y;
+                            computer.serverballs[i]._z=localServer.serverballs[i]._z;
+                            computer.serverballs[i]._potted=localServer.serverballs[i]._potted;
+                        }
+
+                        _shotInfo shot;
+
+                        if (isredon) {shot=computer.getShot(8);}
+                        else {shot=computer.getShot(1);}
+
+                        localServer.nom_colour_order=shot.ballOrder;
+
+                        cue._speed=shot.speed;
+                        cue._angle=shot.angle;
+                        cue._offset=shot.offset;
+                        cue._theta=shot.theta;
+                        cue.perturb();
+                        cue.shot();
+
+                        balls[0]._vx=cue._ballv*sin(cue._angle);
+                        balls[0]._vy=cue._ballv*cos(cue._angle);
+                        balls[0]._xspin=cue._ballparspin*sin(cue._angle)+cue._ballperspin*cos(cue._angle);
+                        balls[0]._yspin=cue._ballparspin*cos(cue._angle)-cue._ballperspin*sin(cue._angle);
+                        balls[0]._rspin=cue._ballrspin;
+
+                        localServer.serverballs[0]._vx=balls[0]._vx;
+                        localServer.serverballs[0]._vy=balls[0]._vy;
+                        localServer.serverballs[0]._xspin=balls[0]._xspin;
+                        localServer.serverballs[0]._yspin=balls[0]._yspin;
+                        localServer.serverballs[0]._rspin=balls[0]._rspin;
+
+                        localServer.result=localServer.simulate(localServer.serverballs,localServer.servercushions);
+                        result=localServer.result;
+                        t=0;
+                        done=false;
+                    }
+                }
             }
+//            else if (gametype==3)
+//            {
+//                change=true;
+//                //solo lineup.
+//                //check if correct ball hit.
+//                if (localServer.ball_hit_order.size()==0) {gameover=true; return;}
+//                if (localServer.ball_potted_order.size()==0) {gameover=true; return;}
+//
+//                if (isredon)
+//                {
+//                    for (int i=0;i<localServer.ball_hit_order.size();i++)
+//                    {
+//                        if (localServer.ball_hit_order[i]<8) {gameover=true; return;}
+//                    }
+//                    //check pots.
+//                    for (int i=0;i<localServer.ball_potted_order.size();i++)
+//                    {
+//                        if (localServer.ball_potted_order[i]<8) {gameover=true; return;}
+//                    }
+//                    //add scores.
+//                    p1score+=localServer.ball_potted_order.size();
+//                    p1_highbreak=p1score;
+//                }
+//                else
+//                {
+//                    if (localServer.ball_hit_order.size()>1) {gameover=true; return;}
+//                    if (localServer.ball_hit_order[0]!=nom_colour_order) {gameover=true; return;}
+//                    if (localServer.ball_potted_order.size()>1) {gameover=true; return;}
+//                    if (localServer.ball_potted_order[0]!=nom_colour_order) {gameover=true; return;}
+//                    p1score+=localServer.ball_potted_order[0];
+//                    p1_highbreak=p1score;
+//                }
+//                isredon=!isredon;
+//
+//                stats_text[4].setString("N/A");
+//                stats_text[5].setString("N/A");
+//                stats_text[7].setString(std::to_string(p1_highbreak));
+//                stats_text[8].setString("N/A");
+//                if (p1_highbreak>=100) {stats_text[10].setString("1");}
+//                stats_text[11].setString("N/A");
+//
+//                sf::FloatRect bounds;
+//                for (int i=0;i<stats_text.size();i++)
+//                {
+//                    bounds=stats_text[i].getLocalBounds();
+//                    stats_text[i].setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
+//                }
+//                localServer.respot();
+//                for (int i=1;i<7;i++)
+//                {
+//                    balls[i]._x=localServer.serverballs[i]._x;
+//                    balls[i]._y=localServer.serverballs[i]._y;
+//                    balls[i]._z=ball_radius;
+//                }
+//
+//                //scoreboard stuff.
+//                textp1score.setString(std::to_string(p1score));
+//
+//                bounds=textp1score.getLocalBounds();
+//                textp1score.setOrigin(sf::Vector2f(int(bounds.left+0.5*bounds.width),int(bounds.top+0.5*bounds.height)));
+//            }
         }
     }
     for (int i=0;i<22;i++)
     {
-        balls[i]._shape.setPosition(sf::Vector2f(_sfac*balls[i]._x,_sfac*raw_height/(1.+panel_ratio)-_sfac*balls[i]._y));
+        if (balls[i]._potted) {balls[i]._shape.setPosition(sf::Vector2f(-1000.,-1000.));}
+        else {balls[i]._shape.setPosition(sf::Vector2f(_sfac*balls[i]._x,_sfac*raw_height/(1.+panel_ratio)-_sfac*balls[i]._y));}
     }
 }
 
@@ -1420,11 +1541,11 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                         {
                             sendPacket(7);
                         }
-                    }
-                    if (gametype==3)
-                    {
-                        localServer.serverballs[0]._x=balls[0]._x;
-                        localServer.serverballs[0]._y=balls[0]._y;
+                        else if (gametype==2 || gametype==3)
+                        {
+                            localServer.serverballs[0]._x=balls[0]._x;
+                            localServer.serverballs[0]._y=balls[0]._y;
+                        }
                     }
                 }
             }
@@ -1541,10 +1662,11 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                         done=false;
                         return;
                     }
-
-                    if (gametype==3)
+                    else if (gametype==2 || gametype==3)
                     {
                         //solo lineup.
+                        localServer.nom_colour_order=nom_colour_order;
+
                         localServer.serverballs[0]._vx=balls[0]._vx;
                         localServer.serverballs[0]._vy=balls[0]._vy;
                         localServer.serverballs[0]._xspin=balls[0]._xspin;
@@ -1561,7 +1683,7 @@ void GameScreen::update(double dt,sf::Vector2i mouse_pos)
                 if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
                 {
                     //ball on.
-                    if (!isredon || isfreeball)
+                    if (isfreeball || (!isredon && !redsLeft))
                     {
                         for (int i=0;i<6;i++)
                         {

@@ -414,6 +414,25 @@ void Server::handleRedOn()
             newIsFreeBall=false;
         }
     }
+    else
+    {
+        //check if any reds left.
+        if (redsLeft)
+        {
+            bool allPotted=true;
+            for (int i=7;i<22;i++)
+            {
+                if (!serverballs[i]._potted) {allPotted=false; break;}
+            }
+            if (allPotted) {redsLeft=false;}
+
+            if (!redsLeft)
+            {
+                newIsRedOn=false;
+                newIsFreeBall=false;
+            }
+        }
+    }
 }
 
 void Server::handleColourOn()
@@ -424,7 +443,14 @@ void Server::handleColourOn()
     {
         isfoul=true;
         //ismiss???
-        foulscore=std::max(foulscore,std::max(ball_hit_order[0],4));
+        if (ball_hit_order[0]>=8)
+        {
+            foulscore=std::max(foulscore,4);
+        }
+        else
+        {
+            foulscore=std::max(foulscore,std::max(ball_hit_order[0],4));
+        }
     }
 
     //check which balls were potted.
@@ -434,7 +460,14 @@ void Server::handleColourOn()
         if (ball_potted_order[i]!=nom_colour_order)
         {
             isfoul=true;
-            foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));
+            if (ball_potted_order[i]>=8)
+            {
+                foulscore=std::max(foulscore,4);
+            }
+            else
+            {
+                foulscore=std::max(foulscore,std::max(ball_potted_order[i],4));
+            }
         }
         else
         {
@@ -464,6 +497,23 @@ void Server::handleColourOn()
             newIsFreeBall=false;
         }
         else
+        {
+            newIsRedOn=false;
+            newIsFreeBall=false;
+        }
+    }
+
+    //check if any reds left.
+    if (redsLeft)
+    {
+        bool allPotted=true;
+        for (int i=7;i<22;i++)
+        {
+            if (!serverballs[i]._potted) {allPotted=false; break;}
+        }
+        if (allPotted) {redsLeft=false;}
+
+        if (!redsLeft)
         {
             newIsRedOn=false;
             newIsFreeBall=false;
@@ -595,23 +645,6 @@ void Server::applyRulesAndScore()
         else if (isfreeball)
         {
             handleFreeBall();
-        }
-    }
-
-    //check if any reds left.
-    if (redsLeft)
-    {
-        bool allPotted=true;
-        for (int i=7;i<22;i++)
-        {
-            if (!serverballs[i]._potted) {allPotted=false; break;}
-        }
-        if (allPotted) {redsLeft=false;}
-
-        if (!redsLeft)
-        {
-            newIsRedOn=false;
-            newIsFreeBall=false;
         }
     }
 
