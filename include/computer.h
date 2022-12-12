@@ -9,6 +9,7 @@ struct potInfo {
     double potAngle;
     double distToObject;
     double distToPocket;
+    double pocketAngle;
     double fitness;
 };
 
@@ -169,6 +170,12 @@ void Computer::getPotOn(int ballOrder)
         potsOn.back().distToPocket=d;
         d=getAngle(x1-x0,y1-y0,x3-x2,y3-y2);
         potsOn.back().potAngle=d;
+
+        if (isBetween) {potsOn.back().pocketAngle=0.;}
+        else
+        {
+            potsOn.back().pocketAngle=getAngle(x3-cPottingPoints2[j][0],y3-cPottingPoints2[j][1],x2-x3,y2-y3);
+        }
     }
 
     //middle pockets.
@@ -205,6 +212,7 @@ void Computer::getPotOn(int ballOrder)
         potsOn.back().distToPocket=d;
         d=getAngle(x1-x0,y1-y0,x3-x2,y3-y2);
         potsOn.back().potAngle=d;
+        potsOn.back().pocketAngle=getAngle(blue_x-x3,blue_y-y3,x2-x3,y2-y3);
     }
 }
 
