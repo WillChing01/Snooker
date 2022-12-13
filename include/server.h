@@ -46,6 +46,7 @@ class Server
         sf::IpAddress serverIp;
         unsigned short port;
         sf::TcpListener listener;
+        bool _connectionError=false;
 
         std::array<sf::TcpSocket,2> players;
         std::array<sf::TcpSocket,4> spectators;
@@ -101,15 +102,16 @@ Server::Server(bool isOnline)
     if (isOnline)
     {
         try {serverIp=sf::IpAddress::getLocalAddress();}
-        catch (...) {}
+        catch (...) {_connectionError=true;}
         listener.setBlocking(false);
         if (listener.listen(sf::Socket::AnyPort)!=sf::Socket::Done)
         {
             //error.
             std::cout << "Tcp listener could not bind to port." << std::endl;
+            _connectionError=true;
         }
         try{port=listener.getLocalPort();}
-        catch (...) {}
+        catch (...) {_connectionError=true;}
     }
 
     for (int i=0;i<2;i++)
