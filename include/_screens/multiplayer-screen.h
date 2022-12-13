@@ -15,6 +15,12 @@ class MultiplayerScreen : public GameState
 
         sf::RectangleShape selectionBorder;
 
+        sf::Text errorMessage;
+        bool errorFade=true;
+        const double fadeTime=10.;
+        const double hangTime=3.;
+        double t=0.;
+
     public:
         int _framesBestOf=3;
 
@@ -66,6 +72,14 @@ class MultiplayerScreen : public GameState
             port.setPosition(sf::Vector2f(int(_sfac*raw_width*0.3),int(_sfac*raw_height*0.5+1.2*buttonwidth/_buttons[0]._ratio)));
             port.setFillColor(sf::Color(255,255,255));
             _shapes.push_back(&port);
+
+            errorMessage.setFont(_thinfont);
+            errorMessage.setCharacterSize(int(0.75*buttonwidth*_buttons[0]._textfactor/_buttons[0]._ratio));
+            textrect=errorMessage.getLocalBounds();
+            errorMessage.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+            errorMessage.setPosition(sf::Vector2f(int(0.5*_sfac*raw_width),int(0.50*_sfac*raw_height+(3.*1.2)*buttonwidth/_buttons[0]._ratio)));
+            errorMessage.setFillColor(sf::Color(255,0,0));
+            _shapes.push_back(&errorMessage);
 
             for (int i=0;i<6;i++)
             {
@@ -247,6 +261,29 @@ class MultiplayerScreen : public GameState
                 pos=_buttons[5]._shape.getPosition();
             }
             selectionBorder.setPosition(pos);
+
+            //if error, make it fade gradually.
+            if (errorFade)
+            {
+                t=std::min(t+dt,hangTime+0.01);
+                if (t>hangTime)
+                {
+                    sf::Color color=errorMessage.getColor();
+                    color.a=std::max(0,int(color.a-(dt/fadeTime)*255.));
+                    errorMessage.setColor(color);
+                }
+            }
+        };
+
+        void displayError(std::string message, bool shouldFade=true)
+        {
+            errorMessage.setString(message);
+            sf::FloatRect textrect=errorMessage.getLocalBounds();
+            errorMessage.setOrigin(sf::Vector2f(int(textrect.left+0.5*textrect.width),int(textrect.top+0.5*textrect.height)));
+            errorMessage.setColor(sf::Color(255,0,0,255));
+
+            errorFade=shouldFade;
+            t=0.;
         };
 };
 

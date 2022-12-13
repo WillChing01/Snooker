@@ -103,17 +103,30 @@ int main()
                 else if (states.back()->_stateTarget=="Singleplayer") {states.push_back(new SingleplayerScreen());}
                 else if (states.back()->_stateTarget=="SingleplayerAI") {states.push_back(new GameScreen(dfactor,2,"",50000,name));}
                 else if (states.back()->_stateTarget=="SingleplayerLineup") {states.push_back(new GameScreen(dfactor,3,"",50000,name));}
-                else if (states.back()->_stateTarget=="Multiplayer") {states.push_back(new MultiplayerScreen(dfactor,localip,std::to_string(localport)));}
+                else if (states.back()->_stateTarget=="Multiplayer")
+                {
+                    states.push_back(new MultiplayerScreen(dfactor,localip,std::to_string(localport)));
+
+                    if (server._connectionError)
+                    {
+                        //display permanent error message for off-line.
+                        MultiplayerScreen* temp=dynamic_cast<MultiplayerScreen*>(static_cast<GameState*>(states.back()));
+                        temp->displayError("No internet connection!",false);
+                    }
+                }
                 else if (states.back()->_stateTarget=="MultiplayerHost")
                 {
-                    server.resetServer();
-                    MultiplayerScreen* temp=dynamic_cast<MultiplayerScreen*>(static_cast<GameState*>(states.back()));
-                    server.framesbestof=temp->_framesBestOf;
-                    try
+                    if (!server._connectionError)
                     {
-                        states.push_back(new GameScreen(dfactor,0,localip,localport,std::string(states.back()->_inputboxes[2]._text.getString())));
+                        server.resetServer();
+                        MultiplayerScreen* temp=dynamic_cast<MultiplayerScreen*>(static_cast<GameState*>(states.back()));
+                        server.framesbestof=temp->_framesBestOf;
+                        try
+                        {
+                            states.push_back(new GameScreen(dfactor,0,localip,localport,std::string(states.back()->_inputboxes[2]._text.getString())));
+                        }
+                        catch (...) {}
                     }
-                    catch (...) {}
                 }
                 else if (states.back()->_stateTarget=="MultiplayerJoin")
                 {
@@ -123,7 +136,15 @@ int main()
                         port=std::stoi(std::string(states.back()->_inputboxes[1]._text.getString()));
                         states.push_back(new GameScreen(dfactor,1,ip,port,std::string(states.back()->_inputboxes[2]._text.getString())));
                     }
-                    catch (...) {}
+                    catch (...)
+                    {
+                        if (!server._connectionError)
+                        {
+                            //display an error message.
+                            MultiplayerScreen* temp=dynamic_cast<MultiplayerScreen*>(static_cast<GameState*>(states.back()));
+                            temp->displayError("Could not connect to host!");
+                        }
+                    }
                 }
                 else if (states.back()->_stateTarget=="Options") {states.push_back(new OptionsScreen());}
                 else if (states.back()->_stateTarget=="Controls") {states.push_back(new ControlScreen());}
