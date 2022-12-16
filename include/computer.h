@@ -23,10 +23,29 @@ struct _shotInfo {
 
 class Computer : public Server
 {
+    private:
+        const double dtheta=0.02;
+        const double ddist=2.5;
+        const int N=200;
+
+        const double xbound=cPottingPoints[2][0]-cPottingPoints[0][0];
+        const double ybound=cPottingPoints[1][1]-cPottingPoints[0][1];
+
+        const double pocketAngleMin=0.;
+        const double pocketAngleMax=pi/4.;
+        const double potAngleMin=0.;
+        const double potAngleMax=pi/2.;
+        const double distMin=0.;
+        const double distMax=std::sqrt(xbound*xbound+ybound*ybound);
+
+        std::vector<std::vector<std::vector<std::vector<double> > > > _ctable;
+        std::vector<std::vector<std::vector<std::vector<double> > > > _mtable;
+        // table[pocketAngle][distToPocket][potAngle][distToObject] = chance of pot.
+
     public:
         std::vector<potInfo> potsOn;
 
-        Computer() {};
+        Computer();
         double getAngle(double x1, double y1, double x2, double y2);
         bool isBetweenTwoPoints(double x1, double y1, double x2, double y2, double x3, double y3);
         bool isBallIntersectingLine(double x1, double y1, double x2, double y2, double x3, double y3);
@@ -35,7 +54,15 @@ class Computer : public Server
         void getPotOn(int ballOrder);
         void getPotsOn(int ballOrder, bool anyColour);
         _shotInfo getShot(int ballOrder);
+        bool isWithinBounds(double x, double y);
+        void populateTable();
 };
+
+Computer::Computer()
+{
+    //find file to populate table.
+    //or calculate table from scratch if necessary.
+}
 
 double Computer::getAngle(double x1, double y1, double x2, double y2)
 {
@@ -286,6 +313,157 @@ _shotInfo Computer::getShot(int ballOrder)
     }
 
     return shot;
+}
+
+bool Computer::isWithinBounds(double x, double y)
+{
+    return (x>=cPottingPoints[0][0] && x<=cPottingPoints[2][0] && y>=cPottingPoints[0][1] && y<=cPottingPoints[1][1]);
+}
+
+void Computer::populateTable()
+{
+    //set up cue.
+    Cue testCue=Cue();
+
+    //put away all balls except for cue ball and one object ball.
+    for (int i=2;i<22;i++)
+    {
+        serverballs[i]._potted=true;
+        serverballs[i]._x=-1000.;
+        serverballs[i]._y=-1000.;
+        serverballs[i]._z=-1000.;
+    }
+
+    serverballs[0]._potted=false;
+    serverballs[1]._potted=false;
+
+    //populate table for corner pockets.
+    _ctable.clear();
+
+    double pocketAngle=pocketAngleMin;
+    double distToPocket=distMin;
+    double potAngle=potAngleMin;
+    double distToObject=distMin;
+
+    bool foundLegal=false;
+
+    double x0,y0; double x1,y1; double shotAngle;
+
+    while (pocketAngle<pocketAngleMax)
+    {
+        _ctable.push_back(std::vector<std::vector<std::vector<double> > >());
+        while (distToPocket<distMax)
+        {
+            _ctable.back().push_back(std::vector<std::vector<double> >());
+            while (potAngle<potAngleMax)
+            {
+                _ctable.back().back().push_back(std::vector<double>());
+                while (distToObject<distMax)
+                {
+                    _ctable.back().back().back().push_back(-1.);
+                    //check if balls in sensible positions.
+                    foundLegal=false;
+
+                    if (!foundLegal)
+                    {
+                        x1=cPottingPoints[0][0]+distToPocket*std::cos(pi/4.+pocketAngle);
+                        y1=cPottingPoints[0][1]+distToPocket*std::sin(pi/4.+pocketAngle);
+
+                        x0=x1+(2.*ball_radius+DOUBLE_EPSILON)*std::cos(pi/4.+pocketAngle)+distToObject*std::cos(pi/4.+pocketAngle+potAngle);
+                        y0=y1+(2.*ball_radius+DOUBLE_EPSILON)*std::cos(pi/4.+pocketAngle)+distToObject*std::sin(pi/4.+pocketAngle+potAngle);
+
+                        shotAngle=pi+(pi/4.+pocketAngle+potAngle);
+
+                        if (isWithinBounds(x1,y1) && isWithinBounds(x0,y0)) {foundLegal=true;}
+                    }
+
+                    if (!foundLegal)
+                    {
+                        x1=cPottingPoints[0][0]+distToPocket*std::cos(pi/4.-pocketAngle);
+                        y1=cPottingPoints[0][1]+distToPocket*std::sin(pi/4.-pocketAngle);
+
+                        x0=x1+(2.*ball_radius+DOUBLE_EPSILON)*std::cos(pi/4.-pocketAngle)+distToObject*std::cos(pi/4.-pocketAngle+potAngle);
+                        y0=y1+(2.*ball_radius+DOUBLE_EPSILON)*std::cos(pi/4.-pocketAngle)+distToObject*std::sin(pi/4.-pocketAngle+potAngle);
+
+                        shotAngle=pi+(pi/4.-pocketAngle+potAngle);
+
+                        if (isWithinBounds(x1,y1) && isWithinBounds(x0,y0)) {foundLegal=true;}
+                    }
+
+                    if (!foundLegal)
+                    {
+                        x1=cPottingPoints[0][0]+distToPocket*std::cos(pi/4.+pocketAngle);
+                        y1=cPottingPoints[0][1]+distToPocket*std::sin(pi/4.+pocketAngle);
+
+                        x0=x1+(2.*ball_radius+DOUBLE_EPSILON)*std::cos(pi/4.+pocketAngle)+distToObject*std::cos(pi/4.+pocketAngle-potAngle);
+                        y0=y1+(2.*ball_radius+DOUBLE_EPSILON)*std::cos(pi/4.+pocketAngle)+distToObject*std::sin(pi/4.+pocketAngle-potAngle);
+
+                        shotAngle=pi+(pi/4.+pocketAngle-potAngle);
+
+                        if (isWithinBounds(x1,y1) && isWithinBounds(x0,y0)) {foundLegal=true;}
+                    }
+
+                    if (!foundLegal)
+                    {
+                        x1=cPottingPoints[0][0]+distToPocket*std::cos(pi/4.-pocketAngle);
+                        y1=cPottingPoints[0][1]+distToPocket*std::sin(pi/4.-pocketAngle);
+
+                        x0=x1+(2.*ball_radius+DOUBLE_EPSILON)*std::cos(pi/4.-pocketAngle)+distToObject*std::cos(pi/4.-pocketAngle-potAngle);
+                        y0=y1+(2.*ball_radius+DOUBLE_EPSILON)*std::cos(pi/4.-pocketAngle)+distToObject*std::sin(pi/4.-pocketAngle-potAngle);
+
+                        shotAngle=pi+(pi/4.-pocketAngle-potAngle);
+
+                        if (isWithinBounds(x1,y1) && isWithinBounds(x0,y0)) {foundLegal=true;}
+                    }
+
+                    if (foundLegal)
+                    {
+                        //perform repeat simulations to estimate chance of successful pot.
+                        int success=0;
+                        for (int i=0;i<N;i++)
+                        {
+                            //simulate.
+                            serverballs[0]._potted=false; serverballs[1]._potted=false;
+
+                            serverballs[0]._x=x0; serverballs[0]._y=y0; serverballs[0]._z=ball_radius;
+                            serverballs[1]._x=x1; serverballs[1]._y=y1; serverballs[1]._z=ball_radius;
+
+                            //set the direction and speed of the cue ball.
+                            testCue._speed=40.;
+                            testCue._offset=0.;
+                            testCue._theta=0.;
+                            testCue._angle=0.5*pi-shotAngle;
+                            testCue.perturb();
+                            testCue.shot();
+
+                            serverballs[0]._vx=testCue._ballv*sin(testCue._angle);
+                            serverballs[0]._vy=testCue._ballv*cos(testCue._angle);
+                            serverballs[0]._xspin=testCue._ballparspin*sin(testCue._angle)+testCue._ballperspin*cos(testCue._angle);
+                            serverballs[0]._yspin=testCue._ballparspin*cos(testCue._angle)-testCue._ballperspin*sin(testCue._angle);
+                            serverballs[0]._rspin=testCue._ballrspin;
+
+                            result=simulate(serverballs,servercushions,false);
+
+                            if (serverballs[1]._potted) {success++;}
+                        }
+
+                        double chance=double(success)/double(N)+DOUBLE_EPSILON; //ensure positive.
+
+                        _ctable.back().back().back().back()=chance;
+                    }
+
+                    distToObject+=ddist;
+                }
+                potAngle+=dtheta;
+            }
+            distToPocket+=ddist;
+        }
+        pocketAngle+=dtheta;
+    }
+
+    //populate table for middle pockets.
+
+    return;
 }
 
 #endif // COMPUTER_H_INCLUDED

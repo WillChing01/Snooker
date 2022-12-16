@@ -74,7 +74,7 @@ class Server
         std::vector<std::array<double,66> > result;
 
         Server(bool isOnline=true);
-        std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6]);
+        std::vector<std::array<double,66> > simulate(Ball balls[22],Cushion cush[6], bool showResult);
         Eigen::Matrix<double,46,1> collisions(Ball b[22], Cushion cush[6]);
         void handleIncomingConnections();
         void executionThread();
@@ -1164,7 +1164,7 @@ Eigen::Matrix<double,46,1> Server::collisions(Ball b[22],Cushion cush[6])
     return dv;
 }
 
-std::vector<std::array<double,66> > Server::simulate(Ball balls[22],Cushion cush[6])
+std::vector<std::array<double,66> > Server::simulate(Ball balls[22],Cushion cush[6], bool showResult=true)
 {
     //assumes that the input is not a static scenario (where all balls are still).
     std::vector<std::array<double,66> > pos;
@@ -2659,47 +2659,50 @@ std::vector<std::array<double,66> > Server::simulate(Ball balls[22],Cushion cush
         }
 
         //add positions to list for each timestep.
-        start=ceil(totaltime/0.01);
-        for (int i=0;i<int(floor((totaltime+t)/0.01)-start)+1;i++)
+        if (showResult)
         {
-            t0=(start+i)*0.01-totaltime;
-            for (int j=0;j<22;j++)
+            start=ceil(totaltime/0.01);
+            for (int i=0;i<int(floor((totaltime+t)/0.01)-start)+1;i++)
             {
-                if (balls[j]._potted)
+                t0=(start+i)*0.01-totaltime;
+                for (int j=0;j<22;j++)
                 {
-                    temp[3*j]=-100.;
-                    temp[3*j+1]=-100.;
-                    temp[3*j+2]=-100.;
-                    continue;
-                }
-                if (!balls[j]._onrim)
-                {
-                    temp[3*j]=balls[j]._ax[2]*t0*t0+balls[j]._ax[1]*t0+balls[j]._ax[0];
-                    temp[3*j+1]=balls[j]._ay[2]*t0*t0+balls[j]._ay[1]*t0+balls[j]._ay[0];
-                    temp[3*j+2]=balls[j]._az[2]*t0*t0+balls[j]._az[1]*t0+balls[j]._az[0];
-                }
-                else
-                {
-                    if (int(floor(1000.*t0))==balls[i]._rimpos.size()-1)
+                    if (balls[j]._potted)
                     {
-                        out=balls[i]._rimpos[balls[i]._rimpos.size()-1];
-                        temp[3*j]=out[0];
-                        temp[3*j+1]=out[1];
-                        temp[3*j+2]=out[2];
+                        temp[3*j]=-100.;
+                        temp[3*j+1]=-100.;
+                        temp[3*j+2]=-100.;
+                        continue;
+                    }
+                    if (!balls[j]._onrim)
+                    {
+                        temp[3*j]=balls[j]._ax[2]*t0*t0+balls[j]._ax[1]*t0+balls[j]._ax[0];
+                        temp[3*j+1]=balls[j]._ay[2]*t0*t0+balls[j]._ay[1]*t0+balls[j]._ay[0];
+                        temp[3*j+2]=balls[j]._az[2]*t0*t0+balls[j]._az[1]*t0+balls[j]._az[0];
                     }
                     else
                     {
-                        //interpolate.
-                        a1=balls[j]._times[int(floor(1000.*t0)+1)]-balls[j]._times[int(floor(1000.*t0))];
-                        out=balls[j]._rimpos[int(floor(1000.*t0))];
-                        out2=balls[j]._rimpos[int(floor(1000.*t0)+1)];
-                        temp[3*j]=out[0]+(out2[0]-out[0])*(t0-balls[j]._times[int(floor(1000.*t0))])/a1;
-                        temp[3*j+1]=out[1]+(out2[1]-out[1])*(t0-balls[j]._times[int(floor(1000.*t0))])/a1;
-                        temp[3*j+2]=out[2]+(out2[2]-out[2])*(t0-balls[j]._times[int(floor(1000.*t0))])/a1;
+                        if (int(floor(1000.*t0))==balls[i]._rimpos.size()-1)
+                        {
+                            out=balls[i]._rimpos[balls[i]._rimpos.size()-1];
+                            temp[3*j]=out[0];
+                            temp[3*j+1]=out[1];
+                            temp[3*j+2]=out[2];
+                        }
+                        else
+                        {
+                            //interpolate.
+                            a1=balls[j]._times[int(floor(1000.*t0)+1)]-balls[j]._times[int(floor(1000.*t0))];
+                            out=balls[j]._rimpos[int(floor(1000.*t0))];
+                            out2=balls[j]._rimpos[int(floor(1000.*t0)+1)];
+                            temp[3*j]=out[0]+(out2[0]-out[0])*(t0-balls[j]._times[int(floor(1000.*t0))])/a1;
+                            temp[3*j+1]=out[1]+(out2[1]-out[1])*(t0-balls[j]._times[int(floor(1000.*t0))])/a1;
+                            temp[3*j+2]=out[2]+(out2[2]-out[2])*(t0-balls[j]._times[int(floor(1000.*t0))])/a1;
+                        }
                     }
                 }
+                pos.push_back(temp);
             }
-            pos.push_back(temp);
         }
         totaltime+=t;
 
